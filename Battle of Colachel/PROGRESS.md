@@ -49,18 +49,17 @@ Flow references: `frames/flow_refs/` (`Kxx_v1/v2.jpeg`, named after the shot-lis
 | S13 | 18 | Map: glide south to Travancore's red fort | `Map.blend` | ✅ Rendered, review not sent yet |
 | S14 | 19 | Padmanabhapuram palace town, young king on veranda (refs K19a_v1, K19b_v2) | `Palace.blend` / `palace_film.py`, `palace_world.py` | ⏸ PAUSED: builds cleanly (~40 s); next step was test stills at the K19a/K19b camera keys, compare, fix, then 720p render and review mp4 |
 | S15 | 20 | Palace courtyard: disloyal nobles led away, king alone (refs K20_v1/v2) | planned `palace15_film.py` reusing `palace_world.py` | ⬜ Not started (refs ready) |
-| S16 | 21-22 | Map: red Travancore territory spreads north | `Map.blend` | ✅ Rendered (frames 1554-1877 in `frames_map_720p`); review mp4 not encoded yet |
+| S16 | 21-22 | Map: red Travancore territory spreads north | `Map.blend` | ✅ Rendered, review `clip21-22_S16_review_720p.mp4` ready (held for order) |
 | S17 | 23 | English port: pepper onto red-flag English ship, Dutch ship leaves (refs K23_v1/v2) | `port_world.py`, `port_film.py` (no `Port.blend` yet) | ⏸ PAUSED: world script written, film script was being written; next: finish `port_film.py`, build, stills vs K23_v2, render, review mp4 |
-| S18 | 24 | Map: wide, big red Travancore vs small orange Kochi | `Map.blend` | ⏳ 720p frames 1878-2117 rendering into `frames_map_720p`; then encode review |
+| S18 | 24 | Map: wide, big red Travancore vs small orange Kochi | `Map.blend` | ✅ Rendered, review `clip24_S18_review_720p.mp4` ready (held for order) |
 | S19-S69 | 25-82 | Van Imhoff, the threat, war, landing, siege, surrender, aftermath | — | ⬜ Not started |
 
 Sent to the user so far: `Colachel_clips01-04_1080p.mp4`, `clip08_review_v4_720p.mp4`, `clip09-10_S08_review_720p.mp4`.
 **Next to send, in order:** S12, S13, S14, S15, S16, S17, S18.
-Ready but held for order (in `blender/renders/`): `clip18_S13_review_720p.mp4` waits for S12.
+Ready but held for order (in `blender/renders/`): `clip18_S13_review_720p.mp4` (after S12),
+`clip21-22_S16_review_720p.mp4` (after S14, S15), `clip24_S18_review_720p.mp4` (after S17).
 
-**To resume:** (1) check `frames_pepper_720p` has 287 frames and `frames_map_720p` has 2117 (re-run the frames
-command if not; it resumes); (2) encode the S09, S16, S18 reviews from their timing json; (3) send S09, S10, S11;
-(4) finish S12, S14 (+S15), S17 builds as described in the table; (5) then S19 onward.
+**To resume:** all renders are finished and S09-S11 are sent. (1) Finish S12, S14 (+S15), S17 builds as described in the table; (2) send the reviews in order S12, S13, S14, S15, S16, S17, S18; (3) then S19 onward.
 Encode one beat's review (map example, S16):
 `ffmpeg -framerate 24 -start_number <first> -i frames_map_720p/f_%04d.png -i ../../audio/placeholder/S16.wav -filter_complex "[0:v]trim=end_frame=<n>,setpts=PTS-STARTPTS,format=yuv420p[v];[1:a]adelay=800|800,apad[a]" -map "[v]" -map "[a]" -c:v libx264 -crf 18 -c:a aac -shortest clip21-22_S16_review_720p.mp4`
 
