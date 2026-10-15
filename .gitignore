@@ -1,0 +1,28 @@
+# Blender renders and frame caches (10+ GB)
+**/renders/
+**/frames_*/
+
+# Video outputs
+*.mp4
+*.mkv
+*.mov
+*.avi
+*.webm
+
+# Blender backups
+*.blend1
+*.blend2
+*.blend@
+
+# Python cache & temp files
+**/__pycache__/
+*.pyc
+
+# Local credentials & secrets
+*.key
+credentials.json
+.env
+
+# OS metadata
+Thumbs.db
+.DS_Store
