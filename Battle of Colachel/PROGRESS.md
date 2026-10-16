@@ -68,11 +68,11 @@ images sometimes paint the sea with wave lines; ignore that, the sea is always t
 | S30 | 37 | Warships fire broadsides at Colachel | `Landing.blend` / `landing_film.py`, `landing_world.py` · ref **K37** | ✅ BUILT, frames 1-456 (wash-out fixed: beat-only sun/haze/sea keys; sea facets could be crisper) |
 | S31 | 38 | Seven ships, boats, soldiers wade ashore | `Landing.blend` · ref **K38** | ✅ BUILT, frames 457-799 (wash-out fixed) |
 | S32 | 39 | De Lannoy on the beach, pointing | `Landing.blend` · ref **K39** | ✅ BUILT, frames 800-1192 (kit kind `delannoy`) |
-| S33 | 40 | High view: beach, paddies, palms, Padmanabhapuram 13 km inland. Device voice | ref **K40** · map or a beach→palace aerial reusing palace_world | ⬜ Ready to build |
+| S33 | 40 | High view: beach → paddies → palace inland | `Inland.blend` / `inland_film.py`, `inland_world.py` · ref **K40** | ✅ BUILT, frames 1-408 (polish later: less haze, richer greens, palace bigger in frame) |
 | S34 | 41 | Stockade rises post by post; column marches inland, villages burn | `Landing.blend` · ref **K41** | ✅ BUILT, frames 1193-1556 |
-| S35 | 42-43 | Dutch column near Kottar, palace roofs in the distance. Device voice | ref **K42** · inland road set reusing palace_world for the roofs | ⬜ Ready to build |
-| S36 | 44-45 | Kalkulam fort: the king arrives on an elephant, ~2,000 Nairs gather. Device voice | ref **K44** · new fort set; add an elephant to the kit | ⬜ Ready to build |
-| S37 | 46 | Thiruvattar temple at dawn: the king lays his sword before the shrine. Device voice | ref **K46** · new temple set | ⬜ Ready to build |
+| S35 | 42-43 | Dutch column near Kottar, palace roofs behind | `Inland.blend` · ref **K42** | ✅ BUILT, frames 409-943 |
+| S36 | 44-45 | Kalkulam fort, king on the elephant, ~2,400 Nairs | `Inland.blend` · ref **K44** | ✅ BUILT, frames 944-1255 (kit `make_elephant`) |
+| S37 | 46 | Thiruvattar temple at dawn, sword laid down | `Inland.blend` · ref **K46** | ✅ BUILT, frames 1256-1696 (polish later: more pink-gold dawn, richer gopuram carving) |
 | S38 | 47 | Monsoon on the beach | `Landing.blend` · S05 storm | ✅ BUILT, frames 1557-1997 (rain could be heavier) |
 | S39-S69 | 48-82 | Siege, fake cannons, the powder-store shot, surrender, De Lannoy's service, aftermath | — | ⬜ Not started (31 beats) |
 

@@ -2339,10 +2339,10 @@ for _k, _v in {
     "ivory":       (0.93, 0.90, 0.80),
     "capa_green":  (0.16, 0.42, 0.24),
     # Thiruvattar temple (S37, K46): warm grey-brown granite, stone roof tiles, clay oil lamps
-    "temple_st":    (0.55, 0.45, 0.39),
-    "temple_st_dk": (0.43, 0.35, 0.31),
-    "temple_st_lt": (0.63, 0.53, 0.46),
-    "temple_tile":  (0.50, 0.39, 0.32),
+    "temple_st":    (0.58, 0.46, 0.37),
+    "temple_st_dk": (0.46, 0.36, 0.29),
+    "temple_st_lt": (0.66, 0.54, 0.44),
+    "temple_tile":  (0.52, 0.39, 0.30),
     "clay":         (0.62, 0.34, 0.20),
 }.items():
     PALETTE.setdefault(_k, _v)
