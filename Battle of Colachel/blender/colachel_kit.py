@@ -1870,3 +1870,643 @@ def make_shell(name, collection, r=0.3):
     mb.ico(Matrix.Identity(4), "iron", r=r, sub=2)
     mb.seg((0, 0, r * 0.9), (0, 0, r * 1.5), 0.035, 0.035, "post", sides=4)
     return mb.obj(name, collection)
+
+
+# ============================================================================
+# S30-S38 shared parts (the Dutch landing at Colachel). Append-only block:
+# De Lannoy (figure kind "delannoy", static or posable, pointing pose), soldiers carrying
+# loads, troop boats with rowers and oars, ship broadsides (muzzle flashes + gun smoke),
+# shot splashes, surf surges, and a stockade wall raised post by post.
+# ============================================================================
+for _k, _v in {
+    "hair_br":  (0.24, 0.14, 0.08),     # De Lannoy's own dark-brown hair (K39)
+    "sail_set": (0.93, 0.88, 0.74),     # cream sail cloth (same value as port_world)
+    "foam":     (0.94, 0.95, 0.95),     # spray, splashes and surf
+}.items():
+    PALETTE.setdefault(_k, _v)
+
+
+class _PartFilter:
+    """Wraps a figure part builder for a variant kind: drops the primitives for which
+    drop(prim, local_matrix, material, kw) is true and renames materials through remap."""
+
+    def __init__(self, inner, P, drop=None, remap=None):
+        self.inner, self.Pinv, self.drop, self.remap = inner, P.inverted(), drop, remap or {}
+
+    def _go(self, prim, M, m, kw):
+        if self.drop and self.drop(prim, self.Pinv @ M, m, kw):
+            return
+        getattr(self.inner, prim)(M, self.remap.get(m, m), **kw)
+
+    def box(self, M, m, **kw):
+        self._go("box", M, m, kw)
+
+    def cone(self, M, m, **kw):
+        self._go("cone", M, m, kw)
+
+    def ico(self, M, m, **kw):
+        self._go("ico", M, m, kw)
+
+
+def _delannoy_drop(prim, M, m, kw):
+    z = M.translation.z
+    if m == "wig":
+        return True                                   # his own hair, no powdered wig
+    if m == "black" and ((prim == "cone" and kw.get("segments") == 3) or (prim == "ico" and z > 1.75)):
+        return True                                   # tricorn: redrawn with gold lace
+    if prim == "box" and m == "white" and abs(z - 0.98) < 0.01:
+        return True                                   # belt -> orange sash
+    return False
+
+
+def _draw_delannoy(get):
+    def put(part, prim, M, m, **kw):
+        mb, P = get(part)
+        getattr(mb, prim)(P @ M, m, **kw)
+
+    def seg(part, p0, p1, r0, r1, m, **kw):
+        mb, P = get(part)
+        mb.seg(P @ Vector(p0), P @ Vector(p1), r0, r1, m, **kw)
+
+    # own dark hair, swept back and falling to the collar
+    put("body", "ico", T(0, -0.05, 1.70) @ S(1.03, 0.92, 0.76), "hair_br", r=0.152, sub=1)
+    put("body", "box", T(0, -0.118, 1.535) @ S(0.22, 0.07, 0.25), "hair_br")
+    for sx in (-1, 1):
+        put("body", "box", T(sx * 0.138, -0.035, 1.6) @ S(0.045, 0.13, 0.17), "hair_br")
+    # tricorn edged with gold lace
+    put("body", "cone", T(0, 0, 1.78) @ Rz(math.pi / 2), "black", segments=3, r1=0.33, r2=0.28, depth=0.1)
+    put("body", "cone", T(0, 0, 1.737) @ Rz(math.pi / 2), "gold", segments=3, r1=0.345, r2=0.345, depth=0.024)
+    put("body", "ico", T(0, 0, 1.82) @ S(1, 1, 0.55), "black", r=0.15, sub=1)
+    # gold lace down the coat front, epaulettes and cuffs
+    for sx in (-1, 1):
+        put("body", "box", T(sx * 0.1, 0.163, 1.17) @ S(0.026, 0.03, 0.42), "gold")
+    for arm in ("armL", "armR"):
+        put(arm, "box", T(0, 0, -0.005) @ S(0.18, 0.2, 0.07), "gold")
+        put(arm, "box", T(0, 0, -0.055) @ S(0.19, 0.21, 0.035), "gold")
+        put(arm, "box", T(0, 0, -0.48) @ S(0.15, 0.16, 0.025), "gold")
+    # orange sash round the waist, knotted on his right hip (the figure faces +Y: his left is -X)
+    put("body", "box", T(0, 0, 0.98) @ S(0.47, 0.33, 0.13), "flag_o")
+    put("body", "box", T(0.17, 0.12, 0.86) @ Ry(0.18) @ S(0.1, 0.05, 0.26), "flag_o")
+    put("body", "box", T(0.21, 0.1, 0.8) @ Ry(0.32) @ S(0.08, 0.04, 0.2), "flag_o")
+    # sword on his left hip (-X): gilt hilt, black scabbard angled forward and down
+    seg("body", (-0.29, 0.05, 0.98), (-0.34, 0.36, 0.3), 0.034, 0.03, "black", sides=4)
+    seg("body", (-0.34, 0.36, 0.3), (-0.345, 0.38, 0.25), 0.03, 0.012, "gold", sides=4)
+    seg("body", (-0.29, 0.05, 0.98), (-0.275, -0.02, 1.12), 0.024, 0.024, "gold", sides=4)
+    put("body", "box", T(-0.29, 0.05, 0.99) @ Rx(0.45) @ S(0.13, 0.04, 0.03), "gold")
+
+
+_draw_figure_base = _draw_figure
+
+
+def _draw_figure(get, kind, rng, cloth="cloth_w", armed=True):
+    """The kit figure drawer, extended with kind 'delannoy': Eustachius De Lannoy (K39), the
+    Dutch officer's blue coat with gold lace, an orange sash, a sword, his own dark hair, no
+    musket. Every other kind is drawn exactly as before."""
+    if kind != "delannoy":
+        return _draw_figure_base(get, kind, rng, cloth, armed=armed)
+
+    def get_f(p):
+        mb, P = get(p)
+        return _PartFilter(mb, P, _delannoy_drop, {"brass": "gold"}), P
+    _draw_figure_base(get_f, "dutch", rng, cloth, armed=False)
+    _draw_delannoy(get)
+
+
+# His right arm is the kit's "armL" (+X: the figure faces +Y). Out to his right, a little down (K39).
+DELANNOY_POINT = {"armL": (0.3, -1.25, 0.0)}
+POSES.setdefault("point_side", {"body": Matrix.Identity(4),
+                                "legL": T(0.1, 0, 0.88), "legR": T(-0.1, 0, 0.88),
+                                "armL": T(0.27, 0, 1.4) @ Ry(-1.25) @ Rx(0.3),
+                                "armR": T(-0.27, 0, 1.4) @ Rx(0.08) @ Ry(-0.06)})
+
+
+def make_delannoy(name, collection, rig=True, seed=0):
+    """Eustachius De Lannoy, commander of the Dutch landing (S32 on). Define him only here.
+    rig=True: posable (root, parts) from make_rig (key DELANNOY_POINT); else a static
+    figure in the pointing pose."""
+    if rig:
+        return make_rig(name, collection, "delannoy", seed=seed)
+    return make_figure(name, collection, "delannoy", seed=seed, pose="point_side")
+
+
+# ------------------------------------------------------------ carrying soldiers
+CARRY_ARMS = {"crate": {"armL": (0.95, 0.0, -0.12), "armR": (0.95, 0.0, 0.12)},
+              "post": {"armL": (0.12, 0.0, 0.0)},
+              "sack": {"armL": (2.75, 0.0, 0.25)}}
+
+
+def make_carrier(name, collection, load="crate", seed=0, kind="dutch"):
+    """Walker (make_walker parts) with a load fixed to its body: 'crate' held in front,
+    'post' (a sharpened stockade log) carried at the left side, 'sack' on the left shoulder.
+    Animate the walk (animate_walk / animate_route), then call fix_carry_arms."""
+    root, parts = make_walker(name, collection, kind, seed=seed)
+    mb = MB(bevel=0.012)
+    if load == "crate":
+        mb.box(T(0, 0.46, 1.0) @ S(0.56, 0.44, 0.42), "crate")
+        for sx in (-1, 1):
+            mb.box(T(sx * 0.27, 0.46, 1.0) @ S(0.05, 0.46, 0.44), "crate_edge")
+            mb.box(T(0, 0.46, 1.0 + sx * 0.2) @ S(0.58, 0.46, 0.05), "crate_edge")
+    elif load == "post":
+        mb.seg((0.4, -1.7, 0.84), (0.4, 1.9, 1.02), 0.15, 0.145, "log", sides=6)
+        mb.seg((0.4, 1.9, 1.02), (0.4, 2.45, 1.05), 0.145, 0.02, "log_end", sides=6)
+    else:
+        mb.ico(T(0.18, -0.02, 1.62) @ S(0.3, 0.42, 0.24), "canvas", r=1.0, sub=1)
+    mb.obj(f"{name}_load", collection, parent=parts["body"])
+    return root, parts
+
+
+def fix_carry_arms(parts, load):
+    """Hold the load: the carrying arm(s) keep their pose (their walk swing is removed)."""
+    for a, r in CARRY_ARMS[load].items():
+        parts[a].animation_data_clear()
+        parts[a].rotation_euler = r
+
+
+# ------------------------------------------------------------ troop boats
+def _lib_figure(name, collection, kind, pose="stand", seed=0, armed=True):
+    ob = bpy.data.objects.get(name)
+    if ob is None:
+        ob = make_figure(name, collection, kind, seed=seed, pose=pose, armed=armed)
+        hide_source(ob)
+    return ob
+
+
+def make_oar(name, collection, length=3.4):
+    """Oar along +X from its oarlock pivot at the origin (handle inboard to -0.9 m)."""
+    mb = MB()
+    mb.seg((-0.9, 0, 0), (length - 0.7, 0, 0), 0.04, 0.035, "plank", sides=5)
+    mb.box(T(length - 0.38, 0, 0) @ S(0.76, 0.2, 0.035), "plank")
+    return mb.obj(name, collection)
+
+
+def make_troop_boat(name, collection, seed=0, length=7.6, width=2.2, rows=4, standing=1, kind="dutch"):
+    """Longboat full of soldiers (K38): pairs of seated men along the boat, the middle pairs
+    rowing (facing aft, oars out), a standing man at the stern. Bow at +Y, waterline z=0 when
+    the boat sits at z=-0.3. Returns (boat, oars) with oars = [(ob, side)]; everything is a
+    child of the boat."""
+    rng = random.Random(seed)
+    lib = bpy.data.objects.get("LibTroopBoatHull")
+    if lib is None:
+        lib = make_boat("LibTroopBoatHull", collection, length=length, width=width)
+        hide_source(lib)
+    oar_src = bpy.data.objects.get("LibOar") or make_oar("LibOar", collection)
+    hide_source(oar_src)
+    sit = [_lib_figure(f"LibBoatSit{i}", collection, kind, "sit", seed=60 + i) for i in range(3)]
+    stand = _lib_figure("LibBoatStand", collection, kind, "stand", seed=64)
+    boat = instance(lib, name, collection, (0, 0, 0))
+    oars = []
+    y0, y1 = -length * 0.3, length * 0.27
+    for r in range(rows):
+        y = y0 + (y1 - y0) * r / max(1, rows - 1)
+        rowing = 0 < r < rows - 1 or rows <= 2
+        for sx in (-1, 1):
+            fig = instance(sit[(r * 2 + (sx > 0)) % 3], f"{name}_Man{r}{'LR'[sx > 0]}", collection,
+                           (sx * 0.42, y, 0.4), rot_z=(math.pi if rowing else 0.0) + rng.uniform(-0.12, 0.12))
+            fig.parent = boat
+            if rowing:
+                oar = instance(oar_src, f"{name}_Oar{r}{'LR'[sx > 0]}", collection,
+                               (sx * (width / 2 - 0.02), y + 0.15, 0.68), rot_z=0.0 if sx > 0 else math.pi)
+                oar.parent = boat
+                oars.append((oar, sx))
+    for k in range(standing):
+        fig = instance(stand, f"{name}_Stand{k}", collection, (0.25 * (k - (standing - 1) / 2), -length * 0.4, 0.12),
+                       rot_z=rng.uniform(-0.2, 0.2))
+        fig.parent = boat
+    return boat, oars
+
+
+def animate_oars(oars, start, end, period=38, phase=0):
+    """Rowing stroke: catch forward with the blade in the water, pull aft, lift and return."""
+    for ob, sx in oars:
+        base = ob.rotation_euler.z
+        f = start + phase
+        while f <= end:
+            for df, lift, sweep in ((0, 0.16, 0.45), (0.45, 0.16, -0.4), (0.6, -0.14, -0.4), (0.95, -0.14, 0.42)):
+                ob.rotation_euler = (0.0, lift, base + sx * sweep)
+                ob.keyframe_insert("rotation_euler", frame=round(f + df * period))
+            f += period
+        ob.rotation_euler = (0.0, -0.14, base)
+        ob.keyframe_insert("rotation_euler", frame=end + 1)
+
+
+def animate_boat_path(ob, f0, f1, p0, p1, end, z=-0.3, seed=0, ease=0.6, beach_z=None):
+    """Boat rows from p0 to p1 over f0..f1 (slowing as it grounds), bow toward p1, with a
+    gentle roll and heave all the way; it stays at p1 until `end` (beach_z: its height there)."""
+    rng = random.Random(seed)
+    ph = rng.uniform(0, 10)
+    head = math.atan2(p1[1] - p0[1], p1[0] - p0[0]) - math.pi / 2
+    prefs = bpy.context.preferences.edit
+    old = prefs.keyframe_new_interpolation_type
+    prefs.keyframe_new_interpolation_type = "LINEAR"
+    try:
+        for ff in range(1, end + 7, 6):
+            u = max(0.0, min(1.0, (ff - f0) / max(1, f1 - f0)))
+            u = 1 - (1 - u) ** (1 + ease)                       # ease out
+            x, y = p0[0] + (p1[0] - p0[0]) * u, p0[1] + (p1[1] - p0[1]) * u
+            calm = 0.35 if u >= 1.0 else 1.0
+            zz = (beach_z if (beach_z is not None and u >= 1.0) else z) + 0.07 * calm * math.sin(ff / 9.0 + ph)
+            ob.location = (x, y, zz)
+            ob.rotation_euler = (0.035 * calm * math.sin(ff / 13.0 + ph), 0.05 * calm * math.sin(ff / 11.0 + 2 + ph),
+                                 head)
+            ob.keyframe_insert("location", frame=ff)
+            ob.keyframe_insert("rotation_euler", frame=ff)
+    finally:
+        prefs.keyframe_new_interpolation_type = old
+
+
+# ------------------------------------------------------------ ship broadsides
+def ship_gun_ports(length=38.0, beam=10.0, side=1):
+    """Ship-local muzzle points of make_ship's gun row on one side (side +1 = starboard, +X)."""
+    n = 14
+    out = []
+    for i in range(2, n - 2):
+        t = (i + 0.5) / n
+        w = beam / 2 * math.sin(math.pi * (0.12 + 0.88 * t)) ** 0.5
+        out.append(Vector((side * (w + 0.75), (t - 0.5) * length, 2.7)))
+    return out
+
+
+def ship_broadside(ship, collection, volleys, end, side=1, length=38.0, beam=10.0, seed=0, ripple=3,
+                   puffs=2, flash=1.7, smoke=(2.6, 4.2), drift=(0.0, 0.0), linger=150):
+    """Broadside from a kit ship (K37): the guns of one side fire one after another bow to
+    stern (`ripple` frames apart) at each volley frame: a faceted orange flash at each muzzle
+    (child of the ship, so it rocks with it) and white gun smoke that billows out sideways,
+    rises and drifts with `drift` (m/s), then thins away after `linger` frames.
+    Uses the ship's un-animated transform for the smoke start points."""
+    fx_materials()
+    rng = random.Random(seed)
+    src = bpy.data.objects.get("LibMuzzleFlash")
+    if src is None:
+        src = make_fireball("LibMuzzleFlash", collection, seed=3, r=1.0)
+        mat_emit("muzzle_core", (1.0, 0.86, 0.38), 7.0)        # brighter than burning timber: it is a flash
+        mat_emit("muzzle_fire", (1.0, 0.52, 0.10), 5.0)
+        recolor(src, {"fx_core": "muzzle_core", "fx_fire": "muzzle_fire", "fx_fire_dk": "muzzle_fire"})
+        hide_source(src)
+    puff_src = []
+    for k in range(3):
+        p = bpy.data.objects.get(f"LibGunSmoke{k}")
+        if p is None:
+            p = make_puff(f"LibGunSmoke{k}", collection, seed=40 + k, m="smoke")
+            hide_source(p)
+        puff_src.append(p)
+    mw = Matrix.LocRotScale(ship.location, ship.rotation_euler, ship.scale)
+    out_dir = (mw.to_3x3() @ Vector((side, 0, 0))).normalized()
+    sc = ship.scale.x
+    ports = ship_gun_ports(length, beam, side)[::-1]          # bow first
+    made = []
+    for gi, p in enumerate(ports):
+        fl = instance(src, f"{ship.name}Flash{gi}", collection, p + Vector((side * flash * 0.6, 0, 0)),
+                      scale=0.0)
+        fl.parent = ship
+        fl.rotation_euler = (rng.uniform(0, 3), rng.uniform(0, 3), rng.uniform(0, 3))
+        made.append(fl)
+        for vf in volleys:
+            ff = vf + gi * ripple + rng.randint(0, 1)
+            for df, s in ((-1, 0.0), (0, flash * 0.6), (1, flash), (3, flash * 0.7), (6, 0.0)):
+                fl.scale = (s / sc * 1.25, s / sc, s / sc)
+                fl.keyframe_insert("scale", frame=ff + df)
+            wp = mw @ p
+            for k in range(puffs):
+                ob = instance(puff_src[(gi + k) % 3], f"{ship.name}Smoke{vf}_{gi}_{k}", collection, wp, scale=0.0)
+                ob.rotation_euler = (rng.uniform(0, 3), rng.uniform(0, 3), rng.uniform(0, 3))
+                vel = out_dir * rng.uniform(4.0, 7.0) + Vector((drift[0], drift[1], rng.uniform(0.3, 1.0))) + \
+                    Vector((rng.uniform(-0.8, 0.8), rng.uniform(-0.8, 0.8), 0))
+                p0 = wp + out_dir * rng.uniform(0.6, 1.6) + Vector((0, 0, rng.uniform(-0.3, 0.6)))
+                b = ff + 1 + k
+                animate_puff(ob, b, end, p0, vel, s0=0.6, s1=rng.uniform(*smoke), grow=16.0, drag=0.7, step=6,
+                             fade=(b + linger + rng.randint(0, 40), b + linger + 90 + rng.randint(0, 40)))
+                made.append(ob)
+    return made
+
+
+# ------------------------------------------------------------ shot splashes
+def make_splash(name, collection, seed=0, h=5.0):
+    """Faceted white plume thrown up by a round shot hitting the water (K37). Origin at the
+    water surface; grow it from scale 0 with animate_splash."""
+    rng = random.Random(seed)
+    mb = MB()
+    mb.cone(T(0, 0, h * 0.5), "foam", segments=6, r1=h * 0.14, r2=h * 0.03, depth=h)
+    for k in range(7):
+        a = k * math.tau / 7 + rng.uniform(-0.2, 0.2)
+        ln = h * rng.uniform(0.45, 0.75)
+        mb.cone(T(math.cos(a) * h * 0.08, math.sin(a) * h * 0.08, 0) @ Rz(a) @ Ry(rng.uniform(0.3, 0.6))
+                @ T(0, 0, ln / 2), "foam", segments=5, r1=h * 0.07, r2=h * 0.01, depth=ln)
+    mb.ico(T(0, 0, h * 0.04) @ S(1.0, 1.0, 0.3), "foam", r=h * 0.22, sub=1, jitter=0.2, rng=rng)
+    for k in range(5):
+        a = rng.uniform(0, math.tau)
+        d = h * rng.uniform(0.2, 0.45)
+        mb.ico(T(math.cos(a) * d, math.sin(a) * d, h * rng.uniform(0.5, 0.9)), "foam", r=h * 0.05, sub=1)
+    return mb.obj(name, collection)
+
+
+def animate_splash(ob, f, size=1.0, rise=5, hold=6, fall=22):
+    """Plume shoots up, hangs, then collapses back into the sea (scale 0 before and after)."""
+    for df, sc in ((-1, (0, 0, 0)), (0, (0.3 * size, 0.3 * size, 0.2 * size)), (rise, (size, size, size)),
+                   (rise + hold, (size * 1.12, size * 1.12, size * 0.9)),
+                   (rise + hold + fall, (size * 1.45, size * 1.45, 0.0))):
+        ob.scale = sc
+        ob.keyframe_insert("scale", frame=f + df)
+
+
+# ------------------------------------------------------------ surf (monsoon)
+def make_breaker(name, collection, length=16.0, seed=0, h=0.8):
+    """A long breaking wave: a ragged roll of white faceted foam along X. Origin at its middle,
+    on the water. Drive it with animate_surge."""
+    rng = random.Random(seed)
+    mb = MB()
+    n = max(4, int(length / 1.1))
+    for i in range(n):
+        x = (i / (n - 1) - 0.5) * length
+        k = 1.0 - abs(i / (n - 1) - 0.5) * 1.3
+        s = h * max(0.25, k) * rng.uniform(0.75, 1.15)
+        mb.ico(T(x, rng.uniform(-0.2, 0.2), s * 0.35) @ S(1.5, 0.9, 0.7), "foam", r=s, sub=1, jitter=0.2, rng=rng)
+        mb.ico(T(x + rng.uniform(-0.4, 0.4), -s * 0.9, s * 0.1) @ S(1.6, 1.4, 0.25), "foam", r=s * 0.8, sub=1,
+               jitter=0.25, rng=rng)
+    return mb.obj(name, collection)
+
+
+def animate_surge(ob, f0, f1, p_from, p_to, z_from=0.0, z_to=0.0, size=1.0, heading=0.0):
+    """One wave: rises out of the sea at p_from, rolls in to p_to (up the beach) and sinks
+    flat. Scale 0 outside f0..f1, so call it again for the next wave."""
+    prefs = bpy.context.preferences.edit
+    old = prefs.keyframe_new_interpolation_type
+    prefs.keyframe_new_interpolation_type = "LINEAR"
+    try:
+        ob.rotation_euler = (0, 0, heading)
+        ob.keyframe_insert("rotation_euler", frame=f0)
+        n = 6
+        for k in range(n + 1):
+            u = k / n
+            f = round(f0 + (f1 - f0) * u)
+            ob.location = (p_from[0] + (p_to[0] - p_from[0]) * u ** 0.8, p_from[1] + (p_to[1] - p_from[1]) * u ** 0.8,
+                           z_from + (z_to - z_from) * u)
+            grow = min(1.0, u / 0.3)
+            flat = 1.0 if u < 0.6 else max(0.0, 1 - (u - 0.6) / 0.4)
+            ob.scale = (size * (0.6 + 0.4 * grow), size * (0.5 + 0.9 * u), size * grow * flat)
+            ob.keyframe_insert("location", frame=f)
+            ob.keyframe_insert("scale", frame=f)
+        ob.scale = (0, 0, 0)
+        ob.keyframe_insert("scale", frame=f0 - 1)
+        ob.keyframe_insert("scale", frame=f1 + 1)
+    finally:
+        prefs.keyframe_new_interpolation_type = old
+
+
+# ------------------------------------------------------------ stockade going up
+def make_stake(name, collection, h=3.8, r=0.24, seed=0):
+    """One sharpened stockade log (same proportions as make_stockade). Origin at its foot."""
+    rng = random.Random(seed)
+    mb = MB()
+    mb.seg((0, 0, 0), (0, 0, h), r, r * 0.95, "log", sides=6, spin=rng.uniform(0, 1))
+    mb.seg((0, 0, h), (0, 0, h + rng.uniform(0.55, 0.8)), r * 0.95, 0.02, "log_end", sides=6)
+    return mb.obj(name, collection)
+
+
+def stockade_posts(center, axis_deg, half_u, half_v, gate=3.5, seed=0):
+    """Post spots of the make_stockade wall (same layout, gate gap on the +v wall):
+    [(x, y, side, s, L, inward)] with s the distance along that side (corner 0 to L)."""
+    rng = random.Random(seed)
+    c = Vector((center[0], center[1], 0))
+    a = math.radians(axis_deg)
+    u = Vector((math.cos(a), math.sin(a), 0))
+    v = Vector((-math.sin(a), math.cos(a), 0))
+    corners = [c - u * half_u - v * half_v, c + u * half_u - v * half_v,
+               c + u * half_u + v * half_v, c - u * half_u + v * half_v]
+    inward = [v, -u, -v, u]
+    out = []
+    for side in range(4):
+        p0, p1 = corners[side], corners[(side + 1) % 4]
+        L = (p1 - p0).length
+        d = (p1 - p0).normalized()
+        s = 0.0
+        while s < L:
+            r = rng.uniform(0.2, 0.27)
+            s += r
+            if side == 2 and abs(s - L / 2) < gate / 2:
+                s += r
+                continue
+            p = p0 + d * s
+            out.append((p.x, p.y, side, s, L, inward[side].copy()))
+            s += r + 0.01
+    return out
+
+
+def build_stockade_rise(name, collection, center, axis_deg, half_u, half_v, ground, plant, gate=3.5, seed=0,
+                        lib=None):
+    """The make_stockade wall as separate posts that are planted one by one: each swings up
+    from a slant, drops into its hole and settles over ~12 frames. plant(side, s, L) -> the
+    frame that post goes in, or None (never built in this film). Returns [(ob, frame)]."""
+    rng = random.Random(seed + 1)
+    if lib is None:
+        lib = []
+        for k in range(4):
+            ob = bpy.data.objects.get(f"LibStake{k}") or make_stake(f"LibStake{k}", collection,
+                                                                     h=3.4 + 0.22 * k, r=0.22 + 0.016 * k, seed=k)
+            hide_source(ob)
+            lib.append(ob)
+    posts = []
+    for i, (x, y, side, s, L, inw) in enumerate(stockade_posts(center, axis_deg, half_u, half_v, gate, seed)):
+        pf = plant(side, s, L)
+        if pf is None:
+            continue
+        z = ground(x, y) - 0.3
+        ob = instance(lib[rng.randint(0, len(lib) - 1)], f"{name}Post{i}", collection, (x, y, z),
+                      rot_z=rng.uniform(0, 6.28))
+        tx, ty = rng.uniform(-0.04, 0.04), rng.uniform(-0.04, 0.04)
+        lean = Vector((-inw.y, inw.x, 0))                       # tip toward the inside while raised
+        for df, dz, k in ((-1, 1.4, 0.0), (0, 1.4, 0.55), (6, 0.7, 0.18), (10, -0.05, 0.0), (13, 0.0, 0.0)):
+            ob.location = (x, y, z + dz)
+            ob.rotation_euler = (tx + lean.x * k, ty + lean.y * k, ob.rotation_euler.z)
+            ob.scale = (0, 0, 0) if df < 0 else (1, 1, 1)
+            ob.keyframe_insert("location", frame=pf + df)
+            ob.keyframe_insert("rotation_euler", frame=pf + df)
+            ob.keyframe_insert("scale", frame=pf + df)
+        posts.append((ob, pf))
+    return posts
+
+
+
+# ============================================================================
+# S36 shared part (Kalkulam): the royal elephant. Append-only block.
+# A low-poly Asian elephant with a caparison (red cloth, green panel, gold borders and
+# fringe), a gold forehead plate, a mahout on the neck and a royal howdah with a red
+# canopy; the king rides seated in it (K44). Faces +Y; origin on the ground under the
+# middle of the body. Legs, trunk and ears are separate parts so it can walk.
+# ============================================================================
+for _k, _v in {
+    "elephant":    (0.43, 0.41, 0.42),
+    "elephant_dk": (0.34, 0.32, 0.33),
+    "ivory":       (0.93, 0.90, 0.80),
+    "capa_green":  (0.16, 0.42, 0.24),
+    # Thiruvattar temple (S37, K46): warm grey-brown granite, stone roof tiles, clay oil lamps
+    "temple_st":    (0.55, 0.45, 0.39),
+    "temple_st_dk": (0.43, 0.35, 0.31),
+    "temple_st_lt": (0.63, 0.53, 0.46),
+    "temple_tile":  (0.50, 0.39, 0.32),
+    "clay":         (0.62, 0.34, 0.20),
+}.items():
+    PALETTE.setdefault(_k, _v)
+
+ELEPHANT_HIP = 1.95                      # shoulder / hip pivot height of the legs
+ELEPHANT_LEGS = {"FL": (0.62, 1.05), "FR": (-0.62, 1.05), "BL": (0.6, -1.15), "BR": (-0.6, -1.15)}
+HOWDAH_FLOOR = 3.62                      # howdah floor height above the elephant's feet
+
+
+def _elephant_leg(mb, front):
+    """One pillar leg hanging down from its pivot (z = 0) to the ground (z = -ELEPHANT_HIP)."""
+    h = ELEPHANT_HIP
+    mb.seg((0, 0, 0.35), (0, 0.02, -h * 0.55), 0.5, 0.42, "elephant", sides=7)
+    mb.seg((0, 0.02, -h * 0.55), (0, 0.0, -h + 0.12), 0.42, 0.44, "elephant", sides=7)
+    mb.cone(T(0, 0.0, -h + 0.07), "elephant_dk", segments=8, r1=0.47, r2=0.45, depth=0.14)
+    for k in range(3 if front else 2):                                    # toenails
+        a = (k - (1 if front else 0.5)) * 0.42
+        mb.box(T(0.42 * math.sin(a), 0.42 * math.cos(a), -h + 0.07) @ Rz(-a) @ S(0.12, 0.05, 0.1), "ivory")
+
+
+def make_elephant(name, collection, seed=0, howdah=True, mahout=True):
+    """Returns (root, parts): parts body, FL, FR, BL, BR (legs, pivot at the shoulder/hip),
+    trunk (pivot at its root), earL, earR, mahout, and 'seat' (an empty on the howdah
+    floor: parent a seated king figure to it)."""
+    rng = random.Random(seed)
+    root = bpy.data.objects.new(name, None)
+    root.empty_display_size = 1.0
+    collection.objects.link(root)
+    parts = {}
+    # ---- body, head, tail
+    mb = MB(bevel=0.02)
+    mb.ico(T(0, -0.1, 2.45) @ S(1.08, 1.75, 1.0), "elephant", r=1.0, sub=2, jitter=0.03, rng=rng)
+    mb.ico(T(0, -1.05, 2.35) @ S(0.98, 0.85, 0.92), "elephant", r=1.0, sub=1)                 # rump
+    mb.ico(T(0, 0.85, 2.65) @ S(0.95, 0.8, 0.95), "elephant", r=1.0, sub=1)                   # shoulders
+    mb.ico(T(0, 1.95, 2.95) @ S(0.78, 0.72, 0.82), "elephant", r=1.0, sub=2)                  # head
+    for sx in (-1, 1):
+        mb.ico(T(sx * 0.3, 2.15, 3.55) @ S(0.36, 0.42, 0.3), "elephant", r=1.0, sub=1)       # forehead domes
+        mb.box(T(sx * 0.5, 2.5, 3.0) @ Rz(sx * 0.5) @ S(0.07, 0.04, 0.05), "black")           # eyes
+        mb.seg((sx * 0.3, 2.45, 2.42), (sx * 0.42, 3.15, 2.05), 0.1, 0.05, "ivory", sides=6)  # tusks
+        mb.seg((sx * 0.42, 3.15, 2.05), (sx * 0.46, 3.45, 2.25), 0.05, 0.015, "ivory", sides=6)
+    mb.seg((0, -1.85, 2.7), (0, -2.1, 1.45), 0.07, 0.04, "elephant_dk", sides=5)             # tail
+    mb.ico(T(0, -2.12, 1.38) @ S(0.08, 0.06, 0.16), "black", r=1.0, sub=1)
+    # caparison: a cloth over the back and down the flanks, green panel, gold borders, fringe
+    ys = [-1.25 + 0.3 * j for j in range(10)]
+    angs = [math.radians(a) for a in range(-118, 119, 12)]
+    rows = []
+    for y in ys:
+        s = 1.0 + 0.08 * math.cos((y + 0.1) / 1.6)
+        rows.append([mb.bm.verts.new((1.13 * s * math.sin(a), y, 2.5 + 1.06 * s * math.cos(a))) for a in angs])
+    for j in range(len(ys) - 1):
+        for i in range(len(angs) - 1):
+            a = abs(math.degrees(angs[i] + angs[i + 1]) / 2)
+            edge = j == 0 or j == len(ys) - 2
+            if a > 100 or edge:
+                m = "gold"
+            elif 55 < a < 88 and 1 < j < len(ys) - 3:
+                m = "capa_green"
+            else:
+                m = "carpet_red"
+            mb.face([rows[j][i], rows[j][i + 1], rows[j + 1][i + 1], rows[j + 1][i]], m)
+    for sx in (-1, 1):                                                       # fringe of gold tassels
+        a = math.radians(118) * sx
+        for j in range(12):
+            y = -1.2 + j * 2.55 / 11
+            mb.cone(T(1.15 * math.sin(a), y, 2.5 + 1.08 * math.cos(a) - 0.12), "gold", segments=4,
+                    r1=0.06, r2=0.0, depth=0.22)
+        for j in range(4):                                                   # gold bosses on the panel
+            mb.ico(T(sx * 1.17, -0.6 + j * 0.45, 2.97), "gold", r=0.07, sub=1)
+    # forehead plate (nettipattam): gold, tapering down the trunk, with bosses
+    pl = [mb.bm.verts.new(p) for p in ((-0.55, 2.42, 3.75), (0.55, 2.42, 3.75), (0.22, 2.78, 2.55),
+                                       (-0.22, 2.78, 2.55))]
+    mb.face(pl[::-1], "gold")
+    for k in range(9):
+        t = (k // 3) / 2.0
+        x = (k % 3 - 1) * (0.32 - 0.18 * t)
+        mb.ico(T(x, 2.5 + 0.33 * t, 3.55 - 0.9 * t), "brass" if k % 2 else "red", r=0.06, sub=1)
+    body = mb.obj(f"{name}_body", collection, parent=root)
+    parts["body"] = body
+    if howdah:
+        hm = MB(bevel=0.015)
+        z = HOWDAH_FLOOR
+        hm.box(T(0, -0.3, z - 0.14) @ S(1.55, 1.7, 0.28), "carpet_red")
+        hm.box(T(0, -0.3, z - 0.27) @ S(1.6, 1.75, 0.06), "gold")
+        hm.box(T(0, -0.3, z - 0.42) @ S(1.3, 1.5, 0.3), "carpet_gold")                       # saddle pad
+        for sx in (-1, 1):                                                   # low gold rails
+            hm.box(T(sx * 0.76, -0.3, z + 0.25) @ S(0.06, 1.7, 0.08), "gold")
+            hm.box(T(0, -0.3 + sx * 0.83, z + 0.25) @ S(1.55, 0.06, 0.08), "gold")
+            for k in range(5):
+                hm.box(T(sx * 0.76, -1.1 + k * 0.4, z + 0.12) @ S(0.05, 0.05, 0.26), "gold")
+        hm.box(T(0, -0.55, z + 0.08) @ S(0.9, 0.7, 0.16), "carpet_gold")                       # cushion
+        for sx in (-1, 1):
+            for sy in (-1, 1):
+                hm.seg((sx * 0.72, -0.3 + sy * 0.78, z), (sx * 0.72, -0.3 + sy * 0.78, z + 1.25), 0.04, 0.035,
+                       "gold", sides=6)
+        hm.cone(T(0, -0.3, z + 1.32), "gold", segments=8, r1=1.08, r2=1.08, depth=0.12)       # canopy rim
+        hm.cone(T(0, -0.3, z + 1.62), "red", segments=8, r1=1.02, r2=0.12, depth=0.62)
+        hm.ico(T(0, -0.3, z + 1.97), "gold", r=0.12, sub=1)
+        hm.cone(T(0, -0.3, z + 2.15), "gold", segments=6, r1=0.06, r2=0.0, depth=0.28)
+        for k in range(16):                                                  # hanging valance points
+            a = k * math.tau / 16
+            hm.cone(T(1.06 * math.cos(a), -0.3 + 1.06 * math.sin(a), z + 1.2), "gold", segments=4,
+                    r1=0.05, r2=0.0, depth=0.14)
+        hm.obj(f"{name}_howdah", collection, parent=body)
+        seat = bpy.data.objects.new(f"{name}_seat", None)
+        collection.objects.link(seat)
+        seat.parent = body
+        seat.location = (0, -0.45, z + 0.1)
+        parts["seat"] = seat
+    if mahout:
+        m = make_figure(f"{name}_mahout", collection, "villager", seed=seed + 3, cloth="cloth_w", pose="sit")
+        m.parent = body
+        m.location = (0, 1.45, 3.05)
+        m.rotation_euler = (0.12, 0, 0)
+        parts["mahout"] = m
+    # ---- ears (flat flaps), pivot at the front edge
+    for sx, key in ((1, "earL"), (-1, "earR")):
+        em = MB(bevel=0.01)
+        pts = [(0, 0, 0.45), (0, -0.55, 0.55), (0, -0.95, 0.2), (0, -0.85, -0.55), (0, -0.4, -0.9), (0, -0.05, -0.6)]
+        vs = [em.bm.verts.new(p) for p in pts]
+        em.face(vs if sx < 0 else vs[::-1], "elephant")
+        ob = em.obj(f"{name}_{key}", collection, parent=body)
+        sol = ob.modifiers.new("Thick", "SOLIDIFY")
+        sol.thickness = 0.08
+        ob.location = (sx * 0.7, 2.05, 3.1)
+        ob.rotation_euler = (0, 0, sx * 0.45)
+        parts[key] = ob
+    # ---- trunk: tapering segments hanging from the face, curling forward at the tip
+    tm = MB(bevel=0.01)
+    pts = [Vector((0, 0, 0)), Vector((0, 0.32, -0.45)), Vector((0, 0.42, -0.95)), Vector((0, 0.42, -1.45)),
+           Vector((0, 0.38, -1.9)), Vector((0, 0.48, -2.25)), Vector((0, 0.68, -2.4))]
+    for k in range(len(pts) - 1):
+        r0 = 0.3 - 0.035 * k
+        tm.seg(pts[k], pts[k + 1] + (pts[k + 1] - pts[k]) * 0.04, r0, r0 - 0.03, "elephant", sides=7)
+        tm.box(T((pts[k] + pts[k + 1]) / 2 + Vector((0, r0 - 0.04, 0))) @ S(r0, 0.03, 0.03), "elephant_dk")
+    trunk = tm.obj(f"{name}_trunk", collection, parent=body)
+    trunk.location = (0, 2.62, 2.85)
+    parts["trunk"] = trunk
+    # ---- legs
+    for key, (x, y) in ELEPHANT_LEGS.items():
+        lm = MB(bevel=0.015)
+        _elephant_leg(lm, front=y > 0)
+        ob = lm.obj(f"{name}_{key}", collection, parent=root)
+        ob.location = (x, y, ELEPHANT_HIP)
+        parts[key] = ob
+    return root, parts
+
+
+def animate_elephant(root, parts, legs, ground, stride_frames=30, swing=0.26, phase=0, heading=None, end=None):
+    """Walk the elephant through timed legs (same format as animate_route) with a diagonal
+    gait, and keep the trunk and ears swaying while it walks and while it stands (to end)."""
+    gait = {"body": parts["body"], "legL": parts["FL"], "legR": parts["FR"], "armL": parts["BL"],
+            "armR": parts["BR"]}
+    animate_route(root, gait, legs, ground, stride_frames=stride_frames, swing=swing, turn=24, bob=0.05,
+                  phase=phase, heading=heading)
+    f = min(l[0] for l in legs)
+    end = end or max(l[1] for l in legs)
+    rng = random.Random(phase + 7)
+    k = 0
+    while f <= end:
+        s = 1 if k % 2 == 0 else -1
+        parts["trunk"].rotation_euler = (0.1 * s + rng.uniform(-0.05, 0.05), 0, 0.16 * s)
+        parts["trunk"].keyframe_insert("rotation_euler", frame=f)
+        for key, sx in (("earL", 1), ("earR", -1)):
+            parts[key].rotation_euler = (0, 0, sx * (0.4 + 0.25 * (k % 2)))
+            parts[key].keyframe_insert("rotation_euler", frame=f + (5 if sx < 0 else 0))
+        f += rng.randint(22, 34)
+        k += 1

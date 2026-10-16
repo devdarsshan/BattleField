@@ -65,15 +65,15 @@ images sometimes paint the sea with wave lines; ignore that, the sea is always t
 | S27 | 34 | Varkala cliffs, the Nair wall | `Varkala.blend` / `varkala_film.py`, `varkala_world.py` · ref **K34** | ✅ REBUILT. Frames 1-465 |
 | S28 | 35 | Map: armies push back and forth at the frontier | `Map.blend` · ref **K35** | ✅ REBUILT. Map frames 2855-3094 |
 | S29 | 36 | Map: ship from Ceylon arrives at Kochi; dotted sea route south to the tip | `Map.blend` · ref **K36** | ✅ BUILT (device voice). Map frames 3095-3540. Map sea swell is now pinned (`SEA_SWELL_FRAMES`), so adding beats never shifts earlier frames |
-| S30 | 37 | Off Colachel: Dutch warships fire broadsides at the shore (Nov 1740). Device voice | ref **K37** · beach world (`colachel_world.py`), new film script | ⬜ Ready to build |
-| S31 | 38 | Seven ships, a crowd of boats, soldiers wade ashore north of Colachel (Feb 1741). Device voice | ref **K38** · beach world | ⬜ Ready to build |
-| S32 | 39 | De Lannoy (new kit character) on the beach pointing, posts being unloaded. Device voice | ref **K39** · beach world; add kind "delannoy" to the kit | ⬜ Ready to build |
+| S30 | 37 | Warships fire broadsides at Colachel | `Landing.blend` / `landing_film.py`, `landing_world.py` · ref **K37** | ⚠ BUILT, frames 1-456. **Fix before render:** camera looks into the low sun → haze + sea glare wash the water white (K37 is clear blue). Turn the shot / lower haze & sea specular for this beat |
+| S31 | 38 | Seven ships, boats, soldiers wade ashore | `Landing.blend` · ref **K38** | ⚠ BUILT, frames 457-799. **Same wash-out fix as S30** |
+| S32 | 39 | De Lannoy on the beach, pointing | `Landing.blend` · ref **K39** | ✅ BUILT, frames 800-1192 (kit kind `delannoy`) |
 | S33 | 40 | High view: beach, paddies, palms, Padmanabhapuram 13 km inland. Device voice | ref **K40** · map or a beach→palace aerial reusing palace_world | ⬜ Ready to build |
-| S34 | 41 | Stockade being built on the beach; a column marches inland taking villages to Kottar. Device voice | ref **K41** · beach world (the stockade asset exists, animate it going up) | ⬜ Ready to build |
+| S34 | 41 | Stockade rises post by post; column marches inland, villages burn | `Landing.blend` · ref **K41** | ✅ BUILT, frames 1193-1556 |
 | S35 | 42-43 | Dutch column near Kottar, palace roofs in the distance. Device voice | ref **K42** · inland road set reusing palace_world for the roofs | ⬜ Ready to build |
 | S36 | 44-45 | Kalkulam fort: the king arrives on an elephant, ~2,000 Nairs gather. Device voice | ref **K44** · new fort set; add an elephant to the kit | ⬜ Ready to build |
 | S37 | 46 | Thiruvattar temple at dawn: the king lays his sword before the shrine. Device voice | ref **K46** · new temple set | ⬜ Ready to build |
-| S38 | 47 | The monsoon hits Colachel beach: rain, wind, rough sea, ships can't come close. Device voice | no Flow ref (both options were rejected); reuse the approved S05 storm (`WEATHER` in `film.py`) on the half-built stockade | ⬜ Ready to build |
+| S38 | 47 | Monsoon on the beach | `Landing.blend` · S05 storm | ✅ BUILT, frames 1557-1997 (rain could be heavier) |
 | S39-S69 | 48-82 | Siege, fake cannons, the powder-store shot, surrender, De Lannoy's service, aftermath | — | ⬜ Not started (31 beats) |
 
 **Complete and approved through S18:** S01–S18 all reviewed and approved.
