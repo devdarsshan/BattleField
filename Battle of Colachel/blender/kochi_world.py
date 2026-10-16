@@ -571,7 +571,7 @@ def make_carpet(name, coll, w=6.0, d=6.0):
 
 
 def make_canopy(name, coll, w=4.6, d=3.8, h=3.15, seed=0):
-    """Cream cloth canopy on four dark posts, with a sagging roof, valance and guy ropes."""
+    """Cream cloth canopy on four dark posts, with a sagging roof and valance."""
     rng = random.Random(seed)
     mb = kit.MB(bevel=0.01)
     for sx in (-1, 1):
@@ -579,11 +579,6 @@ def make_canopy(name, coll, w=4.6, d=3.8, h=3.15, seed=0):
             mb.seg((sx * w / 2, sy * d / 2, 0), (sx * w / 2, sy * d / 2, h + 0.18), 0.065, 0.055, "pole", sides=6)
             mb.box(T(sx * w / 2, sy * d / 2, h + 0.22) @ S(0.13, 0.13, 0.08), "pole")
             mb.box(T(sx * w / 2, sy * d / 2, 0.05) @ S(0.22, 0.22, 0.1), "pole")
-            # guy rope and peg
-            top = Vector((sx * w / 2, sy * d / 2, h + 0.1))
-            peg = Vector((sx * (w / 2 + 1.1), sy * (d / 2 + 0.9), 0.05))
-            mb.seg(top, peg, 0.012, 0.012, "rope", sides=4)
-            mb.box(T(peg) @ S(0.06, 0.06, 0.16), "wood_door")
     posts = mb.obj(name + "Posts", coll)
     # roof cloth: a grid that sags between the posts, a little lumpy
     cl = kit.MB()
@@ -1435,8 +1430,8 @@ def build_props(coll, lib_c, palms, rng, sack):
             put(crate, f"CrateTop{i}", x, y, 0.95, rng.uniform(-0.2, 0.2))
             continue
         put(src, f"Prop{i}", x, y, 0.0, rng.uniform(-0.25, 0.25))
-    # foreground crate stack (K16 lower right) and two at lower left
-    for i, (x, y, z) in enumerate(((2.5, 1.7, 0), (3.4, 1.3, 0), (2.9, 1.5, 0.95), (3.5, 2.3, 0),
+    # foreground crate stack (K16 lower right) shifted clear of camera frame 369
+    for i, (x, y, z) in enumerate(((5.2, 0.2, 0), (5.9, -0.2, 0), (5.5, 0.0, 0.95), (6.1, 0.6, 0),
                                    (-1.0, -6.9, 0), (-1.9, -6.5, 0))):
         put(crate if i % 2 else crate_big, f"FgCrate{i}", x, y, z, rng.uniform(-0.3, 0.3))
     # pepper under the shed: stacks of lying sacks, upright sacks and baskets of pepper
@@ -1616,9 +1611,9 @@ def build_meeting(coll, frames, rng, beats):
     tx, ty = TABLE
     car = make_carpet("Carpet", coll)
     car.location = (tx + 0.2, ty + 1.0, 0)
-    posts, roof = make_canopy("Canopy", coll)
+    posts, roof = make_canopy("Canopy", coll, w=6.4, d=6.4, h=3.35)
     for ob in (posts, roof):
-        ob.location = (tx - 0.7, ty - 1.4, 0)      # offset so the camera sees under its front edge
+        ob.location = (tx + 0.1, ty - 0.6, 0)      # posts sit clear of all camera angles
     tbl = make_table("Table", coll)
     tbl.location = (tx, ty, 0)
     tp = make_table_props("TableProps", coll, TABLE_H)

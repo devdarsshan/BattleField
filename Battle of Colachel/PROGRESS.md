@@ -45,23 +45,19 @@ Flow references: `frames/flow_refs/` (`Kxx_v1/v2.jpeg`, named after the shot-lis
 | S09 | 11-12 | Pepper hills, vines, baskets, river jetty + ship | `Pepper.blend` / `pepper_film.py`, `pepper_world.py` | ✅ Sent for review (`clip11-12_S09_review_720p.mp4`) |
 | S10 | 13 | Map: kingdom forts pop up along the coast | `Map.blend` | ✅ Sent for review |
 | S11 | 14-15 | Map: push in on Kochi, Dutch star fort turns orange | `Map.blend` | ✅ Sent for review |
-| S12 | 16-17 | Kochi fort courtyard: Dutch + rajas sign contracts, porters to ship (ref K16_v1) | `Kochi.blend` / `kochi_film.py`, `kochi_world.py` | ⏸ PAUSED mid-build: world rebuilt for a smaller courtyard; still to do: re-place props, escorts, clerk, porter loop and camera keys, then stills vs K16_v1, 720p render, review mp4 |
-| S13 | 18 | Map: glide south to Travancore's red fort | `Map.blend` | ✅ Rendered, review not sent yet |
-| S14 | 19 | Padmanabhapuram palace town, young king on veranda (refs K19a_v1, K19b_v2) | `Palace.blend` / `palace_film.py`, `palace_world.py` | ⏸ PAUSED: builds cleanly (~40 s); next step was test stills at the K19a/K19b camera keys, compare, fix, then 720p render and review mp4 |
-| S15 | 20 | Palace courtyard: disloyal nobles led away, king alone (refs K20_v1/v2) | planned `palace15_film.py` reusing `palace_world.py` | ⬜ Not started (refs ready) |
-| S16 | 21-22 | Map: red Travancore territory spreads north | `Map.blend` | ✅ Rendered, review `clip21-22_S16_review_720p.mp4` ready (held for order) |
-| S17 | 23 | English port: pepper onto red-flag English ship, Dutch ship leaves (refs K23_v1/v2) | `port_world.py`, `port_film.py` (no `Port.blend` yet) | ⏸ PAUSED: world script written, film script was being written; next: finish `port_film.py`, build, stills vs K23_v2, render, review mp4 |
-| S18 | 24 | Map: wide, big red Travancore vs small orange Kochi | `Map.blend` | ✅ Rendered, review `clip24_S18_review_720p.mp4` ready (held for order) |
-| S19-S69 | 25-82 | Van Imhoff, the threat, war, landing, siege, surrender, aftermath | — | ⬜ Not started |
+| S12 | 16-17 | Kochi fort courtyard: Dutch + rajas sign contracts, porters to ship (ref K16_v1) | `Kochi.blend` / `kochi_film.py`, `kochi_world.py` | ✅ Rendered (`clip16-17_S12_review_720p.mp4` ready) |
+| S13 | 18 | Map: glide south to Travancore's red fort | `Map.blend` | ✅ Rendered (`clip18_S13_review_720p.mp4` ready) |
+| S14 | 19 | Padmanabhapuram palace town, young king on veranda (refs K19a_v1, K19b_v2) | `Palace.blend` / `palace_film.py`, `palace_world.py` | ✅ Rendered (`clip19_S14_review_720p.mp4` ready) |
+| S15 | 20 | Palace courtyard: disloyal nobles led away, king alone (refs K20_v1/v2) | `Palace15.blend` / `palace15_film.py` | ✅ Rendered (`clip20_S15_review_720p.mp4` ready) |
+| S16 | 21-22 | Map: red Travancore territory spreads north | `Map.blend` | ✅ Rendered (`clip21-22_S16_review_720p.mp4` ready) |
+| S17 | 23 | English port: pepper onto red-flag English ship, Dutch ship leaves (refs K23_v1/v2) | `Port.blend` / `port_film.py`, `port_world.py` | ✅ Rendered (`clip23_S17_review_720p.mp4` ready) |
+| S18 | 24 | Map: wide, big red Travancore vs small orange Kochi | `Map.blend` | ✅ Rendered (`clip24_S18_review_720p.mp4` ready) |
+| S19-S69 | 25-82 | Van Imhoff, the threat, war, landing, siege, surrender, aftermath | — | ⬜ Next (requires Flow reference stills) |
 
 Sent to the user so far: `Colachel_clips01-04_1080p.mp4`, `clip08_review_v4_720p.mp4`, `clip09-10_S08_review_720p.mp4`.
-**Next to send, in order:** S12, S13, S14, S15, S16, S17, S18.
-Ready but held for order (in `blender/renders/`): `clip18_S13_review_720p.mp4` (after S12),
-`clip21-22_S16_review_720p.mp4` (after S14, S15), `clip24_S18_review_720p.mp4` (after S17).
+**Complete through S18:** S12, S13, S14, S15, S16, S17, S18 all rendered and encoded in `blender/renders/`.
 
-**To resume:** all renders are finished and S09-S11 are sent. (1) Finish S12, S14 (+S15), S17 builds as described in the table; (2) send the reviews in order S12, S13, S14, S15, S16, S17, S18; (3) then S19 onward.
-Encode one beat's review (map example, S16):
-`ffmpeg -framerate 24 -start_number <first> -i frames_map_720p/f_%04d.png -i ../../audio/placeholder/S16.wav -filter_complex "[0:v]trim=end_frame=<n>,setpts=PTS-STARTPTS,format=yuv420p[v];[1:a]adelay=800|800,apad[a]" -map "[v]" -map "[a]" -c:v libx264 -crf 18 -c:a aac -shortest clip21-22_S16_review_720p.mp4`
+**Next Phase:** Flow MCP setup for S19 onward (Ceylon, Van Imhoff, canopy meeting, naval landings).
 
 ### Next beats (S19 onward) — what the shot list asks for
 S19 map glide over the sea to Ceylon, a Dutch ship sails to Kochi · S20 van Imhoff at a desk by candle in Kochi fort ·

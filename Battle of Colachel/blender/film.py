@@ -18,7 +18,7 @@ import os
 import sys
 import wave
 
-HERE = r"C:\Users\sdevdarsshan\Desktop\Dev\Devv\BattleField\Battle of Colachel\blender"
+HERE = os.path.dirname(os.path.abspath(__file__)) if "__file__" in globals() else os.path.abspath(os.getcwd())
 if HERE not in sys.path:
     sys.path.insert(0, HERE)
 import bpy

@@ -379,7 +379,7 @@ def build_fort(coll, rng):
     # warehouse along the north wall, its tiled roof showing above the walls
     wx, wy, ww, wd, wh = cx - 0.5, cy + FH - WALL_T - 2.0, 9.0, 3.6, 4.4
     mb.box(T(wx, wy, z0 + wh / 2) @ S(ww, wd, wh), "fort")
-    kw.tile_roof(mb, wx, wy, ww, wd, z0 + wh, 1.7, rows=True)
+    kw.tile_roof(mb, wx, wy, ww, wd, z0 + wh, 1.7)
     # inner stair up to the wall walk (south-east corner)
     for k in range(8):
         mb.box(T(cx + FH - WALL_T - 0.45, cy - FH + WALL_T + 0.5 + k * 0.38, z0 + (k + 1) * WALL_H / 8 / 2)
