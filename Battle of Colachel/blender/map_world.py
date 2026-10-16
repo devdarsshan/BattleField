@@ -7,6 +7,10 @@ valley floors, earthy ridge tops, forest patches on the lower slopes, a backwate
 with a sand rim, and small ponds. Ships at sea, and the stockade with a red tent at
 Colachel. Detail is concentrated along the camera's path (DETAIL_BOX).
 
+S19-S28 (rebuilt): Ceylon at its real place with the Colombo star fort and the governor's
+ship (K25), a sea extension beyond MAP_REGION, the war banner and marching column at Kochi
+(K31), and the armies at the frontier near Kollam (K35). Each is shown only in its own beat.
+
 Units: Blender metres on the kerala_geo projection (50 m per real km, Colachel at 0,0).
 """
 import math
@@ -17,6 +21,7 @@ import bpy
 import bmesh
 from mathutils import Vector, noise
 from mathutils.bvhtree import BVHTree
+from mathutils.kdtree import KDTree
 from mathutils.geometry import delaunay_2d_cdt
 
 import colachel_kit as kit
@@ -362,6 +367,7 @@ def build_sea(coll, land, frames=600):
         mod.strength = strength
         mod.mid_level = 0.5
         mod.vertex_group = "Swell"
+        SWELLS.append((tex, strength, travel, frames))     # (read by sea_lift for S19-S28 ships)
         drv = bpy.data.objects.new(name + "Driver", None)
         coll.objects.link(drv)
         mod.texture_coords_object = drv
@@ -546,12 +552,12 @@ def build_colachel_mark(coll, lib_c, bvh):
     kit.instance(tent, "MapRedTent", coll, (x + 260, y + 40, ground_z(bvh, x + 260, y + 40) - 1), scale=11)
 
 
-def cloud_material():
+def cloud_material(name="MapCloudVol", density=0.06, rgb=(0.86, 0.87, 0.90)):
     """Soft volumetric cloud: noisy density inside a spherical falloff."""
-    m = bpy.data.materials.get("MapCloudVol")
+    m = bpy.data.materials.get(name)
     if m:
         return m
-    m = bpy.data.materials.new("MapCloudVol")
+    m = bpy.data.materials.new(name)
     try:
         m.use_nodes = True
     except Exception:
@@ -572,14 +578,21 @@ def cloud_material():
     ramp = nt.nodes.new("ShaderNodeMapRange")
     ramp.inputs["From Min"].default_value = 0.24
     ramp.inputs["From Max"].default_value = 0.42
-    ramp.inputs["To Max"].default_value = 0.06
+    ramp.inputs["To Max"].default_value = density
     nt.links.new(tc.outputs["Object"], nz.inputs["Vector"])
     nt.links.new(tc.outputs["Object"], grad.inputs["Vector"])
     nt.links.new(nz.outputs["Fac"], mul.inputs[0])
     nt.links.new(grad.outputs["Fac"], mul.inputs[1])
     nt.links.new(mul.outputs["Value"], ramp.inputs["Value"])
     nt.links.new(ramp.outputs["Result"], vol.inputs["Density"])
-    vol.inputs["Color"].default_value = (*kit.srgb_to_linear((0.86, 0.87, 0.90)), 1)
+    vol.inputs["Color"].default_value = (*kit.srgb_to_linear(rgb), 1)
+    if name != "MapCloudVol":                  # (the approved S07 storm clouds stay as they were)
+        glow = nt.nodes.new("ShaderNodeMath")     # a little self-light where the cloud is dense,
+        glow.operation = "MULTIPLY"               # so corner clouds read white, not grey
+        glow.inputs[1].default_value = 0.3
+        nt.links.new(ramp.outputs["Result"], glow.inputs[0])
+        nt.links.new(glow.outputs["Value"], vol.inputs["Emission Strength"])
+        vol.inputs["Emission Color"].default_value = (*kit.srgb_to_linear(rgb), 1)
     vol.inputs["Anisotropy"].default_value = 0.2
     nt.links.new(vol.outputs["Volume"], out.inputs["Volume"])
     return m
@@ -655,7 +668,6 @@ def build_map_world(frames=600):
     build_water(coll, land, bvh)
     n_palm, n_tree = build_vegetation(coll, land, bvh, lib_c)
     build_colachel_mark(coll, lib_c, bvh)
-    build_ceylon(coll, lib_c)
     setup_light()
     print("map world:", n_palm, "palms,", n_tree, "trees,", len(land.lakes), "lakes/ponds")
     return coll, land, bvh
@@ -963,355 +975,922 @@ def recolor_fort(name, rgb, frames):
         bsdf.inputs["Base Color"].default_value = c
         bsdf.inputs["Base Color"].keyframe_insert("default_value", frame=f)
 
+# ====================================================================== S19-S28 (rebuilt)
+# Everything below is built after the approved S07-S18 set and is shown only in its own beat
+# (show_only), and existing objects are only hidden with keys inside the new beats
+# (hide_during), so the S07-S18 frames stay exactly as approved.
+SWELLS = []          # (texture, strength, travel, frames) of the map sea, filled by build_sea
 
-# ================================================================ S19: Ceylon & Dutch Galleon
-CEYLON_CENTER = (15000.0, -6000.0)
+
+def show_only(obs, f0, f1):
+    """Render these objects only from f0 to f1."""
+    for ob in obs:
+        for f, h in ((1, True), (f0 - 1, True), (f0, False), (f1, False), (f1 + 1, True)):
+            ob.hide_render = h
+            ob.keyframe_insert("hide_render", frame=f)
 
 
-def build_ceylon(coll, lib_c):
-    """Faceted Ceylon island with green highlands, sand beach, turquoise shallow rim,
-    Adam's bridge, and the Dutch star fort on the west coast. Matches Flow ref K25."""
-    rng = random.Random(55)
-    cx, cy = CEYLON_CENTER
+def hide_during(obs, f0, f1):
+    """Hide existing objects from f0 to f1 only (their state before and after is kept)."""
+    sc = bpy.context.scene
+    obs = list(obs)
+    sc.frame_set(f0 - 1)
+    before = [ob.hide_render for ob in obs]
+    sc.frame_set(f1 + 1)
+    after = [ob.hide_render for ob in obs]
+    for ob, b, a in zip(obs, before, after):
+        for f, h in ((f0 - 1, b), (f0, True), (f1, True), (f1 + 1, a)):
+            ob.hide_render = h
+            ob.keyframe_insert("hide_render", frame=f)
 
-    # 1. Island polygon and height mesh
-    verts_2d = []
-    perim_pts = []
-    for k in range(28):
-        u = k / 28 * math.tau
-        r = 3800.0 * (1.0 - 0.35 * math.sin(u)) + rng.uniform(-80, 80)
-        px = cx + r * math.cos(u) * 0.90
-        py = cy + r * math.sin(u) * 1.35
-        perim_pts.append((px, py))
-        verts_2d.append(Vector((px, py)))
 
-    nb = len(verts_2d)
-    step = 260.0
-    for y in range(int(cy - 5500), int(cy + 4200), int(step)):
-        for x in range(int(cx - 3600), int(cx + 3600), int(step)):
-            px = x + rng.uniform(-0.35, 0.35) * step
-            py = y + rng.uniform(-0.35, 0.35) * step
-            if geo.point_in_poly(px, py, perim_pts):
-                verts_2d.append(Vector((px, py)))
+def sea_lift(x, y, f, w=1.0, names=("MapSwellA", "MapSwellB")):
+    """Height of the map sea's swell at (x, y) on frame f (same textures as the Displace
+    modifiers), so ships ride on the faceted sea instead of sinking into its crests."""
+    z = 0.0
+    for tex, strength, (tx, ty), frames in SWELLS:
+        if tex.name not in names:
+            continue
+        u = min(1.0, max(0.0, (f - 1) / max(1, frames - 1)))
+        z += (tex.evaluate((x - tx * u, y - ty * u, 0.0))[3] - 0.5) * strength
+    return z * w
 
-    out = delaunay_2d_cdt(verts_2d, [], [list(range(nb))], 1, 0.01)
+
+def add_swell(ob, group="Swell", names=("MapSwellA", "MapSwellB")):
+    """Give a mesh the sea's Displace modifiers (same textures and drivers), so it follows
+    the faceted swell. The vertex group must exist."""
+    sea = bpy.data.objects["MapSea"]
+    for m in sea.modifiers:
+        if m.type != "DISPLACE" or m.name not in names:
+            continue
+        mod = ob.modifiers.new(m.name, "DISPLACE")
+        mod.texture = m.texture
+        mod.texture_coords = "OBJECT"
+        mod.texture_coords_object = m.texture_coords_object
+        mod.strength = m.strength
+        mod.mid_level = m.mid_level
+        mod.vertex_group = group
+
+
+def kit_colours(*names):
+    """Colours from the approved sets that the kit palette does not hold yet (port_world:
+    set sails, plain Dutch orange / English red flags)."""
+    import port_world as port
+    for n in names:
+        kit.PALETTE.setdefault(n, port.PALETTE[n])
+        kit.mat(n, kit.PALETTE[n])
+
+
+def dutch_ship(name, coll, sails=True, seed=7):
+    """The kit East Indiaman with the S17 rig: full bellied sails and plain orange flags."""
+    import port_world as port
+    kit_colours("sail_set", "flag_o")
+    ship = kit.make_ship(name, coll, length=38.0, beam=10.0, seed=seed)
+    plan = {0: (1, 2), 1: (0, 1, 2), 2: (0, 1, 2)} if sails else {1: (1,), 2: (1,)}
+    rig = port.make_rig(name, coll, ship, plan, "flag_o", belly=1.6, seed=seed)
+    parts = [ship] + [c for c in coll.objects if c.parent == ship]
+    return ship, parts, rig
+
+
+def rock_ship(ob, frames, base_rot_z, amp=(1.6, 2.4), bob=3.0, seed=0, path=None, lift_w=1.0,
+              swells=("MapSwellA", "MapSwellB")):
+    """Roll, pitch and heave on the swell (keys every 6 frames). path(f) -> (x, y) sails
+    the ship; its height follows the sea's swell at the hull."""
+    ph = random.Random(seed).uniform(0, 10)
+    x0, y0 = ob.location.x, ob.location.y
+    for f in range(1, frames + 7, 6):
+        x, y = path(f) if path else (x0, y0)
+        ob.location = (x, y, sea_lift(x, y, f, lift_w, swells) + bob * math.sin(f / 19.0 + ph))
+        ob.rotation_euler = (math.radians(amp[0] * math.sin(f / 21.0 + ph)),
+                             math.radians(amp[1] * math.sin(f / 15.0 + 1 + ph)), base_rot_z)
+        ob.keyframe_insert("location", frame=f)
+        ob.keyframe_insert("rotation_euler", frame=f)
+
+
+def build_corner_clouds(coll, cam, frames, seed=0, depth=3800.0, spots=None, drift=0.06):
+    """Soft volumetric clouds in the corners of a shot (as in K25 / K31), riding with the
+    camera at `depth` metres in front of it, drifting slowly outward."""
+    rng = random.Random(seed)
+    f0, f1 = frames
+    m = cloud_material("MapCornerCloudVol", density=0.14, rgb=(0.96, 0.96, 0.97))
+    spots = spots or ((-1, 1, 1.3), (1, 1, 1.0), (-1, -1, 1.05), (1, -1, 1.15))
+    hx, hy = 0.6 * depth, 0.3375 * depth
+    obs = []
+    for k, (sx, sy, size) in enumerate(spots):
+        for j in range(4):
+            mb = kit.MB()
+            mb.ico(kit.Matrix.Identity(4), "MapCornerCloudVol", r=1.0, sub=3)
+            ob = mb.obj(f"{cam.name}Cloud{k}_{j}", coll)
+            ob.data.materials[0] = m
+            ob.visible_shadow = False
+            ob.parent = cam
+            r = depth * 0.16 * size * rng.uniform(0.75, 1.15)
+            ob.scale = (r * rng.uniform(1.2, 1.6), r * rng.uniform(0.85, 1.05), r * 0.45)
+            ob.rotation_euler[2] = rng.uniform(0, 6.28)
+            cx = sx * hx * rng.uniform(0.92, 1.12) - sx * j * r * 0.55 * rng.uniform(0.6, 1.0)
+            cy = sy * hy * rng.uniform(0.95, 1.2) - sy * (j % 2) * r * 0.5 * rng.uniform(0.3, 1.0)
+            for f, k2 in ((f0, 1.0), (f1, 1.0 + drift)):
+                ob.location = (cx * k2, cy * k2, -depth * rng.uniform(0.97, 1.03))
+                ob.keyframe_insert("location", frame=f)
+            obs.append(ob)
+    show_only(obs, f0, f1)
+    return obs
+
+
+# ------------------------------------------------------------------- S19: Ceylon (K25)
+class Ceylon:
+    """Height and surface rules for Ceylon, the same recipe as the Kerala land."""
+
+    def __init__(self):
+        self.coast = geo.outline_detailed(geo.ceylon_xy(), 60.0)
+        self.kd = KDTree(len(self.coast))
+        for i, (x, y) in enumerate(self.coast):
+            self.kd.insert((x, y, 0.0), i)
+        self.kd.balance()
+        xs, ys = [p[0] for p in self.coast], [p[1] for p in self.coast]
+        self.box = (min(xs), max(xs), min(ys), max(ys))
+        self.hills = [(*geo.xy(a, b), k) for a, b, k in geo.CEYLON_HILLS]
+
+    def coast_dist(self, x, y):
+        _, i, best = self.kd.find((x, y, 0.0))
+        n = len(self.coast)
+        for j in (i - 1, i):
+            (ax, ay), (bx, by) = self.coast[j % n], self.coast[(j + 1) % n]
+            dx, dy = bx - ax, by - ay
+            t = max(0.0, min(1.0, ((x - ax) * dx + (y - ay) * dy) / (dx * dx + dy * dy + 1e-9)))
+            best = min(best, math.hypot(x - ax - t * dx, y - ay - t * dy))
+        return best
+
+    def inside(self, x, y):
+        return in_box(x, y, self.box) and geo.point_in_poly(x, y, self.coast)
+
+    def height(self, x, y, d):
+        base = 5.0 + 12.0 * _smooth(0, 450, d)
+        hl = 0.0
+        for hx, hy, k in self.hills:
+            hl = max(hl, k * math.exp(-((x - hx) ** 2 + (y - hy) ** 2) / 3000.0 ** 2))
+        mount = 1700.0 * hl * (0.5 + 0.7 * _ridge(x, y, 2100, 2.9))
+        rolling = (70.0 + 420.0 * _ridge(x, y, 3000, 5.1) ** 1.5) * (0.3 + 0.7 * _nz(x, y, 5200, 1.1))
+        h = base + _smooth(380, 1700, d) * (mount + rolling)
+        h += 30.0 * _nz(x, y, 300, 4.0) * _smooth(250, 800, d)
+        return h
+
+
+def build_ceylon_land(coll, cey):
+    """Faceted Ceylon: CDT over the island with relief and the build_land colour rules."""
+    rng = random.Random(19)
+    verts = [Vector((x, y)) for x, y in cey.coast]
+    nb = len(verts)
+    step = 105.0
+    x0, x1, y0, y1 = cey.box
+    y = y0 + step / 2
+    while y < y1:
+        x = x0 + step / 2
+        while x < x1:
+            px, py = x + rng.uniform(-0.38, 0.38) * step, y + rng.uniform(-0.38, 0.38) * step
+            if cey.inside(px, py) and cey.coast_dist(px, py) > 45:
+                verts.append(Vector((px, py)))
+            x += step
+        y += step
+    out = delaunay_2d_cdt(verts, [], [list(range(nb))], 1, 0.01)
     vco, faces = out[0], out[2]
-
     bm = bmesh.new()
     bv = []
     for v in vco:
-        dx = (v.x - (cx + 300)) / 2800.0
-        dy = (v.y - (cy - 500)) / 3800.0
-        d_sq = dx * dx + dy * dy
-        if d_sq < 1.0:
-            h = 4.0 + 980.0 * ((1.0 - d_sq) ** 1.4) + 60.0 * _nz(v.x, v.y, 800, 1.2)
-        else:
-            h = 4.0
-        bv.append(bm.verts.new((v.x, v.y, h)))
-
+        d = cey.coast_dist(v.x, v.y)
+        bv.append(bm.verts.new((v.x, v.y, cey.height(v.x, v.y, d) if d > 1 else 4.0)))
     for f in faces:
-        if len(f) < 3:
-            continue
-        try:
-            bm.faces.new([bv[i] for i in f])
-        except ValueError:
-            continue
-
-    bmesh.ops.recalc_face_normals(bm, faces=bm.faces[:])
+        if len(f) >= 3:
+            try:
+                bm.faces.new([bv[i] for i in f])
+            except ValueError:
+                pass
+    bmesh.ops.triangulate(bm, faces=bm.faces[:])
+    bm.normal_update()
+    mats = ["m_sand", "m_g1", "m_g2", "m_g3", "m_g4", "m_earth"]
+    for face in bm.faces:
+        if face.normal.z < 0:
+            face.normal_flip()
+        c = face.calc_center_median()
+        n = face.normal
+        d = cey.coast_dist(c.x, c.y)
+        sand_w = 240 + 140 * _nz(c.x, c.y, 700, 5.0)
+        zone = _nz(c.x, c.y, 650, 3.3)
+        if d < sand_w:
+            m = "m_sand"
+        elif (c.z > 1050 and abs(n.z) < 0.62 and _nz(c.x, c.y, 220, 8.1) > 0.6) or \
+                (c.z > 1400 and _nz(c.x, c.y, 260, 6.6) > 0.58):
+            m = "m_earth"
+        elif c.z < 70:
+            m = "m_g3" if zone > 0.5 else "m_g1"
+        elif c.z < 320:
+            m = "m_g1" if zone > 0.45 else "m_g2"
+        else:
+            m = "m_g2" if zone > 0.4 else "m_g4"
+        if m.startswith("m_g") and rng.random() < 0.15:
+            m = {"m_g1": "m_g3", "m_g2": "m_g1", "m_g3": "m_g1", "m_g4": "m_g2"}[m]
+        face.material_index = mats.index(m)
     me = bpy.data.meshes.new("MapCeylon")
     bm.to_mesh(me)
     bm.free()
-
-    for m in ("m_sand", "m_g1", "m_g2", "m_g3", "m_earth"):
+    for m in mats:
         me.materials.append(mmat(m))
-
     for p in me.polygons:
         p.use_smooth = False
-        cz = p.center.z
-        if cz < 35.0:
-            p.material_index = 0  # sand
-        elif cz < 280.0:
-            p.material_index = 1  # g1
-        elif cz < 550.0:
-            p.material_index = 2  # g2
-        elif cz < 750.0:
-            p.material_index = 3  # g3
-        else:
-            p.material_index = 4  # earth
-
     ob = bpy.data.objects.new("MapCeylon", me)
     coll.objects.link(ob)
+    bvh = BVHTree.FromPolygons([v.co for v in me.vertices], [p.vertices for p in me.polygons])
+    print("ceylon land:", len(me.vertices), "verts")
+    return ob, bvh
 
-    # 2. Turquoise shallow water halo around Ceylon
-    halo_bm = bmesh.new()
-    outer_halo = []
-    for px, py in perim_pts:
-        nx, ny = (px - cx) / 3800.0, (py - cy) / 5000.0
-        L = math.hypot(nx, ny) or 1.0
-        outer_halo.append((px + (nx / L) * 550.0, py + (ny / L) * 550.0))
 
-    r_in = [halo_bm.verts.new((px, py, 1.2)) for px, py in perim_pts]
-    r_out = [halo_bm.verts.new((px, py, 0.6)) for px, py in outer_halo]
-    n = len(perim_pts)
-    for i in range(n):
-        j = (i + 1) % n
-        halo_bm.faces.new([r_in[i], r_in[j], r_out[j], r_out[i]])
+def matte_sea_material():
+    """The map sea's material (vertex colours) with softer highlights for the later, lower,
+    tilted map shots, where the approved one throws hard white glints (K25, K31, K35 have none)."""
+    m = bpy.data.materials.get("MapSeaMatte")
+    if m:
+        return m
+    m = bpy.data.materials["MapSea"].copy()
+    m.name = "MapSeaMatte"
+    bsdf = m.node_tree.nodes.get("Principled BSDF")
+    bsdf.inputs["Roughness"].default_value = 0.45
+    bsdf.inputs["Specular IOR Level"].default_value = 0.35
+    return m
 
-    bmesh.ops.triangulate(halo_bm, faces=halo_bm.faces[:])
-    halo_me = bpy.data.meshes.new("CeylonShallows")
-    halo_bm.to_mesh(halo_me)
-    halo_bm.free()
-    halo_me.materials.append(mmat("m_lagoon"))
-    halo_ob = bpy.data.objects.new("CeylonShallows", halo_me)
-    halo_ob.visible_shadow = False
-    coll.objects.link(halo_ob)
 
-    # 3. Adam's Bridge (shoals connecting Rameshwaram to Mannar)
-    bridge_mb = kit.MB()
-    shoal_coords = [
-        (8200, 900), (9100, 450), (9900, 50), (10800, -400),
-        (11600, -850), (12400, -1350)
-    ]
-    for i, (sx, sy) in enumerate(shoal_coords):
-        bridge_mb.cone(kit.T(sx, sy, 2.0) @ kit.S(260, 160, 3.0), "m_sand", segments=8, r1=1.0, r2=0.8, depth=1.0)
-        bridge_mb.cone(kit.T(sx, sy, 0.8) @ kit.S(400, 260, 1.0), "m_lagoon", segments=8, r1=1.0, r2=0.8, depth=0.5)
-    bridge_ob = bridge_mb.obj("AdamsBridge", coll)
-    bridge_ob.data.materials.append(mmat("m_sand"))
-    bridge_ob.data.materials.append(mmat("m_lagoon"))
+def show_ranges(ob, ranges):
+    """Render an object only inside the given frame ranges."""
+    keys = [(1, True)]
+    for a, b in ranges:
+        keys += [(a - 1, True), (a, False), (b, False), (b + 1, True)]
+    for f, h in keys:
+        ob.hide_render = h
+        ob.keyframe_insert("hide_render", frame=f)
 
-    # 4. Dutch Star Fort at Ceylon (Galle / Colombo on west coast)
-    kit.PALETTE["DutchOrange"] = (0.96, 0.46, 0.10)
-    kit.mat("DutchOrange", (0.96, 0.46, 0.10))
-    fort_x, fort_y = 12200.0, -5800.0
-    fort = make_star_fort("DutchFortCeylon", coll, "DutchOrange")
-    fort.location = (fort_x, fort_y, 4.0)
-    fort.rotation_euler[2] = math.radians(25)
-    fort.scale = (14.0, 14.0, 14.0)
 
-    # Harbor jetty & small moored ships
-    j_mb = kit.MB(bevel=0.05)
-    j_mb.box(kit.T(fort_x - 300, fort_y - 120, 2.5) @ kit.S(420, 45, 3.0), "plank")
-    for k in range(5):
-        j_mb.cone(kit.T(fort_x - 120 - k * 80, fort_y - 120, 0.5), "post", segments=6, r1=6, r2=5, depth=4.5)
-    j_ob = j_mb.obj("CeylonJetty", coll)
-    j_ob.data.materials.append(kit.mat("plank", kit.PALETTE["plank"]))
-    j_ob.data.materials.append(kit.mat("post", kit.PALETTE["post"]))
+def matte_sea_copy(coll, ranges):
+    """The approved map sea (same mesh, swell and colours) with the matte material, swapped
+    in for the given beats."""
+    sea = bpy.data.objects["MapSea"]
+    cp = sea.copy()
+    cp.name = "MapSeaMatte"
+    coll.objects.link(cp)
+    cp.animation_data_clear()
+    cp.material_slots[0].link = "OBJECT"
+    cp.material_slots[0].material = matte_sea_material()
+    for m in cp.modifiers:                 # a calmer swell for the low, tilted shots
+        if m.type == "DISPLACE":
+            m.strength *= 0.5
+    show_ranges(cp, ranges)
+    for a, b in ranges:
+        hide_during([sea], a, b)
+    return cp
 
-    # 5. Palms around Ceylon coast
-    palm_src = bpy.data.objects.get("MapLibPalm0")
-    if palm_src:
-        for i in range(55):
-            u = rng.uniform(0, math.tau)
-            r = rng.uniform(2800, 3600) * (1.0 - 0.35 * math.sin(u))
-            px = cx + r * math.cos(u) * 0.90 + rng.uniform(-60, 60)
-            py = cy + r * math.sin(u) * 1.35 + rng.uniform(-60, 60)
-            kit.instance(palm_src, f"CeylonPalm{i}", coll, (px, py, 3.5),
-                         rot_z=rng.uniform(0, 6.28), scale=rng.uniform(11.0, 15.0))
 
+def swap_forts(coll, f0, f1, keep=(), scale=12.0):
+    """Hide the kingdom forts for a close beat; the ones in `keep` come back as smaller
+    copies of the same forts (same mesh and colours) on the same spot, so the armies and
+    the star fort read as in the Flow refs instead of being dwarfed by map-scale forts."""
+    forts = [o for o in bpy.data.objects if o.name.startswith("Fort_")]
+    hide_during(forts, f0, f1)
+    obs = []
+    for o in forts:
+        if o.name[5:] in keep:
+            obs.append(kit.instance(o, f"Small{o.name}", coll, tuple(o.location), rot_z=o.rotation_euler[2],
+                                    scale=scale))
+    show_only(obs, f0, f1)
+    return obs
+
+
+def build_s19_sea(coll, cey, frames):
+    """The faceted sea for the S19 view over the Gulf of Mannar (geo.SEA_EXT, well past
+    MAP_REGION, so there is no edge anywhere in the shot). Same colours and swell as
+    build_sea, with facets sized for the very high shot (K25) and turquoise shallows round
+    both India and Ceylon. The approved sea is swapped out for this beat only."""
+    rng = random.Random(57)
+    step = 360.0
+    x0, x1, y0, y1 = geo.SEA_EXT
+    nx_, ny_ = int((x1 - x0) / step) + 1, int((y1 - y0) / step) + 1
+    shallow = kit.srgb_to_linear((0.52, 0.83, 0.80))
+    mid = kit.srgb_to_linear((0.38, 0.67, 0.83))
+    deep = kit.srgb_to_linear((0.28, 0.55, 0.79))
+    coast = geo.coast_detailed(300.0)
+    india = geo.land_polygon_detailed(300.0)
+    bm = bmesh.new()
+    col = bm.verts.layers.float_color.new("Col")
+    dl = bm.verts.layers.deform.verify()
+    grid = []
+    for j in range(ny_):
+        row = []
+        for i in range(nx_):
+            x, y = x0 + i * step, y0 + j * step
+            if 0 < i < nx_ - 1 and 0 < j < ny_ - 1:
+                x += rng.uniform(-0.32, 0.32) * step
+                y += rng.uniform(-0.32, 0.32) * step
+            d = geo.dist_to_polyline(x, y, coast)[0]
+            t1, t2 = _smooth(150, 1100, d), _smooth(1100, 3600, d)
+            w = 0.0 if geo.point_in_poly(x, y, india) else _smooth(250, 900, d)
+            if in_box(x, y, cey.box, 6000):
+                if cey.inside(x, y):
+                    t1 = t2 = w = 0.0
+                else:
+                    dc = cey.coast_dist(x, y)
+                    t1 = min(t1, _smooth(150, 1300, dc))
+                    t2 = min(t2, _smooth(1300, 4200, dc))
+                    w = min(w, _smooth(250, 900, dc))
+            c = [shallow[k] * (1 - t1) + mid[k] * t1 for k in range(3)]
+            c = [c[k] * (1 - t2) + deep[k] * t2 for k in range(3)]
+            sh = rng.uniform(0.94, 1.06)
+            v = bm.verts.new((x, y, 0.0))
+            v[col] = (c[0] * sh, c[1] * sh, c[2] * sh, 1.0)
+            v[dl][0] = w
+            row.append(v)
+        grid.append(row)
+    for j in range(ny_ - 1):
+        for i in range(nx_ - 1):
+            bm.faces.new((grid[j][i], grid[j][i + 1], grid[j + 1][i + 1], grid[j + 1][i]))
+    bmesh.ops.triangulate(bm, faces=bm.faces[:])
+    me = bpy.data.meshes.new("MapSeaS19")
+    bm.to_mesh(me)
+    bm.free()
+    me.materials.append(matte_sea_material())
+    for poly in me.polygons:
+        poly.use_smooth = False
+    ob = bpy.data.objects.new("MapSeaS19", me)
+    coll.objects.link(ob)
+    ob.vertex_groups.new(name="Swell")
+    add_swell(ob, names=("MapSwellA",))
+    show_only([ob], *frames)
+    hide_during([bpy.data.objects["MapSea"]], *frames)
+    print("S19 sea:", len(me.vertices), "verts")
     return ob
 
 
-def make_sailing_galleon(name, coll):
-    """Detailed Dutch 3-masted war galleon with billowing sails and Dutch flag (Flow ref K25)."""
-    mb = kit.MB(bevel=0.08)
-    # Hull
-    mb.box(kit.T(0, 0, 1.8) @ kit.S(16.0, 48.0, 4.2), "post")
-    mb.box(kit.T(0, -18.0, 3.4) @ kit.S(15.5, 14.0, 5.0), "post")   # High sterncastle
-    mb.cone(kit.T(0, 24.0, 2.2) @ kit.Rx(0.2) @ kit.S(0.6, 1.0, 1.0), "post", segments=6, r1=7.5, r2=1.0, depth=14.0) # Bow
-    # Decks
-    mb.box(kit.T(0, 0, 3.8) @ kit.S(14.0, 42.0, 0.4), "plank")
-    # 3 Masts: Fore, Main, Mizzen
-    for my, mh, mr in ((14.0, 32.0, 0.8), (0.0, 38.0, 0.9), (-14.0, 28.0, 0.7)):
-        mb.cone(kit.T(0, my, mh / 2 + 3.0), "post", segments=8, r1=mr, r2=mr * 0.6, depth=mh)
-        # 2 Cross-yards with billowing sails per mast
-        for sy, sh, sw, sd in ((0, mh * 0.52 + 3.0, 18.0, 7.5), (0, mh * 0.82 + 3.0, 14.0, 6.0)):
-            mb.box(kit.T(0, my, sh) @ kit.S(sw, 0.6, 0.6), "post") # Spar
-            # Billowing canvas sail (curved cone segment)
-            mb.cone(kit.T(0, my + 1.2, sh - sd / 2) @ kit.Rx(-0.18) @ kit.S(1.0, 0.4, 1.0),
-                    "canvas", segments=8, r1=sw * 0.48, r2=sw * 0.42, depth=sd)
-    # Bowsprit
-    mb.seg((0, 24.0, 3.5), (0, 38.0, 8.5), 0.7, 0.4, "post", sides=6)
-    # Dutch orange flag atop main mast
-    mb.box(kit.T(3.2, 0.0, 41.5) @ kit.S(6.0, 0.2, 3.2), "gold")
-    # Wake mesh (foam trailing from stern)
-    mb.cone(kit.T(0, -38.0, 0.2) @ kit.Rx(math.pi / 2) @ kit.S(0.4, 1.0, 1.0), "canvas",
-            segments=4, r1=8.0, r2=1.0, depth=26.0)
+def build_ceylon_life(coll, lib_c, cey, bvh, fort_xy, frames, end):
+    """Dense palms several rows deep round the coast, palm groves on the lowlands, forest on
+    the hill slopes (bare faceted tops), and a cleared town round the Colombo fort."""
+    rng = random.Random(61)
+    palms = [bpy.data.objects[f"MapLibPalm{i}"] for i in range(6)]
+    trees = [bpy.data.objects[f"MapLibTree{i}"] for i in range(4)]
+    fx, fy = fort_xy
+    obs = []
 
+    def free(x, y):
+        return math.hypot(x - fx, y - fy) > 1500
+
+    n = 0
+    coast = geo.outline_detailed(geo.ceylon_xy(), 70.0)
+    for i in range(len(coast)):
+        (ax, ay), (bx, by) = coast[i - 1], coast[i]
+        seg = math.hypot(bx - ax, by - ay) or 1.0
+        nx, ny = -(by - ay) / seg, (bx - ax) / seg
+        if not cey.inside(ax + nx * 300, ay + ny * 300):
+            nx, ny = -nx, -ny
+        for _ in range(rng.choice((2, 3, 3, 4))):
+            off = rng.uniform(170, 750) if rng.random() < 0.85 else rng.uniform(750, 1200)
+            x, y = ax + nx * off + rng.uniform(-40, 40), ay + ny * off + rng.uniform(-40, 40)
+            if not (cey.inside(x, y) and free(x, y)) or cey.coast_dist(x, y) < 130:
+                continue
+            obs.append(kit.instance(palms[n % 6], f"CeylonPalm{n}", coll, (x, y, ground_z(bvh, x, y) - 2),
+                                    rot_z=rng.uniform(0, 6.28), scale=rng.uniform(36.0, 46.0)))
+            n += 1
+    nt = 0
+    step = 215.0
+    x0, x1, y0, y1 = cey.box
+    y = y0
+    while y < y1:
+        x = x0
+        while x < x1:
+            px, py = x + rng.uniform(-60, 60), y + rng.uniform(-60, 60)
+            if cey.inside(px, py) and free(px, py) and cey.coast_dist(px, py) > 1000:
+                z = ground_z(bvh, px, py)
+                dens = _nz(px, py, 1600, 2.2) * 0.7 + 0.3 * rng.random()
+                if z < 300 and dens > 0.45:
+                    obs.append(kit.instance(palms[n % 6], f"CeylonPalm{n}", coll, (px, py, z - 2),
+                                            rot_z=rng.uniform(0, 6.28), scale=rng.uniform(34.0, 44.0)))
+                    n += 1
+                elif 300 <= z < 760 and dens > 0.5:
+                    obs.append(kit.instance(trees[nt % 4], f"CeylonTree{nt}", coll, (px, py, z - 4),
+                                            rot_z=rng.uniform(0, 6.28), scale=rng.uniform(48.0, 62.0)))
+                    nt += 1
+            x += step
+        y += step
+    # the town of Colombo round the fort: huts, a jetty and moored ships
+    hut_src = [kit.make_hut_hip("CeylonHutSrc0", lib_c, seed=3), kit.make_hut_gable("CeylonHutSrc1", lib_c, seed=4),
+               kit.make_hut_gable("CeylonHutSrc2", lib_c, w=5.0, d=3.6, seed=5)]
+    for h in hut_src:
+        kit.hide_source(h)
+    k = 0
+    tries = 0
+    while k < 26 and tries < 600:
+        tries += 1
+        a, r = rng.uniform(0, 6.28), rng.uniform(1050, 1900)
+        x, y = fx + r * math.cos(a), fy + r * math.sin(a)
+        if not cey.inside(x, y) or cey.coast_dist(x, y) < 220:
+            continue
+        obs.append(kit.instance(hut_src[k % 3], f"CeylonHut{k}", coll, (x, y, ground_z(bvh, x, y) - 1),
+                                rot_z=rng.uniform(0, 6.28), scale=rng.uniform(40.0, 50.0)))
+        k += 1
+    for k in range(40):                                  # a few palms between the houses
+        a, r = rng.uniform(0, 6.28), rng.uniform(1100, 1600)
+        x, y = fx + r * math.cos(a), fy + r * math.sin(a)
+        if cey.inside(x, y) and cey.coast_dist(x, y) > 160 and rng.random() < 0.6:
+            obs.append(kit.instance(palms[k % 6], f"CeylonTownPalm{k}", coll, (x, y, ground_z(bvh, x, y) - 2),
+                                    rot_z=rng.uniform(0, 6.28), scale=rng.uniform(24.0, 30.0)))
+    print("ceylon:", n, "palms,", nt, "trees,", k, "houses")
+    return obs
+
+
+def build_s19(coll, lib_c, frames, end, ship_path):
+    """S19 (K25): Ceylon at its real place across the Gulf of Mannar, with the Dutch star
+    fort at Colombo, and a Dutch ship under full sail crossing from it toward India with a
+    foaming wake. The sea is extended (no seam) and shallows ring the island."""
+    f0, f1 = frames
+    cey = Ceylon()
+    land_ob, bvh = build_ceylon_land(coll, cey)
+    build_s19_sea(coll, cey, frames)
+    # the Dutch fort at Colombo on the west coast (same star fort as Kochi, Dutch orange)
+    cx, cy = geo.xy(*geo.COLOMBO)
+    _, ci, _ = cey.kd.find((cx, cy, 0.0))
+    (ax, ay), (bx, by) = cey.coast[ci - 1], cey.coast[(ci + 1) % len(cey.coast)]
+    L = math.hypot(bx - ax, by - ay)
+    nx, ny = -(by - ay) / L, (bx - ax) / L
+    if not cey.inside(cey.coast[ci][0] + nx * 300, cey.coast[ci][1] + ny * 300):
+        nx, ny = -nx, -ny
+    fx, fy = cey.coast[ci][0] + nx * 560, cey.coast[ci][1] + ny * 560
+    kit.mat("DutchOrangeCeylon", (0.96, 0.46, 0.10))
+    fort = make_star_fort("DutchFortColombo", coll, "DutchOrangeCeylon")
+    fort.location = (fx, fy, ground_z(bvh, fx, fy) - 2)
+    fort.rotation_euler[2] = math.radians(-8)
+    fort.scale = (27.0, 27.0, 27.0)
+    life = build_ceylon_life(coll, lib_c, cey, bvh, (fx, fy), frames, end)
+    # jetty into the harbour south of the fort, two ships moored at it
+    jet = kit.make_jetty("ColomboJetty", coll, length=11.0, width=1.8, deck=0.9, seed=6)
+    jx, jy = cey.coast[ci][0] - nx * 40 + (bx - ax) / L * -900, cey.coast[ci][1] - ny * 40 + (by - ay) / L * -900
+    jet.location = (jx, jy, 2.0)
+    jet.rotation_euler[2] = math.atan2(nx, -ny)            # jetty +Y points out to sea
+    jet.scale = (38.0, 38.0, 38.0)
+    out = (-nx, -ny)
+    src = [bpy.data.objects["MapShipSrc0"], bpy.data.objects["MapShipSrc1"]]
+    moored = []
+    for k, (along, side) in enumerate(((330, 230), (380, -260))):
+        x = jx + out[0] * along + out[1] * side
+        y = jy + out[1] * along - out[0] * side
+        ob = kit.instance(src[k], f"ColomboShip{k}", coll, (x, y, 0.0),
+                          rot_z=math.atan2(-out[0], out[1]) + 0.2 * k, scale=10.0)
+        rock_ship(ob, end, ob.rotation_euler[2], amp=(1.5, 1.0), bob=2.0, seed=40 + k, lift_w=0.4,
+                  swells=("MapSwellA",))
+        moored.append(ob)
+    # the governor's ship: full sails, plain orange flag, sailing north-west for India
+    (sx0, sy0), (sx1, sy1) = ship_path
+    heading = math.atan2(-(sx1 - sx0), sy1 - sy0)
+    carrier = bpy.data.objects.new("S19ShipPath", None)
+    coll.objects.link(carrier)
+    carrier.rotation_euler[2] = heading
+
+    def course(f):
+        u = min(1.0, max(0.0, (f - f0) / (f1 - f0)))
+        u = u * 0.92 + 0.08 * u * u                         # gathers way a little
+        return sx0 + (sx1 - sx0) * u, sy0 + (sy1 - sy0) * u
+    def sail():
+        for f in range(f0 - 4, f1 + 5, 4):
+            x, y = course(f)
+            carrier.location = (x, y, sea_lift(x, y, f, names=("MapSwellA",)) + 6.0)
+            carrier.keyframe_insert("location", frame=f)
+    kit.keyframe_linear(sail)
+    ship, parts, _ = dutch_ship("S19Ship", coll, seed=7)
+    ship.parent = carrier
+    ship.scale = (52.0, 52.0, 52.0)
+    ph = 1.3
+    for f in range(f0 - 6, f1 + 7, 6):                     # heel to the wind, pitch and roll
+        ship.rotation_euler = (math.radians(1.8 * math.sin(f / 13.0 + ph)),
+                               math.radians(4.0 + 2.2 * math.sin(f / 17.0 + ph)), 0.0)
+        ship.location = (0.0, 0.0, 0.2 * math.sin(f / 11.0))
+        ship.keyframe_insert("rotation_euler", frame=f)
+        ship.keyframe_insert("location", frame=f)
+    wake = build_wake("S19Wake", coll, carrier, length=1976.0, beam=520.0, seed=19, reach=5200.0, size=1.7)
+    show_only(parts + [wake], f0, f1)
+    hide_during([o for o in bpy.data.objects if o.name.startswith(("Territory_", "Border_"))], f0, f1)
+    print("S19 built")
+    return fort
+
+
+def build_wake(name, coll, carrier, length=1140.0, beam=300.0, seed=0, spread_deg=17.0, reach=3000.0, size=1.0):
+    """Foam wake behind a ship: a broken V of white streaks and a churned centre trail,
+    fading out astern. It follows the carrier in x, y and heading and rides the sea's
+    swell (same Displace modifiers), so it lies on the faceted water."""
+    rng = random.Random(seed)
+    kit.mat("m_foam", (0.94, 0.97, 0.97))
+    kit.mat("m_foam2", (0.78, 0.90, 0.93))
+    mb = kit.MB()
+    stern = -length / 2
+
+    def streak(cx, cy, ang, ln, wd, m):
+        ca, sa = math.cos(ang), math.sin(ang)
+        pts = []
+        for u, v in ((-0.5, -0.5), (0.5, -0.35), (0.5, 0.35), (-0.5, 0.5)):
+            lx, ly = u * ln, v * wd
+            pts.append(mb.bm.verts.new((cx + lx * ca - ly * sa, cy + lx * sa + ly * ca, 0.0)))
+        mb.face(pts, m)
+
+    sp = math.radians(spread_deg)
+    for arm in (-1, 1):
+        k = 0.0
+        while k < reach:
+            t = k / reach
+            y = stern - 60 - k
+            x = arm * (beam * 0.4 + k * math.tan(sp)) + rng.uniform(-20, 20)
+            if rng.random() > 0.55 * t:
+                ln = rng.uniform(90, 160) * (1 - 0.5 * t) * size
+                streak(x, y, math.pi / 2 - arm * sp + rng.uniform(-0.1, 0.1), ln, rng.uniform(16, 30) * (1 - 0.6 * t) * size,
+                       "m_foam" if t < 0.45 else "m_foam2")
+            k += rng.uniform(70, 120)
+    k = 0.0
+    while k < reach * 0.8:
+        t = k / (reach * 0.8)
+        for _ in range(2):
+            if rng.random() > 0.6 * t:
+                streak(rng.uniform(-1, 1) * beam * (0.25 + 0.5 * t), stern - 30 - k + rng.uniform(-20, 20),
+                       math.pi / 2 + rng.uniform(-0.3, 0.3), rng.uniform(60, 130) * (1 - 0.4 * t) * size,
+                       rng.uniform(20, 45) * (1 - 0.5 * t) * size, "m_foam" if t < 0.35 else "m_foam2")
+        k += rng.uniform(40, 70)
     ob = mb.obj(name, coll)
-    for m in ("post", "plank", "canvas", "gold"):
-        ob.data.materials.append(kit.mat(m, kit.PALETTE[m]))
+    ob.visible_shadow = False
+    vg = ob.vertex_groups.new(name="Swell")
+    vg.add(list(range(len(ob.data.vertices))), 1.0, "REPLACE")
+    add_swell(ob, names=("MapSwellA",))
+    c = ob.constraints.new("COPY_LOCATION")
+    c.target = carrier
+    c.use_z = False
+    r = ob.constraints.new("COPY_ROTATION")
+    r.target = carrier
+    r.use_x = r.use_y = False
+    ob.location.z = 9.0
     return ob
 
 
-def build_s19_fleet(coll, frames):
-    """Dutch fleet sailing from Ceylon across Gulf of Mannar toward Kerala (S19, K25)."""
+# ------------------------------------------------------- S24: Kochi declares war (K31)
+def walker_template(name, lib_c, kind, seed=0):
+    root, parts = kit.make_walker(name, lib_c, kind, seed=seed)
+    for p in parts.values():
+        kit.hide_source(p)
+    return parts
+
+
+def new_walker(name, coll, tpl, scale):
+    """A kit walker sharing the template's meshes (same figure, cheap to repeat)."""
+    root = bpy.data.objects.new(name, None)
+    coll.objects.link(root)
+    root.scale = (scale, scale, scale)
+    parts = {}
+    for p, src in tpl.items():
+        ob = bpy.data.objects.new(f"{name}_{p}", src.data)
+        coll.objects.link(ob)
+        ob.parent = root
+        ob.location = kit.PIVOTS[p]
+        parts[p] = ob
+    return root, parts
+
+
+def standard(name, coll, parent, local, flag_m, pole_h=4.2, w=1.8, h=1.15):
+    """A plain-colour flag on a pole, carried by (parented to) a figure or a block."""
+    import port_world as port
+    p = kit.MB()
+    p.seg((local[0], local[1], 0.6), (local[0], local[1], pole_h), 0.05, 0.04, "post", sides=6)
+    p.ico(kit.T(local[0], local[1], pole_h + 0.05), "brass", r=0.08, sub=1)
+    pole = p.obj(name + "Pole", coll, parent=parent)
+    fl = port.make_flag(name, coll, w=w, h=h, m=flag_m)
+    fl.parent = parent
+    fl.location = (local[0] + 0.04, local[1], pole_h - 0.05)
+    return [pole, fl]
+
+
+def beach_path(land, y_top, y_bot, inland=75.0, step=45.0):
+    """A path along the beach (inland of the waterline by `inland` m), north to south."""
+    coast = [(x, y) for x, y in geo.coast_detailed(step) if y_bot <= y <= y_top and x < 0]
+    coast.sort(key=lambda p: -p[1])
+    out = []
+    for i, (x, y) in enumerate(coast):
+        j, k = min(i + 1, len(coast) - 1), max(i - 1, 0)
+        tx, ty = coast[j][0] - coast[k][0], coast[j][1] - coast[k][1]
+        L = math.hypot(tx, ty) or 1.0
+        nx, ny = -ty / L, tx / L
+        if not geo.point_in_poly(x + nx * 300, y + ny * 300, land.poly):
+            nx, ny = -nx, -ny
+        out.append((x + nx * inland, y + ny * inland))
+    sm = []                                             # smooth the wobble out of the line
+    for i in range(len(out)):
+        a, b = max(0, i - 3), min(len(out), i + 4)
+        sm.append((sum(p[0] for p in out[a:b]) / (b - a), sum(p[1] for p in out[a:b]) / (b - a)))
+    return sm
+
+
+def path_at(path, s):
+    """Point and unit direction at arc length s along a polyline (clamped, extrapolated)."""
+    acc = 0.0
+    for i in range(len(path) - 1):
+        (ax, ay), (bx, by) = path[i], path[i + 1]
+        L = math.hypot(bx - ax, by - ay)
+        if s <= acc + L or i == len(path) - 2:
+            u = (s - acc) / (L or 1.0)
+            return (ax + (bx - ax) * u, ay + (by - ay) * u), ((bx - ax) / (L or 1), (by - ay) / (L or 1))
+        acc += L
+    return path[-1], (0.0, -1.0)
+
+
+def build_s24(coll, lib_c, land, bvh, frames, end, hoist, march, leave):
+    """S24 (K31): over the Dutch star fort at Kochi a huge plain orange war banner is hoisted
+    as the line says the Dutch declare war, and a column of Dutch soldiers marches out and
+    south down the beach; van Imhoff's ship sails away; huts among the palms."""
     f0, f1 = frames
-    galleon = make_sailing_galleon("S19Galleon", coll)
-    galleon.scale = (16.0, 16.0, 16.0)
-
-    # Route: departs Ceylon (11800, -4800) -> Gulf of Mannar (5200, -1600)
-    start_pos = (11800.0, -4800.0, 2.0)
-    end_pos = (4800.0, -1400.0, 2.0)
-    heading = math.radians(-118)
-
-    galleon.rotation_euler = (0, 0, heading)
-    galleon.location = start_pos
-    galleon.keyframe_insert("location", frame=f0)
-    galleon.location = end_pos
-    galleon.keyframe_insert("location", frame=f1)
-
-    # Gentle wave rock
-    rng = random.Random(77)
-    f = f0
-    while f <= f1:
-        s = rng.choice([-1, 1])
-        galleon.rotation_euler = (math.radians(2.2 * s), math.radians(1.4 * s), heading + math.radians(1.0 * s))
-        galleon.keyframe_insert("rotation_euler", frame=f)
-        f += 24
-
-    # Visibility: active only during S19
-    galleon.hide_render = True
-    galleon.keyframe_insert("hide_render", frame=1)
-    galleon.keyframe_insert("hide_render", frame=f0 - 1)
-    galleon.hide_render = False
-    galleon.keyframe_insert("hide_render", frame=f0)
-    galleon.keyframe_insert("hide_render", frame=f1)
-    galleon.hide_render = True
-    galleon.keyframe_insert("hide_render", frame=f1 + 1)
-    return galleon
-
-
-# ================================================================ S24: Fort Kochi Mobilization
-def build_s24_mobilization(coll, frames):
-    """Giant orange VOC war banner atop Fort Kochi and marching Dutch column (S24, K31)."""
-    f0, f1 = frames
+    fort = bpy.data.objects["DutchFortKochi"]
+    fx, fy, fz = fort.location
+    obs = []
+    # 1. the war banner: a tall mast at the fort's heart, the flag hoisted to the top
+    import port_world as port
+    kit_colours("sail_set", "flag_o")
+    mb = kit.MB(bevel=0.3)
+    mb.seg((fx, fy, fz + 20), (fx, fy, fz + 470), 7.0, 4.5, "post", sides=8)
+    mb.ico(kit.T(fx, fy, fz + 474), "brass", r=9.0, sub=1)
+    mb.cone(kit.T(fx, fy, fz + 26), "stone", segments=8, r1=26.0, r2=20.0, depth=14.0)
+    obs.append(mb.obj("S24BannerMast", coll))
+    flag = port.make_flag("S24WarBanner", coll, w=2.6, h=1.6, m="flag_o")
+    flag.scale = (125.0, 125.0, 125.0)
+    flag.rotation_euler[2] = math.radians(-12)           # flies east, its face to the camera
+    wv = flag.modifiers["Wave"]
+    wv.height *= 2.6
+    wv.width *= 0.8
+    wv.speed *= 1.6
+    for f, z in ((f0, fz + 120), (hoist[0], fz + 120), (hoist[1], fz + 466)):
+        flag.location = (fx + 4, fy, z)
+        flag.keyframe_insert("location", frame=f)
+    obs.append(flag)
+    # 2. the column: three files of Dutch soldiers on the beach south of the fort; they stand
+    #    until the war is declared, then march south
+    path = beach_path(land, fy - 560, fy - 3200, inland=55.0)
+    swap_forts(coll, f0, f1)                             # only the Dutch star fort here (K31)
+    tpls = [walker_template(f"S24DutchTpl{i}", lib_c, "dutch", seed=30 + i) for i in range(3)]
+    rng = random.Random(24)
+    sc_fig, ranks, gap, files = 24.0, 32, 30.0, (-19.0, 0.0, 19.0)
+    road = []
+    for o in bpy.data.objects:                           # keep the beach road clear for the march
+        if o.name.startswith(("MapPalm", "MapTree")) and fy - 3300 < o.location.y < fy - 300:
+            if min(math.hypot(o.location.x - x, o.location.y - y) for x, y in path) < 105:
+                road.append(o)
+    hide_during(road, f0, f1)
+    head0 = 70.0 + gap * (ranks - 1)
+    dist = 62.0 * (f1 - march) / kit.FPS                    # metres marched by the end
+    ground = lambda x, y: ground_z(bvh, x, y) - 0.5
+    n = 0
+    for r in range(ranks):
+        for c, off in enumerate(files):
+            root, parts = new_walker(f"S24Soldier{n}", coll, tpls[(r + c) % 3], sc_fig * rng.uniform(0.96, 1.04))
+            s0 = head0 - r * gap + rng.uniform(-2, 2)
+            wps = []
+            for k in range(13):
+                (px, py), (dx, dy) = path_at(path, s0 + dist * k / 12)
+                wps.append((px - dy * off, py + dx * off))
+            (px, py), (dx, dy) = path_at(path, s0)
+            root.location = (wps[0][0], wps[0][1], ground(*wps[0]))
+            root.rotation_euler = (0, 0, math.atan2(dy, dx) - math.pi / 2)
+            kit.animate_idle(root, random.Random(n), f0, march - 14, amount=0.03)
+            kit.animate_walk(root, parts, wps, ground, start=march + int(r * 0.3), end=f1 + 2,
+                             stride_frames=12, swing=0.5)
+            if r in (1, ranks // 2, ranks - 3) and c == 1:
+                obs += standard(f"S24Standard{r}", coll, root, (0.32, 0.05), "flag_o", pole_h=4.6, w=2.0, h=1.25)
+            obs += list(parts.values())
+            n += 1
+    # 3. van Imhoff leaves: a Dutch ship under sail stands out from the fort, heading south-west
     kx, ky = geo.xy(*FORT_KOCHI)
-    kx += 120
-    ky += 60
+    ship, parts, _ = dutch_ship("S24LeavingShip", coll, seed=11)
+    ship.scale = (6.5, 6.5, 6.5)
+    p0, p1 = (kx - 820, ky - 380), (kx - 2000, ky - 1950)
+    hd = math.atan2(-(p1[0] - p0[0]), p1[1] - p0[1])
 
-    # 1. Giant Orange VOC War Banner on flagpole
-    b_mb = kit.MB(bevel=0.08)
-    b_mb.cone(kit.T(kx + 10, ky + 10, 45.0), "post", segments=8, r1=1.5, r2=0.8, depth=90.0) # Tall mast
-    # Billowing orange war banner
-    b_mb.box(kit.T(kx + 45, ky + 10, 78.0) @ kit.S(70.0, 1.5, 36.0), "gold")
-    banner_ob = b_mb.obj("VOCWarBanner", coll)
-    banner_ob.data.materials.append(kit.mat("post", kit.PALETTE["post"]))
-    banner_ob.data.materials.append(kit.mat("gold", (0.96, 0.46, 0.10))) # Dutch orange
-
-    # 2. Marching Dutch Column winding south out of the fort
-    # Path down the coastal road: from fort (kx, ky-60) south along the coast
-    col_mb = kit.MB(bevel=0.04)
-    march_pts = [
-        (kx, ky - 60), (kx - 80, ky - 250), (kx - 120, ky - 500),
-        (kx - 100, ky - 800), (kx - 60, ky - 1100), (kx, ky - 1400)
-    ]
-    # Place rows of 3 blue soldier counters along the path
-    rng = random.Random(88)
-    n_soldiers = 0
-    for i in range(len(march_pts) - 1):
-        p0, p1 = march_pts[i], march_pts[i + 1]
-        steps = 14
-        for s in range(steps):
-            t = s / steps
-            mx = p0[0] + (p1[0] - p0[0]) * t
-            my = p0[1] + (p1[1] - p0[1]) * t
-            dx, dy = p1[0] - p0[0], p1[1] - p0[1]
-            L = math.hypot(dx, dy) or 1.0
-            nx, ny = -dy / L, dx / L
-            for lane in (-18, 0, 18):
-                px = mx + nx * lane + rng.uniform(-3, 3)
-                py = my + ny * lane + rng.uniform(-3, 3)
-                # Blue coat, white breeches, black tricorn
-                col_mb.box(kit.T(px, py, 9.0) @ kit.S(12.0, 12.0, 18.0), "coat_blue")
-                col_mb.box(kit.T(px, py, 20.0) @ kit.S(9.0, 9.0, 6.0), "black")
-                n_soldiers += 1
-
-    march_ob = col_mb.obj("DutchMarchColumn", coll)
-    march_ob.data.materials.append(kit.mat("coat_blue", (0.16, 0.32, 0.62)))
-    march_ob.data.materials.append(kit.mat("black", (0.12, 0.12, 0.14)))
-
-    for ob in (banner_ob, march_ob):
-        ob.hide_render = True
-        ob.keyframe_insert("hide_render", frame=1)
-        ob.keyframe_insert("hide_render", frame=f0 - 1)
-        ob.hide_render = False
-        ob.keyframe_insert("hide_render", frame=f0)
-        ob.keyframe_insert("hide_render", frame=f1)
-        ob.hide_render = True
-        ob.keyframe_insert("hide_render", frame=f1 + 1)
+    def course(f):
+        u = min(1.0, max(0.0, (f - leave[0]) / (leave[1] - leave[0])))
+        u = u * u * (3 - 2 * u) * 0.75 + 0.25 * min(1.0, max(0.0, (f - leave[0]) / (f1 - leave[0])))
+        return p0[0] + (p1[0] - p0[0]) * u, p0[1] + (p1[1] - p0[1]) * u
+    ship.location = (*p0, 0)
+    rock_ship(ship, end, hd, amp=(1.4, 2.0), bob=2.0, seed=13, path=course, lift_w=0.3)
+    obs += parts
+    # the three ships moored off the fort rock on the swell (copies of the S11 ships)
+    olds = [bpy.data.objects[f"DutchShipKochi{i}"] for i in range(3)]
+    for i, o in enumerate(olds):
+        cp = kit.instance(o, f"S24KochiShip{i}", coll, tuple(o.location), rot_z=0.0, scale=6.0)
+        cp.animation_data_clear()
+        sc_ = bpy.context.scene
+        sc_.frame_set(f0)
+        rz = o.matrix_world.to_euler()[2]
+        cp.location = o.matrix_world.translation
+        rock_ship(cp, end, rz, amp=(1.6, 1.2), bob=2.0, seed=60 + i, lift_w=0.25)
+        obs.append(cp)
+    hide_during(olds, f0, f1)
+    # 4. huts in clearings among the palms, east of the beach (K31)
+    srcs = [kit.make_hut_hip("S24HutSrc0", lib_c, seed=21), kit.make_hut_gable("S24HutSrc1", lib_c, seed=22),
+            kit.make_hut_gable("S24HutSrc2", lib_c, w=4.8, d=3.6, seed=23)]
+    for s in srcs:
+        kit.hide_source(s)
+    k = tries = 0
+    while k < 34 and tries < 3000:
+        tries += 1
+        x, y = rng.uniform(fx - 600, fx + 1500), rng.uniform(fy - 2600, fy + 900)
+        if math.hypot(x - fx, y - fy) < 820 or not geo.point_in_poly(x, y, land.poly):
+            continue
+        d = land.coast_dist(x, y)
+        if not (230 < d < 1500) or land.in_lagoon(x, y) or land.lagoon_dist(x, y) < 70 or \
+                land.river_dist(x, y) < 70 or land.in_lake(x, y, 1.3):
+            continue
+        for _ in range(rng.choice((1, 2, 3))):          # small clusters
+            hx, hy = x + rng.uniform(-90, 90), y + rng.uniform(-90, 90)
+            obs.append(kit.instance(srcs[k % 3], f"S24Hut{k}", coll, (hx, hy, ground_z(bvh, hx, hy) - 0.5),
+                                    rot_z=rng.uniform(0, 6.28), scale=rng.uniform(13.0, 16.0)))
+            k += 1
+    show_only(obs, f0, f1)
+    print("S24 built:", n, "marching soldiers,", k, "huts")
 
 
-# ================================================================ S28: Frontier Battle Clash
-def build_s28_frontier_clash(coll, bvh, frames):
-    """Push-and-pull battle frontlines: Dutch & Travancore army blocks, tactical arrows,
-    and battle smoke puffs (S28, K35)."""
+# ------------------------------------------------- S28: the frontier near Kollam (K35)
+_CD = (-0.677, 0.735)            # along the coast (north-west); same as map_film
+_CN = (0.735, 0.677)             # inland
+
+
+def build_s28(coll, lib_c, bvh, frames, end, centre):
+    """S28 (K35): the two armies face each other on the coastal plain at Travancore's
+    frontier near Kollam, Dutch blue to the north in front of the allied Kollam fort,
+    Travancore red to the south in front of its fort, and the line goes back and forth: a
+    push south, a push north, a push south, then stalemate. Musket smoke at each volley,
+    ground arrows for each push, banners, guns, ships rocking at sea.
+    centre: a point 130 m inland of the waterline where the frontier meets the coast."""
     f0, f1 = frames
-    fx, fy = -2500.0, 3200.0  # Coastal sand plain near Kollam
-    fz = ground_z(bvh, fx, fy, default=4.0)
+    n = f1 - f0
+    rng = random.Random(28)
+    obs = []
+    kit_colours("flag_o", "flag_r")
+    front0 = -90.0                       # the line, metres along the coast from `centre` (+ = north-west)
+    keys = [(0.0, 0.0), (0.10, 0.0), (0.40, -150.0), (0.50, -150.0), (0.78, 110.0), (0.86, 110.0), (1.0, 10.0)]
 
-    mb = kit.MB(bevel=0.06)
+    def front(f):
+        u = (f - f0) / n
+        for (ua, va), (ub, vb) in zip(keys, keys[1:]):
+            if u <= ub:
+                t = 0.0 if ub == ua else max(0.0, min(1.0, (u - ua) / (ub - ua)))
+                return front0 + va + (vb - va) * t * t * (3 - 2 * t)
+        return front0 + keys[-1][1]
 
-    # 1. Northern Dutch army block (blue & orange)
-    for row in range(5):
-        for col in range(12):
-            px = fx - 160 + col * 28
-            py = fy + 240 + row * 24
-            pz = ground_z(bvh, px, py, default=fz)
-            mb.box(kit.T(px, py, pz + 8.0) @ kit.S(14.0, 12.0, 16.0), "coat_blue")
-            mb.box(kit.T(px, py, pz + 18.0) @ kit.S(10.0, 10.0, 6.0), "gold")
-    # Dutch orange camp banner
-    mb.cone(kit.T(fx, fy + 380, fz + 24.0), "post", segments=6, r1=1.0, r2=0.6, depth=48.0)
-    mb.box(kit.T(fx + 20, fy + 380, fz + 42.0) @ kit.S(36.0, 1.0, 20.0), "gold")
+    def at(along, inland):
+        return (centre[0] + _CD[0] * along + _CN[0] * inland, centre[1] + _CD[1] * along + _CN[1] * inland)
 
-    # 2. Southern Travancore army block (red & white)
-    for row in range(5):
-        for col in range(12):
-            px = fx - 160 + col * 28
-            py = fy - 240 - row * 24
-            pz = ground_z(bvh, px, py, default=fz)
-            mb.box(kit.T(px, py, pz + 8.0) @ kit.S(14.0, 12.0, 16.0), "carpet_red")
-            mb.box(kit.T(px, py, pz + 18.0) @ kit.S(10.0, 10.0, 6.0), "gold")
-    # Travancore red camp banner
-    mb.cone(kit.T(fx, fy - 380, fz + 24.0), "post", segments=6, r1=1.0, r2=0.6, depth=48.0)
-    mb.box(kit.T(fx + 20, fy - 380, fz + 42.0) @ kit.S(36.0, 1.0, 20.0), "carpet_red")
+    def local(x, y):
+        dx, dy = x - centre[0], y - centre[1]
+        return dx * _CD[0] + dy * _CD[1], dx * _CN[0] + dy * _CN[1]
 
-    # 3. Tactical push-pull arrows drawn on the sand (matching K35!)
-    # Orange arrow pointing south into Travancore
-    for t_step in range(12):
-        ay = fy + 160 - t_step * 24
-        ax = fx - 50 + math.sin(t_step * 0.4) * 45
-        az = ground_z(bvh, ax, ay, default=fz) + 3.0
-        mb.box(kit.T(ax, ay, az) @ kit.S(14.0, 16.0, 1.5), "gold")
-    # Arrow head
-    mb.cone(kit.T(fx - 50, fy - 110, fz + 3.0) @ kit.Rx(math.pi / 2), "gold", segments=3, r1=32.0, r2=0.0, depth=45.0)
+    # the home forts, smaller so the armies read (Kollam allied north, Attingal and
+    # Kottarakkara Travancore red); the palms are cleared off the battlefield for the beat
+    swap_forts(coll, f0, f1, keep=("Kollam", "Attingal"), scale=11.0)
+    clear = []
+    for o in bpy.data.objects:
+        if o.name.startswith(("MapPalm", "MapTree")):
+            a, i = local(o.location.x, o.location.y)
+            if abs(a - front0) < 720 and -160 < i < 1050:
+                clear.append(o)
+    hide_during(clear, f0, f1)
+    figs = {"dutch": [kit.make_figure(f"S28DutchSrc{i}", lib_c, "dutch", seed=80 + i) for i in range(3)],
+            "nair": [kit.make_figure(f"S28NairSrc{i}", lib_c, "nair", seed=90 + i) for i in range(2)]
+            + [kit.make_figure(f"S28NairSpearSrc{i}", lib_c, "nair_spear", seed=95 + i) for i in range(2)]}
+    gun = kit.make_cannon("S28GunSrc", lib_c)
+    for s_ in figs["dutch"] + figs["nair"] + [gun]:
+        kit.hide_source(s_)
+    sc_fig, sp = 26.0, 28.0
+    face_s = math.atan2(_CD[0], -_CD[1])                  # looking south-east (down the coast)
+    face_n = math.atan2(-_CD[0], _CD[1])                  # looking north-west
+    gap = 72.0
+    blocks = []
+    sides = (("dutch", 1, (10.0, 300.0), 10, 7, "flag_o"),
+             ("nair", -1, (10.0, 300.0), 10, 8, "flag_r"))
+    for side, sgn, centres, files, ranks, fm in sides:
+        for bi, inl in enumerate(centres):
+            emp = bpy.data.objects.new(f"S28Block_{side}{bi}", None)
+            coll.objects.link(emp)
+            blocks.append((emp, sgn, inl))
+            for r in range(ranks):
+                for c in range(files):
+                    if side == "nair" and r == ranks - 1 and rng.random() < 0.4:
+                        continue                               # a ragged rear rank
+                    lx = (c - (files - 1) / 2) * sp + rng.uniform(-4, 4)
+                    ly = r * sp + rng.uniform(-4, 4)
+                    # block frame: x inland, y away from the enemy
+                    wx = _CN[0] * lx + _CD[0] * ly * sgn
+                    wy = _CN[1] * lx + _CD[1] * ly * sgn
+                    ob = kit.instance(rng.choice(figs[side]), f"S28{side}{bi}_{r}_{c}", coll, (wx, wy, 0.0),
+                                      rot_z=(face_s if sgn > 0 else face_n) + rng.uniform(-0.15, 0.15),
+                                      scale=sc_fig * rng.uniform(0.95, 1.05))
+                    ob.parent = emp
+                    kit.animate_idle(ob, random.Random(len(obs)), f0, f1, amount=0.06)
+                    obs.append(ob)
+            for k, lx in enumerate((-70.0, 70.0)):                 # two banners in each block
+                ly = (ranks - 1) * sp * 0.55
+                st = bpy.data.objects.new(f"S28Std_{side}{bi}{k}", None)
+                coll.objects.link(st)
+                st.parent = emp
+                st.location = (_CN[0] * lx + _CD[0] * ly * sgn, _CN[1] * lx + _CD[1] * ly * sgn, 0)
+                st.scale = (sc_fig, sc_fig, sc_fig)
+                obs += standard(f"S28Flag_{side}{bi}{k}", coll, st, (0, 0), fm, pole_h=5.6, w=2.4, h=1.5)
+            for k, lx in enumerate((-150.0, 150.0)):               # guns on the block's flanks
+                g = kit.instance(gun, f"S28Gun_{side}{bi}{k}", coll,
+                                 (_CN[0] * lx + _CD[0] * 10 * sgn, _CN[1] * lx + _CD[1] * 10 * sgn, 0),
+                                 scale=sc_fig * 1.25, rot_z=face_s if sgn > 0 else face_n)
+                g.parent = emp
+                obs.append(g)
+    for emp, sgn, inl in blocks:
+        for f in range(f0 - 2, f1 + 4, 3):
+            x, y = at(front(f) + sgn * gap, inl)
+            emp.location = (x, y, ground_z(bvh, x, y) - 0.5)
+            emp.keyframe_insert("location", frame=f)
+    # smoke: volleys along both fronts and from the guns, puffs swell and thin away
+    kit.mat("smoke", kit.PALETTE["smoke"])
+    smk = kit.MB()
+    smk.ico(kit.Matrix.Identity(4), "smoke", r=1.0, sub=1, jitter=0.18, rng=rng)
+    smk_ob = smk.obj("S28PuffSrc", lib_c)
+    kit.hide_source(smk_ob)
+    p = 0
+    for fv in range(f0 + 5, f1 - 8, 13):
+        for side, sgn, centres, *_ in sides:
+            if rng.random() < 0.3:
+                continue
+            for inl in centres:
+                for _ in range(rng.randint(2, 4)):
+                    x, y = at(front(fv) + sgn * (gap - 12) + rng.uniform(-12, 12), inl + rng.uniform(-130, 130))
+                    z = ground_z(bvh, x, y) + rng.uniform(22, 40)
+                    ob = kit.instance(smk_ob, f"S28Puff{p}", coll, (x, y, z), rot_z=rng.uniform(0, 6.28), scale=0.01)
+                    r = rng.uniform(16, 28)
+                    for f, s_, dz in ((fv - 1, 0.01, 0), (fv + 3, r, 4), (fv + 16, r * 1.6, 20), (fv + 34, r * 0.2, 36)):
+                        ob.scale = (s_, s_, s_ * 0.8)
+                        ob.location.z = z + dz
+                        ob.keyframe_insert("scale", frame=f)
+                        ob.keyframe_insert("location", frame=f)
+                    obs.append(ob)
+                    p += 1
+    # ground arrows for each push (orange = the Dutch push south, red = Travancore pushes back)
+    kit.mat("arrow_o", (0.98, 0.50, 0.08))
+    kit.mat("arrow_r", (0.66, 0.06, 0.05))
+    for k, (ua, ub, sgn, m) in enumerate(((0.10, 0.48, -1, "arrow_o"), (0.50, 0.86, 1, "arrow_r"),
+                                          (0.86, 1.0, -1, "arrow_o"))):
+        fa, fb = f0 + round(ua * n), f0 + round(ub * n)
+        tail = front(fa) - sgn * 190
+        ob = build_ground_arrow(f"S28Arrow{k}", coll, bvh, at(tail, 640.0), (sgn * _CD[0], sgn * _CD[1]),
+                                470.0 if k < 2 else 300.0, 80.0, m, lift=16.0)
+        for f, s_ in ((fa - 1, 0.02), (fa + 16, 1.0), (fb, 1.0)):
+            ob.scale = (1.0, s_, 1.0)
+            ob.keyframe_insert("scale", frame=f)
+        show_only([ob], fa, fb)
+    # ships at sea off the battlefield, rocking (the S07 ship there is hidden for the beat)
+    hide_during([bpy.data.objects["MapShip3"]], f0, f1)
+    src = [bpy.data.objects["MapShipSrc0"], bpy.data.objects["MapShipSrc1"]]
+    for k, (along, out) in enumerate(((-1300, 700), (-650, 1150), (150, 800), (800, 1300), (-1900, 1250),
+                                      (500, 1900))):
+        x, y = at(along, -out)
+        rz = math.radians(rng.choice((20, 160, 200, 340)) + rng.uniform(-15, 15))
+        ob = kit.instance(src[k % 2], f"S28Ship{k}", coll, (x, y, 0), rot_z=rz, scale=6.0)
+        rock_ship(ob, end, rz, amp=(2.0, 1.4), bob=2.5, seed=70 + k, lift_w=0.3,
+                  path=lambda f, x=x, y=y, rz=rz: (x - math.sin(rz) * 0.25 * (f - f0), y + math.cos(rz) * 0.25 * (f - f0)))
+        obs.append(ob)
+    show_only(obs, f0, f1)
+    print("S28 built:", len([o for o in obs if o.name.startswith("S28dutch")]), "Dutch,",
+          len([o for o in obs if o.name.startswith("S28nair")]), "Travancore,", p, "puffs,", len(clear), "palms cleared")
 
-    # Red arrow pushing back north into Dutch lines
-    for t_step in range(12):
-        ay = fy - 160 + t_step * 24
-        ax = fx + 50 - math.sin(t_step * 0.4) * 45
-        az = ground_z(bvh, ax, ay, default=fz) + 3.5
-        mb.box(kit.T(ax, ay, az) @ kit.S(14.0, 16.0, 1.5), "carpet_red")
-    # Arrow head
-    mb.cone(kit.T(fx + 50, fy + 110, fz + 3.5) @ kit.Rx(-math.pi / 2), "carpet_red", segments=3, r1=32.0, r2=0.0, depth=45.0)
 
-    # 4. White puffs of cannon / musket smoke between the lines
-    rng = random.Random(99)
-    for i in range(12):
-        sx = fx + rng.uniform(-160, 160)
-        sy = fy + rng.uniform(-90, 90)
-        sz = ground_z(bvh, sx, sy, default=fz) + rng.uniform(12.0, 35.0)
-        mb.ico(kit.T(sx, sy, sz), "canvas", r=rng.uniform(18.0, 32.0), sub=1)
-
-    clash_ob = mb.obj("FrontierClash", coll)
-    for m in ("coat_blue", "carpet_red", "gold", "post", "canvas"):
-        clash_ob.data.materials.append(kit.mat(m, kit.PALETTE[m]))
-
-    clash_ob.hide_render = True
-    clash_ob.keyframe_insert("hide_render", frame=1)
-    clash_ob.keyframe_insert("hide_render", frame=f0 - 1)
-    clash_ob.hide_render = False
-    clash_ob.keyframe_insert("hide_render", frame=f0)
-    clash_ob.keyframe_insert("hide_render", frame=f1)
-    clash_ob.hide_render = True
-    clash_ob.keyframe_insert("hide_render", frame=f1 + 1)
-    return clash_ob
+def build_ground_arrow(name, coll, bvh, tail, direction, length, width, m, lift=12.0):
+    """A flat arrow draped over the ground (a fine grid, every vertex just above the
+    terrain); origin at the tail so scaling local Y grows it out from the tail."""
+    dx, dy = direction
+    rot = math.atan2(-dx, dy)
+    ca, sa = math.cos(rot), math.sin(rot)
+    shaft, head = length * 0.66, width * 1.25
+    rows = []
+    for k in range(25):
+        ly = length * k / 24
+        if k and rows[-1][0] < shaft <= ly:
+            rows.append((shaft, width / 2))
+            rows.append((shaft + 0.01, head))
+        rows.append((ly, width / 2 if ly < shaft else head * (length - ly) / (length - shaft)))
+    mb = kit.MB()
+    grid = []
+    for ly, hw in rows:
+        row = []
+        for i in range(7):
+            lx = -hw + 2 * hw * i / 6
+            wx, wy = tail[0] + lx * ca - ly * sa, tail[1] + lx * sa + ly * ca
+            row.append(mb.bm.verts.new((lx, ly, ground_z(bvh, wx, wy) + lift)))
+        grid.append(row)
+    for r0, r1 in zip(grid, grid[1:]):
+        for i in range(6):
+            try:
+                mb.face([r0[i], r0[i + 1], r1[i + 1], r1[i]], m)
+            except ValueError:
+                pass
+    ob = mb.obj(name, coll)
+    ob.location = (tail[0], tail[1], 0.0)
+    ob.rotation_euler[2] = rot
+    ob.visible_shadow = False
+    return ob

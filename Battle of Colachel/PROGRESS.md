@@ -54,16 +54,16 @@ images sometimes paint the sea with wave lines; ignore that, the sea is always t
 | S16 | 21-22 | Map: red Travancore territory spreads north | `Map.blend` | ✅ Approved |
 | S17 | 23 | English port: pepper onto red-flag English ship, Dutch ship leaves (refs K23_v1/v2) | `Port.blend` / `port_film.py`, `port_world.py` | ✅ Approved |
 | S18 | 24 | Map: wide, big red Travancore vs small orange Kochi | `Map.blend` | ✅ Approved |
-| S19 | 25 | Map: sea route from Ceylon | `Map.blend` · ref **K25** | ⏳ Being fixed (sea seam, Ceylon island) |
+| S19 | 25 | Map: Ceylon (real outline), Dutch ship sails to India | `Map.blend` · ref **K25** | ✅ REBUILT. Map frames 2118-2456 (delete old PNGs >= 2118 first) |
 | S20 | 26 | Van Imhoff writing by candle in his study in Kochi fort, night | `Study.blend` / `study_film.py`, `study_world.py` · ref **K26** | ✅ REBUILT 2026-10-16 (v1 rejected). Frames 1-331 (real voice). Render on GPU machine |
 | S21 | 27 | Meeting: king on throne, Imhoff points, guards | `Meeting.blend` / `meeting_film.py`, `meeting_world.py` · ref **K27** | ✅ REBUILT. Frames 1-343 |
 | S22 | 28-29 | Same meeting, orbit, the Koshy story | `Meeting.blend` · ref **K27** | ✅ REBUILT. Frames 344-950 |
 | S23 | 30 | Close on the king, arms folded | `Meeting.blend` · ref **K30** | ✅ REBUILT. Frames 951-1258 |
-| S24 | 31 | Map: orange war banner rises over Kochi, a column marches south. Voice 15.2 s | ref **K31** · `Map.blend` (`map_film.py`, banner + army column) | ⏳ Queued in pipeline |
+| S24 | 31 | Map: war banner over Kochi, column marches south | `Map.blend` · ref **K31** | ✅ REBUILT. Map frames 2457-2854 |
 | S25 | 32 | Battle near Kollam | `Battle.blend` / `battle_film.py`, `battle_world.py` · ref **K32** | ✅ REBUILT. Frames 1-322 |
 | S26 | 33 | Powder store explosion, 16 guns lost | `Battle.blend` · ref **K33** | ✅ REBUILT. Frames 323-695 |
 | S27 | 34 | Varkala cliffs, the Nair wall | `Varkala.blend` / `varkala_film.py`, `varkala_world.py` · ref **K34** | ✅ REBUILT. Frames 1-465 |
-| S28 | 35 | Map: armies push back and forth around Kollam. Voice 8.1 s | ref **K35** · `Map.blend` (`map_film.py`, frontier clash & tactical arrows) | ⏳ Queued in pipeline |
+| S28 | 35 | Map: armies push back and forth at the frontier | `Map.blend` · ref **K35** | ✅ REBUILT. Map frames 2855-3094 |
 | S29 | 36 | Map: a Dutch ship from Ceylon arrives at Kochi; a dotted sea route swings south to the tip. Device voice | ref **K36** · `map_film.py` | ⬜ Ready to build |
 | S30 | 37 | Off Colachel: Dutch warships fire broadsides at the shore (Nov 1740). Device voice | ref **K37** · beach world (`colachel_world.py`), new film script | ⬜ Ready to build |
 | S31 | 38 | Seven ships, a crowd of boats, soldiers wade ashore north of Colachel (Feb 1741). Device voice | ref **K38** · beach world | ⬜ Ready to build |
@@ -103,6 +103,9 @@ Then three independent streams (separate files, can run in parallel on different
 3. **Map stream** (`map_film.py`, one agent only): S29 ship arrives at Kochi + dotted route to the tip (K36).
 Each beat: stills vs its ref saved to `blender/renders/compare/`, then commit; renders happen on the GPU machine
 (or Kaggle, see `_tools/kaggle/README.md`).
+
+Decision 2026-10-16: from S19 on, map beats may use a slight camera tilt (10-38°, as in their Flow refs); forts
+may be scaled down inside a beat when armies must read. Map frames 1-2117 (S07-S18) are unchanged.
 
 ### Next beats (S19 onward) — what the shot list asks for
 S19 map glide over the sea to Ceylon, a Dutch ship sails to Kochi · S20 van Imhoff at a desk by candle in Kochi fort ·

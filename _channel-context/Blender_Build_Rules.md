@@ -103,7 +103,8 @@ list what is missing before you call it done. Empty ground, flat walls and froze
 ## 3. Camera and timing
 
 - One continuous move within a location; a clean cut or a cloud dissolve between places (beach → map → close
-  scene). Map shots are straight top-down, north up.
+  scene). Map shots are top-down, north up (a slight tilt of
+  10-38° is allowed when the reference has it).
 - Clip length comes from the narration (`audio/Sxx.wav` if it exists, else the text estimate) plus 0.8 s lead and
   0.6 s tail, minimum 10 s. Use the `timed_clips()` / `retime()` pattern from `film.py` / `map_film.py`, and write
   camera keys in design frames so a later voice re-record re-times them automatically.

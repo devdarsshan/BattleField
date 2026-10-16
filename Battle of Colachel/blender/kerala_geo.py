@@ -135,3 +135,50 @@ def coast_detailed(step=60.0):
 
 def land_polygon_detailed(step=60.0):
     return coast_detailed(step) + [xy(a, b) for a, b in LAND_CLOSE]
+
+
+# ------------------------------------------------------------------ Ceylon (S19)
+# Ceylon (Sri Lanka) at its real place and size on the same projection, so the map can glide
+# from the Kerala tip across the Gulf of Mannar to it. Outline traced from modern maps,
+# clockwise from the Jaffna peninsula (lat, lon). Approximate, like the Kerala coast.
+CEYLON_COAST = [
+    (9.78, 80.00), (9.62, 79.93), (9.40, 80.05), (9.20, 79.98), (9.05, 79.93), (8.95, 79.90),
+    (8.80, 79.93), (8.60, 79.93), (8.38, 79.86), (8.20, 79.76), (8.02, 79.82), (7.75, 79.80),
+    (7.50, 79.81), (7.21, 79.83), (6.93, 79.84), (6.60, 79.95), (6.40, 80.00), (6.13, 80.10),
+    (6.03, 80.22), (5.96, 80.45), (5.92, 80.59), (6.02, 80.80), (6.12, 81.10), (6.35, 81.45),
+    (6.65, 81.75), (6.95, 81.85), (7.30, 81.86), (7.70, 81.72), (8.10, 81.48), (8.57, 81.23),
+    (8.80, 81.08), (9.10, 80.92), (9.35, 80.75), (9.60, 80.55), (9.83, 80.25),
+]
+# The central highlands: (lat, lon, height factor). Pidurutalagala, Adam's Peak, the Knuckles,
+# the Horton Plains / Haputale scarp.
+CEYLON_HILLS = [(6.97, 80.77, 1.0), (6.81, 80.50, 0.85), (7.40, 80.80, 0.7), (6.80, 80.90, 0.8),
+                (7.15, 80.55, 0.6)]
+COLOMBO = (6.935, 79.845)        # the Dutch fort at Colombo, seat of the governor of Ceylon
+
+# The faceted sea is extended beyond MAP_REGION (as a second mesh on the same lattice, so the
+# approved S07-S18 sea is untouched) to cover the S19 camera: x0, x1, y0, y1 in Blender metres.
+SEA_EXT = (-14000.0, 33000.0, -16500.0, 10000.0)
+
+
+def ceylon_xy():
+    return [xy(a, b) for a, b in CEYLON_COAST]
+
+
+def outline_detailed(pts, step=60.0, amp=1.0, closed=True):
+    """Any outline resampled every `step` m with the same gentle wobble as coast_detailed."""
+    pts = list(pts) + ([pts[0]] if closed else [])
+    out, s_total = [], 0.0
+    for i in range(len(pts) - 1):
+        (ax, ay), (bx, by) = pts[i], pts[i + 1]
+        seg = math.hypot(bx - ax, by - ay)
+        nx, ny = -(by - ay) / seg, (bx - ax) / seg
+        n = max(1, int(seg / step))
+        for k in range(n):
+            t = k / n
+            s = s_total + seg * t
+            wob = amp * (90 * math.sin(s / 900.0) + 45 * math.sin(s / 260.0 + 1.3) + 18 * math.sin(s / 75.0 + 0.4))
+            out.append((ax + (bx - ax) * t + nx * wob, ay + (by - ay) * t + ny * wob))
+        s_total += seg
+    if not closed:
+        out.append(pts[-1])
+    return out
