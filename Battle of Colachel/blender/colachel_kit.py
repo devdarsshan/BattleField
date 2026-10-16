@@ -73,12 +73,31 @@ PALETTE = {
     "rain":       (0.80, 0.84, 0.90),
     "iron":       (0.16, 0.16, 0.18),
     "smoke":      (0.88, 0.87, 0.84),
+    "coat_dark":   (0.24, 0.22, 0.22),
+    "paddy_water": (0.32, 0.46, 0.35),
+    "paddy_green": (0.38, 0.58, 0.22),
+    "paddy_bund":  (0.48, 0.36, 0.24),
+    "laterite_rd": (0.66, 0.42, 0.28),
+    "earth_wall":  (0.52, 0.32, 0.20),
+    "roof_thatch": (0.72, 0.58, 0.34),
+    "fire_yellow": (1.00, 0.88, 0.18),
+    "fire_orange": (1.00, 0.48, 0.05),
+    "fire_red":    (0.90, 0.18, 0.08),
+    "smoke_dk":    (0.24, 0.24, 0.26),
+    "smoke_md":    (0.42, 0.42, 0.45),
     "rice":       (0.95, 0.94, 0.88),
     "soil":       (0.42, 0.29, 0.18),
     "soil_dk":    (0.30, 0.21, 0.14),
     "ghat_lo":    (0.44, 0.58, 0.24),
     "ghat_hi":    (0.30, 0.46, 0.17),
     "table":      (0.80, 0.761, 0.698),
+    "fire_yellow":(1.0, 0.85, 0.20),
+    "fire_orange":(1.0, 0.45, 0.05),
+    "fire_red":   (0.90, 0.15, 0.05),
+    "coat_dark":  (0.18, 0.20, 0.22),
+    "paddy_water":(0.35, 0.52, 0.45),
+    "laterite":   (0.68, 0.32, 0.22),
+    "laterite_dk":(0.50, 0.22, 0.14),
 }
 
 
@@ -579,13 +598,18 @@ def _draw_figure(get, kind, rng, cloth="cloth_w", armed=True):
         mb, P = get(part)
         getattr(mb, prim)(P @ M, m, **kw)
 
-    skin = "skin_pale" if kind == "dutch" else "skin"
+    skin = "skin_pale" if kind in ("dutch", "imhoff") else "skin"
     # ---- legs
     for leg in ("legL", "legR"):
         if kind == "dutch":
             put(leg, "box", T(0, 0, -0.24) @ S(0.17, 0.18, 0.5), "white")
             put(leg, "box", T(0, 0, -0.64) @ S(0.16, 0.17, 0.42), "black")
             put(leg, "box", T(0, 0.05, -0.86) @ S(0.16, 0.26, 0.07), "black")
+        elif kind == "imhoff":
+            put(leg, "box", T(0, 0, -0.24) @ S(0.17, 0.18, 0.5), "white")
+            put(leg, "box", T(0, 0, -0.64) @ S(0.16, 0.17, 0.42), "white")
+            put(leg, "box", T(0, 0.05, -0.86) @ S(0.16, 0.26, 0.07), "black")
+            put(leg, "box", T(0, 0.11, -0.85) @ S(0.08, 0.04, 0.04), "gold")
         else:
             put(leg, "box", T(0, 0, -0.42) @ S(0.15, 0.16, 0.84), skin)
             put(leg, "box", T(0, 0.05, -0.86) @ S(0.15, 0.24, 0.07), skin)
@@ -594,6 +618,10 @@ def _draw_figure(get, kind, rng, cloth="cloth_w", armed=True):
         if kind == "dutch":
             put(arm, "box", T(0, 0, -0.27) @ S(0.13, 0.14, 0.56), "coat_blue")
             put(arm, "box", T(0, 0, -0.52) @ S(0.14, 0.15, 0.08), "white")
+            put(arm, "box", T(0, 0, -0.6) @ S(0.1, 0.11, 0.1), skin)
+        elif kind == "imhoff":
+            put(arm, "box", T(0, 0, -0.27) @ S(0.14, 0.15, 0.56), "coat_dark")
+            put(arm, "box", T(0, 0, -0.52) @ S(0.15, 0.16, 0.08), "white")
             put(arm, "box", T(0, 0, -0.6) @ S(0.1, 0.11, 0.1), skin)
         else:
             put(arm, "box", T(0, 0, -0.29) @ S(0.11, 0.12, 0.58), skin)
@@ -614,7 +642,7 @@ def _draw_figure(get, kind, rng, cloth="cloth_w", armed=True):
     def body(prim, M, m, **kw):
         put("body", prim, M, m, **kw)
 
-    torso = {"dutch": "coat_blue", "commander": "white", "villager_robe": cloth}.get(kind, skin)
+    torso = {"dutch": "coat_blue", "imhoff": "coat_dark", "commander": "white", "villager_robe": cloth}.get(kind, skin)
     body("cone", T(0, 0, 1.17) @ Rz(math.pi / 4) @ S(1.0, 0.62, 1.0), torso, segments=4, r1=0.24, r2=0.32, depth=0.48)
     body("cone", T(0, 0, 1.47), skin, segments=6, r1=0.065, r2=0.065, depth=0.1)
     body("ico", T(0, 0, 1.63) @ S(0.9, 0.95, 1.05), skin, r=0.145, sub=1)
@@ -640,6 +668,17 @@ def _draw_figure(get, kind, rng, cloth="cloth_w", armed=True):
         if armed:
             body("box", T(-0.36, 0.08, 0.95) @ S(0.06, 0.08, 0.7), "post")                # musket stock
             body("box", T(-0.36, 0.08, 1.55) @ S(0.035, 0.035, 0.6), "steel")             # musket barrel
+    elif kind == "imhoff":
+        body("cone", T(0, 0, 0.78), "coat_dark", segments=4, r1=0.28, r2=0.22, depth=0.44)
+        body("box", T(0, 0.15, 1.14) @ S(0.17, 0.04, 0.52), "white")                      # waistcoat
+        body("box", T(0, 0.17, 1.34) @ S(0.13, 0.05, 0.20), "canvas")                     # lace jabot
+        for z in (0.96, 1.04, 1.12, 1.20, 1.28):                                          # gold buttons
+            body("box", T(-0.06, 0.175, z) @ S(0.025, 0.02, 0.025), "gold")
+            body("box", T(0.06, 0.175, z) @ S(0.025, 0.02, 0.025), "gold")
+        body("ico", T(0, -0.07, 1.68) @ S(1.15, 1.05, 1.0), "wig", r=0.16, sub=1)        # wig
+        body("box", T(-0.16, 0.02, 1.46) @ S(0.08, 0.10, 0.36), "wig")
+        body("box", T(0.16, 0.02, 1.46) @ S(0.08, 0.10, 0.36), "wig")
+        body("box", T(0, -0.14, 1.48) @ S(0.30, 0.09, 0.36), "wig")
     elif kind in ("nair", "nair_spear"):
         body("cone", T(0, 0, 0.74), "cloth_w", segments=8, r1=0.22, r2=0.19, depth=0.48)
         body("cone", T(0, 0, 0.53), "red", segments=8, r1=0.225, r2=0.225, depth=0.05)
@@ -687,15 +726,35 @@ SIT = {"body": T(0, 0, -0.78),
        "legL": T(0.1, 0, 0.1) @ Rx(math.pi / 2), "legR": T(-0.1, 0, 0.1) @ Rx(math.pi / 2),
        "armL": T(0.27, 0, 0.62) @ Rx(0.7), "armR": T(-0.27, 0, 0.62) @ Rx(0.75)}
 
+POINT = {"body": Matrix.Identity(4),
+         "legL": T(0.1, 0, 0.88), "legR": T(-0.1, 0, 0.88),
+         "armL": T(0.27, 0, 1.4) @ Rx(0.15) @ Ry(0.1),
+         "armR": T(-0.27, 0, 1.4) @ Rx(-math.pi / 2 + 0.15) @ Rz(-0.35) @ Ry(-0.1)}
 
-def make_figure(name, collection, kind, seed=0, cloth="cloth_w", pose="stand"):
-    """Static single-mesh figure (for crowds and instancing). pose: "stand" or "sit"."""
+WRITE = {"body": T(0, 0, -0.78),
+         "legL": T(0.1, 0, 0.1) @ Rx(math.pi / 2), "legR": T(-0.1, 0, 0.1) @ Rx(math.pi / 2),
+         "armL": T(0.27, 0, 0.62) @ Rx(0.85) @ Ry(-0.2),
+         "armR": T(-0.27, 0, 0.62) @ Rx(1.05) @ Ry(0.25) @ Rz(-0.2)}
+
+SIT_ARMS_FOLDED = {"body": T(0, 0, -0.78),
+                   "legL": T(0.1, 0, 0.1) @ Rx(math.pi / 2), "legR": T(-0.1, 0, 0.1) @ Rx(math.pi / 2),
+                   "armL": T(0.27, 0, 0.62) @ Rx(1.1) @ Ry(0.4) @ Rz(0.6),
+                   "armR": T(-0.27, 0, 0.62) @ Rx(1.1) @ Ry(-0.4) @ Rz(-0.6)}
+
+POSES = {"stand": None, "sit": SIT, "point": POINT, "write": WRITE, "sit_arms_folded": SIT_ARMS_FOLDED}
+
+
+def make_figure(name, collection, kind, seed=0, cloth="cloth_w", pose="stand", armed=True):
+    """Static single-mesh figure (for crowds and instancing).
+    pose: 'stand', 'sit', 'point', 'write', 'sit_arms_folded'.
+    """
     rng = random.Random(seed)
     mb = MB(bevel=FIG_BEVEL)
-    if pose == "sit":
-        _draw_figure(lambda p: (mb, SIT[p]), kind, rng, cloth, armed=False)
+    pdict = POSES.get(pose)
+    if pdict:
+        _draw_figure(lambda p: (mb, pdict[p]), kind, rng, cloth, armed=armed)
     else:
-        _draw_figure(lambda p: (mb, T(*PIVOTS[p])), kind, rng, cloth)
+        _draw_figure(lambda p: (mb, T(*PIVOTS[p])), kind, rng, cloth, armed=armed)
     return mb.obj(name, collection)
 
 
@@ -842,6 +901,29 @@ def make_canopy(name, collection, w=4.6, d=3.8, h=2.7):
     return mb.obj(name, collection)
 
 
+def make_throne(name, collection, w=1.1, d=0.9, h=1.8):
+    """Ornate royal throne for King Marthanda Varma (matches refs K27, K30)."""
+    mb = MB(bevel=0.015)
+    for sx in (-1, 1):
+        for sy in (-1, 1):
+            mb.cone(T(sx * (w / 2 - 0.08), sy * (d / 2 - 0.08), 0.22), "plank", segments=8, r1=0.07, r2=0.05, depth=0.44)
+            mb.cone(T(sx * (w / 2 - 0.08), sy * (d / 2 - 0.08), 0.15), "gold", segments=8, r1=0.08, r2=0.08, depth=0.04)
+    mb.box(T(0, 0, 0.46) @ S(w, d, 0.08), "plank")
+    mb.box(T(0, 0, 0.52) @ S(w * 0.94, d * 0.94, 0.08), "carpet_red")
+    mb.box(T(0, 0, 0.52) @ S(w * 0.96, d * 0.96, 0.03), "gold")
+    for sx in (-1, 1):
+        mb.box(T(sx * (w / 2 - 0.06), 0.05, 0.72) @ S(0.10, d * 0.75, 0.06), "plank")
+        mb.box(T(sx * (w / 2 - 0.06), 0.05, 0.75) @ S(0.08, d * 0.70, 0.02), "gold")
+        mb.cone(T(sx * (w / 2 - 0.06), d * 0.35, 0.78), "gold", segments=6, r1=0.04, r2=0.01, depth=0.08)
+    mb.box(T(0, -d / 2 + 0.06, 1.15) @ S(w * 0.9, 0.08, 1.1), "plank")
+    mb.box(T(0, -d / 2 + 0.08, 1.15) @ S(w * 0.78, 0.04, 0.95), "carpet_red")
+    mb.cone(T(0, -d / 2 + 0.06, 1.75), "gold", segments=8, r1=w * 0.45, r2=0.0, depth=0.25)
+    for sx in (-1, 1):
+        mb.ico(T(sx * (w * 0.42), -d / 2 + 0.06, 1.72), "gold", r=0.06, sub=1)
+    mb.ico(T(0, -d / 2 + 0.06, 1.90), "gold", r=0.07, sub=1)
+    return mb.obj(name, collection)
+
+
 def make_sack(name, collection):
     mb = MB()
     mb.ico(T(0, 0, 0.28) @ S(0.42, 0.32, 0.3), "canvas", r=1.0, sub=1)
@@ -865,6 +947,72 @@ def make_cannon(name, collection):
 
 
 CANNON_MUZZLE = (0.0, 1.65, 0.955)
+
+
+def make_paddy_field(name, collection, w=35.0, d=20.0, ridge_w=1.2, ridge_h=0.45):
+    """Rectangular flooded rice paddy field with earthen dikes (matches K32)."""
+    mb = MB(bevel=0.02)
+    mb.box(T(0, 0, 0.1) @ S(w - ridge_w * 2, d - ridge_w * 2, 0.15), "grass")
+    for i in range(-2, 3):
+        mb.box(T(0, i * (d / 6), 0.12) @ S(w - ridge_w * 2.2, d / 14, 0.02), "paddy_water")
+    for sy in (-1, 1):
+        mb.box(T(0, sy * (d / 2 - ridge_w / 2), ridge_h / 2) @ S(w, ridge_w, ridge_h), "soil")
+    for sx in (-1, 1):
+        mb.box(T(sx * (w / 2 - ridge_w / 2), 0, ridge_h / 2) @ S(ridge_w, d - ridge_w * 2, ridge_h), "soil")
+    return mb.obj(name, collection)
+
+
+def make_earthworks(name, collection, length=40.0, height=2.2, depth=3.5):
+    """Earthen defensive rampart / redoubt (matches K32)."""
+    mb = MB(bevel=0.03)
+    mb.box(T(0, 0, height * 0.45) @ Rx(0.3) @ S(length, depth * 0.65, height * 0.8), "soil")
+    mb.box(T(0, -depth * 0.2, height * 0.85) @ S(length, depth * 0.45, height * 0.3), "soil_dk")
+    mb.box(T(0, -depth * 0.65, height * 0.35) @ S(length, depth * 0.5, height * 0.7), "soil")
+    return mb.obj(name, collection)
+
+
+def make_powder_store(name, collection, w=7.5, d=5.5, h=3.2):
+    """Thatched wooden gunpowder storehouse with powder barrels (matches K32, K33)."""
+    mb = MB(bevel=0.02)
+    for sx in (-1, 1):
+        for sy in (-1, 1):
+            mb.box(T(sx * (w / 2 - 0.2), sy * (d / 2 - 0.2), h / 2) @ S(0.3, 0.3, h), "beam")
+    mb.box(T(0, -d / 2 + 0.1, h / 2) @ S(w, 0.15, h), "plank")
+    for sx in (-1, 1):
+        mb.box(T(sx * (w / 2 - 0.1), 0, h / 2) @ S(0.15, d, h), "plank")
+    mb.box(T(-w * 0.3, d / 2 - 0.1, h / 2) @ S(w * 0.35, 0.15, h), "plank")
+    mb.box(T(w * 0.3, d / 2 - 0.1, h / 2) @ S(w * 0.35, 0.15, h), "plank")
+    mb.box(T(0, d / 2 - 0.1, h * 0.88) @ S(w * 0.4, 0.15, h * 0.24), "plank")
+    roof_h = 1.6
+    mb.cone(T(0, 0, h + roof_h / 2) @ S(w + 1.2, d + 1.2, 1.0), "thatch", segments=4, r1=0.75, r2=0.05, depth=roof_h)
+    for bx, by in [(-1.5, -0.8), (-0.8, -1.2), (1.2, -0.9), (1.8, -1.5), (w / 2 + 0.8, 0.5), (w / 2 + 1.4, -0.2)]:
+        mb.cone(T(bx, by, 0.45), "plank", segments=10, r1=0.38, r2=0.34, depth=0.85)
+        mb.cone(T(bx, by, 0.45), "iron", segments=10, r1=0.385, r2=0.345, depth=0.05)
+    return mb.obj(name, collection)
+
+
+def make_explosion(name, collection, seed=0, scale=1.0):
+    """Low-poly faceted explosion burst with fire shards & smoke clouds (matches K33)."""
+    rng = random.Random(seed)
+    mb = MB(bevel=0.0)
+    for _ in range(8):
+        pos = Vector((rng.uniform(-1.2, 1.2), rng.uniform(-1.2, 1.2), rng.uniform(0.8, 3.2))) * scale
+        s = rng.uniform(0.7, 1.6) * scale
+        c = rng.choice(["fire_yellow", "fire_orange", "fire_red"])
+        mb.ico(T(pos) @ S(s, s, s * rng.uniform(0.9, 1.4)), c, r=1.0, sub=1, jitter=0.2, rng=rng)
+    for k in range(12):
+        z_frac = k / 12.0
+        pos = Vector((rng.uniform(-1.0, 1.0) * (1.0 + z_frac * 1.5),
+                      rng.uniform(-1.0, 1.0) * (1.0 + z_frac * 1.5),
+                      2.5 + z_frac * 6.5)) * scale
+        s = (1.2 + z_frac * 2.2) * scale
+        smk = "dark" if rng.random() < 0.55 else "smoke"
+        mb.ico(T(pos) @ S(s, s, s * 0.9), smk, r=1.0, sub=1, jitter=0.22, rng=rng)
+    for _ in range(7):
+        pos = Vector((rng.uniform(-2.5, 2.5), rng.uniform(-2.5, 2.5), rng.uniform(1.5, 4.5))) * scale
+        rot = (rng.uniform(-1.5, 1.5), rng.uniform(-1.5, 1.5), rng.uniform(0, 3.14))
+        mb.box(T(pos) @ Rx(rot[0]) @ Ry(rot[1]) @ Rz(rot[2]) @ S(0.12 * scale, 1.4 * scale, 0.08 * scale), "plank")
+    return mb.obj(name, collection)
 
 
 # ================================================================== weather
@@ -1022,6 +1170,81 @@ def animate_walk(root, parts, waypoints, ground, start=1, end=CLIP_FRAMES, strid
     for key in ("legL", "legR", "armL", "armR"):
         parts[key].rotation_euler = (0, 0, 0)
         parts[key].keyframe_insert("rotation_euler", frame=f)
+
+
+# ===================================================================== battle assets (S25-S26)
+def make_paddy_field(name, collection, w=15.0, l=14.0, rim_h=0.35):
+    """Flooded paddy field basin with green rice shoots and raised earthen bunds."""
+    mb = MB(bevel=0.02)
+    mb.box(T(0, 0, 0.05) @ S(w, l, 0.08), "paddy_water")
+    mb.box(T(0, 0, 0.08) @ S(w * 0.94, l * 0.94, 0.02), "paddy_green")
+    bw = 0.55
+    mb.box(T(0, l / 2, rim_h / 2) @ S(w + bw * 2, bw, rim_h), "paddy_bund")
+    mb.box(T(0, -l / 2, rim_h / 2) @ S(w + bw * 2, bw, rim_h), "paddy_bund")
+    mb.box(T(w / 2, 0, rim_h / 2) @ S(bw, l, rim_h), "paddy_bund")
+    mb.box(T(-w / 2, 0, rim_h / 2) @ S(bw, l, rim_h), "paddy_bund")
+    return mb.obj(name, collection)
+
+
+def make_earthworks(name, collection, length=32.0, w=5.5, h=2.5):
+    """Reinforced red-mud defensive rampart with firing step and embrasures."""
+    mb = MB(bevel=0.08)
+    # Slanted main rampart
+    mb.box(T(0, 0, h * 0.45) @ S(w, length, h * 0.9), "earth_wall")
+    # Top firing parapet
+    mb.box(T(-w * 0.25, 0, h + 0.3) @ S(w * 0.45, length, 0.65), "earth_wall")
+    # Laterite foundation revetment
+    mb.box(T(0, 0, 0.15) @ S(w * 1.15, length + 0.5, 0.3), "laterite_rd")
+    # Timber palisade posts embedded in the earthwork
+    for i in range(int(length / 2.2)):
+        py = -length / 2 + 1.1 + i * 2.2
+        mb.cone(T(-w * 0.45, py, h * 0.6), "log", segments=6, r1=0.18, r2=0.14, depth=h * 1.2)
+    return mb.obj(name, collection)
+
+
+def make_powder_store(name, collection, w=6.0, d=4.5, h=3.2):
+    """Timber plank gunpowder magazine shed with pitched thatched/tiled roof."""
+    mb = MB(bevel=0.03)
+    # Timber plank walls
+    mb.box(T(0, 0, h * 0.45) @ S(w, d, h * 0.9), "plank")
+    # Pitched roof
+    mb.cone(T(0, 0, h + 0.75) @ S(1.0, d / w, 1.0) @ Rz(math.pi / 4), "roof_thatch",
+            segments=4, r1=w * 0.75, r2=0.2, depth=1.6)
+    # Heavy timber cross-braced door
+    mb.box(T(0, -d / 2 - 0.05, h * 0.35) @ S(1.6, 0.12, h * 0.7), "dark")
+    mb.box(T(0, -d / 2 - 0.08, h * 0.35) @ S(1.8, 0.08, 0.08), "iron")
+    return mb.obj(name, collection)
+
+
+def make_explosion(name, collection, radius=8.0):
+    """Dramatic explosion mesh: faceted fire core, smoke boulders, and debris (K33)."""
+    mb = MB(bevel=0.0)
+    rng = random.Random(42)
+    # 1. Fire core (faceted yellow/orange icos)
+    mb.ico(T(0, 0, radius * 0.35), "fire_yellow", r=radius * 0.55, sub=1, jitter=0.25, rng=rng)
+    mb.ico(T(0, 0, radius * 0.55), "fire_orange", r=radius * 0.75, sub=1, jitter=0.22, rng=rng)
+    mb.ico(T(0, 0, radius * 0.75), "fire_red", r=radius * 0.90, sub=1, jitter=0.20, rng=rng)
+    # 2. Billowing smoke boulders rising upwards
+    smoke_spots = [
+        (-radius * 0.4, -radius * 0.3, radius * 1.1, radius * 0.65, "smoke_dk"),
+        (radius * 0.4, -radius * 0.2, radius * 1.2, radius * 0.70, "smoke_dk"),
+        (0.0, radius * 0.3, radius * 1.4, radius * 0.80, "smoke_dk"),
+        (-radius * 0.25, radius * 0.2, radius * 1.8, radius * 0.90, "smoke_md"),
+        (radius * 0.25, 0.0, radius * 2.2, radius * 1.05, "smoke_md"),
+        (0.0, -radius * 0.1, radius * 2.7, radius * 1.15, "smoke"),
+    ]
+    for sx, sy, sz, sr, sm in smoke_spots:
+        mb.ico(T(sx, sy, sz), sm, r=sr, sub=1, jitter=0.18, rng=rng)
+    # 3. Flying debris: timber planks and barrel fragments blasting outward
+    for i in range(16):
+        a = rng.uniform(0, math.tau)
+        elev = rng.uniform(0.3, 1.1)
+        dist = radius * rng.uniform(0.8, 1.8)
+        px = math.cos(a) * math.cos(elev) * dist
+        py = math.sin(a) * math.cos(elev) * dist
+        pz = math.sin(elev) * dist + radius * 0.4
+        mb.box(T(px, py, pz) @ Rx(rng.uniform(0, 3)) @ Ry(rng.uniform(0, 3)) @ S(0.35, 1.8, 0.2), "plank")
+    return mb.obj(name, collection)
 
 
 # ===================================================================== scene

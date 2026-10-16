@@ -39,6 +39,9 @@ DESIGN_CLIPS = [
     ("18", "S13", 1291, 1530),       # after S12 (Kochi courtyard, Kochi.blend): back on the map
     ("21-22", "S16", 1531, 1830),    # after S14-S15 (Padmanabhapuram, Palace.blend): Travancore grows
     ("24", "S18", 1831, 2070),       # after S17 (English port, Port.blend): big red Travancore, small orange Kochi
+    ("25", "S19", 2071, 2375),       # after S18: Van Imhoff dispatched from Ceylon across Gulf of Mannar (K25)
+    ("31", "S24", 2376, 2740),       # after S23 (Canopy meeting): Fort Kochi mobilization & war banner (K31)
+    ("35", "S28", 2741, 2935),       # after S27 (Varkala cliffs): push-and-pull battle frontlines (K35)
 ]
 # camera keys: (frame, (x, y, height)). Straight top-down, north up.
 # K08a_v2: the whole southern coast, tip at lower right -> K08b_v2: closer on the coast at Kollam.
@@ -69,6 +72,18 @@ CAM_KEYS = [
     # the little orange Dutch fort at Kochi sits at the top of frame
     (1831, (-3200.0, 5600.0, 9000.0)),
     (2070, (-3600.0, 5200.0, 17000.0)),
+    # S19: (cut in from S18) high over Gulf of Mannar between India and Ceylon tracking galleon (K25)
+    (2071, (9500.0, -3600.0, 13800.0)),
+    (2220, (8200.0, -2900.0, 12800.0)),
+    (2375, (7200.0, -2200.0, 11800.0)),
+    # S24: (cut in from Canopy meeting) high angle over Fort Kochi mobilization & war banner (K31)
+    (2376, (-5700.0, 7800.0, 3600.0)),
+    (2550, (-5550.0, 7500.0, 3900.0)),
+    (2740, (-5400.0, 7200.0, 4200.0)),
+    # S28: (cut in from Varkala cliffs) wide overhead view of contested frontier clash (K35)
+    (2741, (-2500.0, 3200.0, 3800.0)),
+    (2840, (-2475.0, 3225.0, 3950.0)),
+    (2935, (-2450.0, 3250.0, 4100.0)),
 ]
 # Travancore's growth, S16. Frontiers run across the strip, perpendicular to the coast
 # (t = distance along the coast from Colachel, w = distance inland), with a gentle wobble.
@@ -95,7 +110,11 @@ FORTS_TAKEN = [("Attingal", (1690, 1712)), ("Kottarakkara", (1780, 1805))]
 KOCHI_TURNS_ORANGE = (1200, 1235)
 FORTS_APPEAR = (760, 930)
 # shots that start after a cut get their own camera (bound with a timeline marker)
-CUT_SHOTS = [(691, "MapCameraS10"), (1291, "MapCameraS13"), (1531, "MapCameraS16"), (1831, "MapCameraS18")]
+CUT_SHOTS = [
+    (691, "MapCameraS10"), (1291, "MapCameraS13"), (1531, "MapCameraS16"),
+    (1831, "MapCameraS18"), (2071, "MapCameraS19"), (2376, "MapCameraS24"),
+    (2741, "MapCameraS28")
+]
 CLOUDS_PART = (1, 78)         # clouds hold for 0.5 s (the dissolve), then part by ~3.2 s
 SHIPS = [(-1200.0, -650.0, 200), (-500.0, -1050.0, 160), (-2100.0, 250.0, 210), (-4700.0, 3900.0, 190),
          (-6300.0, 6500.0, 175), (-6700.0, 8400.0, 185)]
@@ -141,7 +160,7 @@ def build(samples=32):
     map_world.build_dutch_kochi(coll, bvh, (rt(KOCHI_TURNS_ORANGE[0]), rt(KOCHI_TURNS_ORANGE[1])), coll)
     land_ob = bpy.data.objects["MapLand"]
     land_poly = geo.land_polygon_detailed(120.0)
-    sea_band = lambda x, y: _w(x, y) > -1500 and not geo.point_in_poly(x, y, land_poly)
+    sea_band = lambda x, y: x < 1200 and _w(x, y) > -1500 and not geo.point_in_poly(x, y, land_poly)
     map_world.build_territory(coll, land_ob, bvh, [(n, t, (rt(a), rt(b))) for n, t, (a, b), _ in TERRITORY],
                               sea_test=sea_band)
     # frontier lines: each appears with its stage and goes when the next frontier is drawn
@@ -161,6 +180,19 @@ def build(samples=32):
                                    (rt(nxt[0]), rt(nxt[0]) + 1) if nxt else None, name=f"Border_{n}")
     for name, (a, b) in FORTS_TAKEN:
         map_world.recolor_fort(name, map_world.TRAVANCORE_RED, (rt(a), rt(b)))
+
+    # S19: Ceylon fleet sailing to India (K25)
+    s19_clip = [c for c in clips if c[1] == "S19"][0]
+    map_world.build_s19_fleet(coll, (s19_clip[2], s19_clip[3]))
+
+    # S24: Fort Kochi mobilization and war banner (K31)
+    s24_clip = [c for c in clips if c[1] == "S24"][0]
+    map_world.build_s24_mobilization(coll, (s24_clip[2], s24_clip[3]))
+
+    # S28: Push-pull frontier battle clash (K35)
+    s28_clip = [c for c in clips if c[1] == "S28"][0]
+    map_world.build_s28_frontier_clash(coll, bvh, (s28_clip[2], s28_clip[3]))
+
     cd = bpy.data.cameras.new("MapCamera")
     cd.lens = LENS
     cd.clip_start = 10.0

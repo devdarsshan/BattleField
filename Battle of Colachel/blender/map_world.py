@@ -655,6 +655,7 @@ def build_map_world(frames=600):
     build_water(coll, land, bvh)
     n_palm, n_tree = build_vegetation(coll, land, bvh, lib_c)
     build_colachel_mark(coll, lib_c, bvh)
+    build_ceylon(coll, lib_c)
     setup_light()
     print("map world:", n_palm, "palms,", n_tree, "trees,", len(land.lakes), "lakes/ponds")
     return coll, land, bvh
@@ -768,7 +769,10 @@ def make_star_fort(name, collection, wall_mat):
     sand glacis and a moat ring outside, parade ground, barracks and a flag pole with a
     plain flag. About 70 m across at scale 1. Rampart and buildings use `wall_mat`."""
     mb = kit.MB(bevel=0.12)
+    kit.PALETTE["m_lagoon"] = (0.26, 0.60, 0.68)
     kit.mat("m_lagoon", (0.26, 0.60, 0.68))
+    kit.PALETTE["fort_roof"] = (0.70, 0.30, 0.18)
+    kit.mat("fort_roof", (0.70, 0.30, 0.18))
 
     def star(r_out, r_in, rot=math.pi / 2):
         pts = []
@@ -958,3 +962,356 @@ def recolor_fort(name, rgb, frames):
     for f, c in ((frames[0], old), (frames[1], (*kit.srgb_to_linear(rgb), 1))):
         bsdf.inputs["Base Color"].default_value = c
         bsdf.inputs["Base Color"].keyframe_insert("default_value", frame=f)
+
+
+# ================================================================ S19: Ceylon & Dutch Galleon
+CEYLON_CENTER = (15000.0, -6000.0)
+
+
+def build_ceylon(coll, lib_c):
+    """Faceted Ceylon island with green highlands, sand beach, turquoise shallow rim,
+    Adam's bridge, and the Dutch star fort on the west coast. Matches Flow ref K25."""
+    rng = random.Random(55)
+    cx, cy = CEYLON_CENTER
+
+    # 1. Island polygon and height mesh
+    verts_2d = []
+    perim_pts = []
+    for k in range(28):
+        u = k / 28 * math.tau
+        r = 3800.0 * (1.0 - 0.35 * math.sin(u)) + rng.uniform(-80, 80)
+        px = cx + r * math.cos(u) * 0.90
+        py = cy + r * math.sin(u) * 1.35
+        perim_pts.append((px, py))
+        verts_2d.append(Vector((px, py)))
+
+    nb = len(verts_2d)
+    step = 260.0
+    for y in range(int(cy - 5500), int(cy + 4200), int(step)):
+        for x in range(int(cx - 3600), int(cx + 3600), int(step)):
+            px = x + rng.uniform(-0.35, 0.35) * step
+            py = y + rng.uniform(-0.35, 0.35) * step
+            if geo.point_in_poly(px, py, perim_pts):
+                verts_2d.append(Vector((px, py)))
+
+    out = delaunay_2d_cdt(verts_2d, [], [list(range(nb))], 1, 0.01)
+    vco, faces = out[0], out[2]
+
+    bm = bmesh.new()
+    bv = []
+    for v in vco:
+        dx = (v.x - (cx + 300)) / 2800.0
+        dy = (v.y - (cy - 500)) / 3800.0
+        d_sq = dx * dx + dy * dy
+        if d_sq < 1.0:
+            h = 4.0 + 980.0 * ((1.0 - d_sq) ** 1.4) + 60.0 * _nz(v.x, v.y, 800, 1.2)
+        else:
+            h = 4.0
+        bv.append(bm.verts.new((v.x, v.y, h)))
+
+    for f in faces:
+        if len(f) < 3:
+            continue
+        try:
+            bm.faces.new([bv[i] for i in f])
+        except ValueError:
+            continue
+
+    bmesh.ops.recalc_face_normals(bm, faces=bm.faces[:])
+    me = bpy.data.meshes.new("MapCeylon")
+    bm.to_mesh(me)
+    bm.free()
+
+    for m in ("m_sand", "m_g1", "m_g2", "m_g3", "m_earth"):
+        me.materials.append(mmat(m))
+
+    for p in me.polygons:
+        p.use_smooth = False
+        cz = p.center.z
+        if cz < 35.0:
+            p.material_index = 0  # sand
+        elif cz < 280.0:
+            p.material_index = 1  # g1
+        elif cz < 550.0:
+            p.material_index = 2  # g2
+        elif cz < 750.0:
+            p.material_index = 3  # g3
+        else:
+            p.material_index = 4  # earth
+
+    ob = bpy.data.objects.new("MapCeylon", me)
+    coll.objects.link(ob)
+
+    # 2. Turquoise shallow water halo around Ceylon
+    halo_bm = bmesh.new()
+    outer_halo = []
+    for px, py in perim_pts:
+        nx, ny = (px - cx) / 3800.0, (py - cy) / 5000.0
+        L = math.hypot(nx, ny) or 1.0
+        outer_halo.append((px + (nx / L) * 550.0, py + (ny / L) * 550.0))
+
+    r_in = [halo_bm.verts.new((px, py, 1.2)) for px, py in perim_pts]
+    r_out = [halo_bm.verts.new((px, py, 0.6)) for px, py in outer_halo]
+    n = len(perim_pts)
+    for i in range(n):
+        j = (i + 1) % n
+        halo_bm.faces.new([r_in[i], r_in[j], r_out[j], r_out[i]])
+
+    bmesh.ops.triangulate(halo_bm, faces=halo_bm.faces[:])
+    halo_me = bpy.data.meshes.new("CeylonShallows")
+    halo_bm.to_mesh(halo_me)
+    halo_bm.free()
+    halo_me.materials.append(mmat("m_lagoon"))
+    halo_ob = bpy.data.objects.new("CeylonShallows", halo_me)
+    halo_ob.visible_shadow = False
+    coll.objects.link(halo_ob)
+
+    # 3. Adam's Bridge (shoals connecting Rameshwaram to Mannar)
+    bridge_mb = kit.MB()
+    shoal_coords = [
+        (8200, 900), (9100, 450), (9900, 50), (10800, -400),
+        (11600, -850), (12400, -1350)
+    ]
+    for i, (sx, sy) in enumerate(shoal_coords):
+        bridge_mb.cone(kit.T(sx, sy, 2.0) @ kit.S(260, 160, 3.0), "m_sand", segments=8, r1=1.0, r2=0.8, depth=1.0)
+        bridge_mb.cone(kit.T(sx, sy, 0.8) @ kit.S(400, 260, 1.0), "m_lagoon", segments=8, r1=1.0, r2=0.8, depth=0.5)
+    bridge_ob = bridge_mb.obj("AdamsBridge", coll)
+    bridge_ob.data.materials.append(mmat("m_sand"))
+    bridge_ob.data.materials.append(mmat("m_lagoon"))
+
+    # 4. Dutch Star Fort at Ceylon (Galle / Colombo on west coast)
+    kit.PALETTE["DutchOrange"] = (0.96, 0.46, 0.10)
+    kit.mat("DutchOrange", (0.96, 0.46, 0.10))
+    fort_x, fort_y = 12200.0, -5800.0
+    fort = make_star_fort("DutchFortCeylon", coll, "DutchOrange")
+    fort.location = (fort_x, fort_y, 4.0)
+    fort.rotation_euler[2] = math.radians(25)
+    fort.scale = (14.0, 14.0, 14.0)
+
+    # Harbor jetty & small moored ships
+    j_mb = kit.MB(bevel=0.05)
+    j_mb.box(kit.T(fort_x - 300, fort_y - 120, 2.5) @ kit.S(420, 45, 3.0), "plank")
+    for k in range(5):
+        j_mb.cone(kit.T(fort_x - 120 - k * 80, fort_y - 120, 0.5), "post", segments=6, r1=6, r2=5, depth=4.5)
+    j_ob = j_mb.obj("CeylonJetty", coll)
+    j_ob.data.materials.append(kit.mat("plank", kit.PALETTE["plank"]))
+    j_ob.data.materials.append(kit.mat("post", kit.PALETTE["post"]))
+
+    # 5. Palms around Ceylon coast
+    palm_src = bpy.data.objects.get("MapLibPalm0")
+    if palm_src:
+        for i in range(55):
+            u = rng.uniform(0, math.tau)
+            r = rng.uniform(2800, 3600) * (1.0 - 0.35 * math.sin(u))
+            px = cx + r * math.cos(u) * 0.90 + rng.uniform(-60, 60)
+            py = cy + r * math.sin(u) * 1.35 + rng.uniform(-60, 60)
+            kit.instance(palm_src, f"CeylonPalm{i}", coll, (px, py, 3.5),
+                         rot_z=rng.uniform(0, 6.28), scale=rng.uniform(11.0, 15.0))
+
+    return ob
+
+
+def make_sailing_galleon(name, coll):
+    """Detailed Dutch 3-masted war galleon with billowing sails and Dutch flag (Flow ref K25)."""
+    mb = kit.MB(bevel=0.08)
+    # Hull
+    mb.box(kit.T(0, 0, 1.8) @ kit.S(16.0, 48.0, 4.2), "post")
+    mb.box(kit.T(0, -18.0, 3.4) @ kit.S(15.5, 14.0, 5.0), "post")   # High sterncastle
+    mb.cone(kit.T(0, 24.0, 2.2) @ kit.Rx(0.2) @ kit.S(0.6, 1.0, 1.0), "post", segments=6, r1=7.5, r2=1.0, depth=14.0) # Bow
+    # Decks
+    mb.box(kit.T(0, 0, 3.8) @ kit.S(14.0, 42.0, 0.4), "plank")
+    # 3 Masts: Fore, Main, Mizzen
+    for my, mh, mr in ((14.0, 32.0, 0.8), (0.0, 38.0, 0.9), (-14.0, 28.0, 0.7)):
+        mb.cone(kit.T(0, my, mh / 2 + 3.0), "post", segments=8, r1=mr, r2=mr * 0.6, depth=mh)
+        # 2 Cross-yards with billowing sails per mast
+        for sy, sh, sw, sd in ((0, mh * 0.52 + 3.0, 18.0, 7.5), (0, mh * 0.82 + 3.0, 14.0, 6.0)):
+            mb.box(kit.T(0, my, sh) @ kit.S(sw, 0.6, 0.6), "post") # Spar
+            # Billowing canvas sail (curved cone segment)
+            mb.cone(kit.T(0, my + 1.2, sh - sd / 2) @ kit.Rx(-0.18) @ kit.S(1.0, 0.4, 1.0),
+                    "canvas", segments=8, r1=sw * 0.48, r2=sw * 0.42, depth=sd)
+    # Bowsprit
+    mb.seg((0, 24.0, 3.5), (0, 38.0, 8.5), 0.7, 0.4, "post", sides=6)
+    # Dutch orange flag atop main mast
+    mb.box(kit.T(3.2, 0.0, 41.5) @ kit.S(6.0, 0.2, 3.2), "gold")
+    # Wake mesh (foam trailing from stern)
+    mb.cone(kit.T(0, -38.0, 0.2) @ kit.Rx(math.pi / 2) @ kit.S(0.4, 1.0, 1.0), "canvas",
+            segments=4, r1=8.0, r2=1.0, depth=26.0)
+
+    ob = mb.obj(name, coll)
+    for m in ("post", "plank", "canvas", "gold"):
+        ob.data.materials.append(kit.mat(m, kit.PALETTE[m]))
+    return ob
+
+
+def build_s19_fleet(coll, frames):
+    """Dutch fleet sailing from Ceylon across Gulf of Mannar toward Kerala (S19, K25)."""
+    f0, f1 = frames
+    galleon = make_sailing_galleon("S19Galleon", coll)
+    galleon.scale = (16.0, 16.0, 16.0)
+
+    # Route: departs Ceylon (11800, -4800) -> Gulf of Mannar (5200, -1600)
+    start_pos = (11800.0, -4800.0, 2.0)
+    end_pos = (4800.0, -1400.0, 2.0)
+    heading = math.radians(-118)
+
+    galleon.rotation_euler = (0, 0, heading)
+    galleon.location = start_pos
+    galleon.keyframe_insert("location", frame=f0)
+    galleon.location = end_pos
+    galleon.keyframe_insert("location", frame=f1)
+
+    # Gentle wave rock
+    rng = random.Random(77)
+    f = f0
+    while f <= f1:
+        s = rng.choice([-1, 1])
+        galleon.rotation_euler = (math.radians(2.2 * s), math.radians(1.4 * s), heading + math.radians(1.0 * s))
+        galleon.keyframe_insert("rotation_euler", frame=f)
+        f += 24
+
+    # Visibility: active only during S19
+    galleon.hide_render = True
+    galleon.keyframe_insert("hide_render", frame=1)
+    galleon.keyframe_insert("hide_render", frame=f0 - 1)
+    galleon.hide_render = False
+    galleon.keyframe_insert("hide_render", frame=f0)
+    galleon.keyframe_insert("hide_render", frame=f1)
+    galleon.hide_render = True
+    galleon.keyframe_insert("hide_render", frame=f1 + 1)
+    return galleon
+
+
+# ================================================================ S24: Fort Kochi Mobilization
+def build_s24_mobilization(coll, frames):
+    """Giant orange VOC war banner atop Fort Kochi and marching Dutch column (S24, K31)."""
+    f0, f1 = frames
+    kx, ky = geo.xy(*FORT_KOCHI)
+    kx += 120
+    ky += 60
+
+    # 1. Giant Orange VOC War Banner on flagpole
+    b_mb = kit.MB(bevel=0.08)
+    b_mb.cone(kit.T(kx + 10, ky + 10, 45.0), "post", segments=8, r1=1.5, r2=0.8, depth=90.0) # Tall mast
+    # Billowing orange war banner
+    b_mb.box(kit.T(kx + 45, ky + 10, 78.0) @ kit.S(70.0, 1.5, 36.0), "gold")
+    banner_ob = b_mb.obj("VOCWarBanner", coll)
+    banner_ob.data.materials.append(kit.mat("post", kit.PALETTE["post"]))
+    banner_ob.data.materials.append(kit.mat("gold", (0.96, 0.46, 0.10))) # Dutch orange
+
+    # 2. Marching Dutch Column winding south out of the fort
+    # Path down the coastal road: from fort (kx, ky-60) south along the coast
+    col_mb = kit.MB(bevel=0.04)
+    march_pts = [
+        (kx, ky - 60), (kx - 80, ky - 250), (kx - 120, ky - 500),
+        (kx - 100, ky - 800), (kx - 60, ky - 1100), (kx, ky - 1400)
+    ]
+    # Place rows of 3 blue soldier counters along the path
+    rng = random.Random(88)
+    n_soldiers = 0
+    for i in range(len(march_pts) - 1):
+        p0, p1 = march_pts[i], march_pts[i + 1]
+        steps = 14
+        for s in range(steps):
+            t = s / steps
+            mx = p0[0] + (p1[0] - p0[0]) * t
+            my = p0[1] + (p1[1] - p0[1]) * t
+            dx, dy = p1[0] - p0[0], p1[1] - p0[1]
+            L = math.hypot(dx, dy) or 1.0
+            nx, ny = -dy / L, dx / L
+            for lane in (-18, 0, 18):
+                px = mx + nx * lane + rng.uniform(-3, 3)
+                py = my + ny * lane + rng.uniform(-3, 3)
+                # Blue coat, white breeches, black tricorn
+                col_mb.box(kit.T(px, py, 9.0) @ kit.S(12.0, 12.0, 18.0), "coat_blue")
+                col_mb.box(kit.T(px, py, 20.0) @ kit.S(9.0, 9.0, 6.0), "black")
+                n_soldiers += 1
+
+    march_ob = col_mb.obj("DutchMarchColumn", coll)
+    march_ob.data.materials.append(kit.mat("coat_blue", (0.16, 0.32, 0.62)))
+    march_ob.data.materials.append(kit.mat("black", (0.12, 0.12, 0.14)))
+
+    for ob in (banner_ob, march_ob):
+        ob.hide_render = True
+        ob.keyframe_insert("hide_render", frame=1)
+        ob.keyframe_insert("hide_render", frame=f0 - 1)
+        ob.hide_render = False
+        ob.keyframe_insert("hide_render", frame=f0)
+        ob.keyframe_insert("hide_render", frame=f1)
+        ob.hide_render = True
+        ob.keyframe_insert("hide_render", frame=f1 + 1)
+
+
+# ================================================================ S28: Frontier Battle Clash
+def build_s28_frontier_clash(coll, bvh, frames):
+    """Push-and-pull battle frontlines: Dutch & Travancore army blocks, tactical arrows,
+    and battle smoke puffs (S28, K35)."""
+    f0, f1 = frames
+    fx, fy = -2500.0, 3200.0  # Coastal sand plain near Kollam
+    fz = ground_z(bvh, fx, fy, default=4.0)
+
+    mb = kit.MB(bevel=0.06)
+
+    # 1. Northern Dutch army block (blue & orange)
+    for row in range(5):
+        for col in range(12):
+            px = fx - 160 + col * 28
+            py = fy + 240 + row * 24
+            pz = ground_z(bvh, px, py, default=fz)
+            mb.box(kit.T(px, py, pz + 8.0) @ kit.S(14.0, 12.0, 16.0), "coat_blue")
+            mb.box(kit.T(px, py, pz + 18.0) @ kit.S(10.0, 10.0, 6.0), "gold")
+    # Dutch orange camp banner
+    mb.cone(kit.T(fx, fy + 380, fz + 24.0), "post", segments=6, r1=1.0, r2=0.6, depth=48.0)
+    mb.box(kit.T(fx + 20, fy + 380, fz + 42.0) @ kit.S(36.0, 1.0, 20.0), "gold")
+
+    # 2. Southern Travancore army block (red & white)
+    for row in range(5):
+        for col in range(12):
+            px = fx - 160 + col * 28
+            py = fy - 240 - row * 24
+            pz = ground_z(bvh, px, py, default=fz)
+            mb.box(kit.T(px, py, pz + 8.0) @ kit.S(14.0, 12.0, 16.0), "carpet_red")
+            mb.box(kit.T(px, py, pz + 18.0) @ kit.S(10.0, 10.0, 6.0), "gold")
+    # Travancore red camp banner
+    mb.cone(kit.T(fx, fy - 380, fz + 24.0), "post", segments=6, r1=1.0, r2=0.6, depth=48.0)
+    mb.box(kit.T(fx + 20, fy - 380, fz + 42.0) @ kit.S(36.0, 1.0, 20.0), "carpet_red")
+
+    # 3. Tactical push-pull arrows drawn on the sand (matching K35!)
+    # Orange arrow pointing south into Travancore
+    for t_step in range(12):
+        ay = fy + 160 - t_step * 24
+        ax = fx - 50 + math.sin(t_step * 0.4) * 45
+        az = ground_z(bvh, ax, ay, default=fz) + 3.0
+        mb.box(kit.T(ax, ay, az) @ kit.S(14.0, 16.0, 1.5), "gold")
+    # Arrow head
+    mb.cone(kit.T(fx - 50, fy - 110, fz + 3.0) @ kit.Rx(math.pi / 2), "gold", segments=3, r1=32.0, r2=0.0, depth=45.0)
+
+    # Red arrow pushing back north into Dutch lines
+    for t_step in range(12):
+        ay = fy - 160 + t_step * 24
+        ax = fx + 50 - math.sin(t_step * 0.4) * 45
+        az = ground_z(bvh, ax, ay, default=fz) + 3.5
+        mb.box(kit.T(ax, ay, az) @ kit.S(14.0, 16.0, 1.5), "carpet_red")
+    # Arrow head
+    mb.cone(kit.T(fx + 50, fy + 110, fz + 3.5) @ kit.Rx(-math.pi / 2), "carpet_red", segments=3, r1=32.0, r2=0.0, depth=45.0)
+
+    # 4. White puffs of cannon / musket smoke between the lines
+    rng = random.Random(99)
+    for i in range(12):
+        sx = fx + rng.uniform(-160, 160)
+        sy = fy + rng.uniform(-90, 90)
+        sz = ground_z(bvh, sx, sy, default=fz) + rng.uniform(12.0, 35.0)
+        mb.ico(kit.T(sx, sy, sz), "canvas", r=rng.uniform(18.0, 32.0), sub=1)
+
+    clash_ob = mb.obj("FrontierClash", coll)
+    for m in ("coat_blue", "carpet_red", "gold", "post", "canvas"):
+        clash_ob.data.materials.append(kit.mat(m, kit.PALETTE[m]))
+
+    clash_ob.hide_render = True
+    clash_ob.keyframe_insert("hide_render", frame=1)
+    clash_ob.keyframe_insert("hide_render", frame=f0 - 1)
+    clash_ob.hide_render = False
+    clash_ob.keyframe_insert("hide_render", frame=f0)
+    clash_ob.keyframe_insert("hide_render", frame=f1)
+    clash_ob.hide_render = True
+    clash_ob.keyframe_insert("hide_render", frame=f1 + 1)
+    return clash_ob

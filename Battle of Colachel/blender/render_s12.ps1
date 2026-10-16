@@ -6,7 +6,7 @@ Write-Host "=========================================================="
 Write-Host "Starting Beat S12 (Clips 16-17) 720p Review Render"
 Write-Host "Start Time: $($startTime.ToString('yyyy-MM-dd HH:mm:ss'))"
 Write-Host "GPU: NVIDIA GeForce GTX 1050 Ti"
-Write-Host "Target frames: 1 to 554 (554 frames total)"
+Write-Host "Target frames: 147 to 368 (222 frames)"
 Write-Host "=========================================================="
 
 $blender = "C:\Program Files\Blender Foundation\Blender 5.2\blender.exe"
@@ -17,14 +17,20 @@ if (-not (Test-Path $framesDir)) {
     New-Item -ItemType Directory -Path $framesDir -Force | Out-Null
 }
 
-Write-Host "[1/3] Rendering 554 frames at 1280x720 (24 samples)..."
-& $blender -b "E:\BattleField\Battle of Colachel\blender\Kochi.blend" --python-expr "import bpy; bpy.context.scene.eevee.taa_render_samples=24" -P "E:\BattleField\Battle of Colachel\blender\render_cli.py" -- frames "$framesDir" --res 1280x720
+Write-Host "[1/4] Deleting old frames 147 to 368..."
+147..368 | ForEach-Object {
+    $f = Join-Path $framesDir ("f_{0:D4}.png" -f $_)
+    if (Test-Path $f) { Remove-Item $f -Force }
+}
+
+Write-Host "[2/4] Rendering frames 147 to 368 at 1280x720 (24 samples)..."
+& $blender -b "E:\BattleField\Battle of Colachel\blender\Kochi.blend" --python-expr "import bpy; bpy.context.scene.eevee.taa_render_samples=24" -P "E:\BattleField\Battle of Colachel\blender\render_cli.py" -- frames "$framesDir" --range 147 368 --res 1280x720
 
 $renderTime = $sw.Elapsed
 $frameCount = (Get-ChildItem -Path $framesDir -Filter "f_*.png").Count
 
-Write-Host "[2/3] Frame render completed in $([Math]::Round($renderTime.TotalMinutes, 2)) min ($([Math]::Round($renderTime.TotalSeconds, 1))s total)."
-Write-Host "Rendered frames: $frameCount. Average speed: $([Math]::Round($renderTime.TotalSeconds / $frameCount, 3)) s/frame."
+Write-Host "[3/4] Frame render completed in $([Math]::Round($renderTime.TotalMinutes, 2)) min ($([Math]::Round($renderTime.TotalSeconds, 1))s total)."
+Write-Host "Rendered frames in dir: $frameCount."
 
 # Verification / cleanup check
 $corrupt = Get-ChildItem -Path $framesDir -Filter "f_*.png" | Where-Object { $_.Length -lt 2048 }
@@ -33,7 +39,7 @@ if ($corrupt) {
     $corrupt | Remove-Item -Force
 }
 
-Write-Host "[3/3] Encoding video with narration (S12.wav)..."
+Write-Host "[4/4] Encoding video with narration (S12.wav)..."
 $audio = "E:\BattleField\Battle of Colachel\audio\placeholder\S12.wav"
 $outMp4 = "$renders\clip16-17_S12_review_720p.mp4"
 

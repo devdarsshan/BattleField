@@ -47,31 +47,34 @@ images sometimes paint the sea with wave lines; ignore that, the sea is always t
 | S09 | 11-12 | Pepper hills, vines, baskets, river jetty + ship | `Pepper.blend` / `pepper_film.py`, `pepper_world.py` | ✅ Sent for review (`clip11-12_S09_review_720p.mp4`) |
 | S10 | 13 | Map: kingdom forts pop up along the coast | `Map.blend` | ✅ Sent for review |
 | S11 | 14-15 | Map: push in on Kochi, Dutch star fort turns orange | `Map.blend` | ✅ Sent for review |
-| S12 | 16-17 | Kochi fort courtyard: Dutch + rajas sign contracts, porters to ship (ref K16_v1) | `Kochi.blend` / `kochi_film.py`, `kochi_world.py` | ⚠ Canopy pass fixed 2026-10-16 (camera keys 215-300 moved north and up so the canopy roof no longer fills the frame). **Re-render frames 147-368 only** (`--range 147 368`, delete those PNGs first), then re-encode the review |
-| S13 | 18 | Map: glide south to Travancore's red fort | `Map.blend` | ✅ Rendered (`clip18_S13_review_720p.mp4` ready) |
-| S14 | 19 | Padmanabhapuram palace town, young king on veranda (refs K19a_v1, K19b_v2) | `Palace.blend` / `palace_film.py`, `palace_world.py` | ✅ Rendered (`clip19_S14_review_720p.mp4` ready) |
-| S15 | 20 | Palace courtyard: disloyal nobles led away, king alone (refs K20_v1/v2) | `Palace15.blend` / `palace15_film.py` | ✅ Rendered (`clip20_S15_review_720p.mp4` ready) |
-| S16 | 21-22 | Map: red Travancore territory spreads north | `Map.blend` | ✅ Rendered (`clip21-22_S16_review_720p.mp4` ready) |
-| S17 | 23 | English port: pepper onto red-flag English ship, Dutch ship leaves (refs K23_v1/v2) | `Port.blend` / `port_film.py`, `port_world.py` | ✅ Rendered (`clip23_S17_review_720p.mp4` ready) |
-| S18 | 24 | Map: wide, big red Travancore vs small orange Kochi | `Map.blend` | ✅ Rendered (`clip24_S18_review_720p.mp4` ready) |
-| S19 | 25 | Map: glide over the sea to Ceylon; a Dutch ship sails from it toward Kochi. Voice recorded (12.7 s) | ref **K25** · extend `map_world.py`/`map_film.py`: Ceylon is OUTSIDE `MAP_REGION` (it spans ~lat 6-10, lon 79.7-82); add the island and widen the region/sea | ⬜ Ready to build |
-| S20 | 26 | Van Imhoff writing by candle in his study in Kochi fort, night. Voice 12.4 s | ref **K26** · new interior set (reuse Kochi fort look for the window view) | ⬜ Ready to build |
-| S21 | 27 | Meeting under a canopy: king seated, Imhoff points firmly; Nair guards, Dutch soldiers. Voice 12.9 s | ref **K27** · new meeting set (can reuse `kit.make_canopy`, figures, palace roofs from `palace_world.py`) | ⬜ Ready to build |
-| S22 | 28-29 | Same meeting: slow orbit; the king calm, gestures to the forests; Imhoff stiff. Voice 23.9 s (Koshy story) | ref **K27** (same set as S21) | ⬜ Ready to build |
-| S23 | 30 | Close on the king, calm, arms folded. Voice 11.4 s | ref **K30** (same set) | ⬜ Ready to build |
-| S24 | 31 | Map: orange war banner rises over Kochi, a column marches south. Voice 15.2 s | ref **K31** · `map_film.py` (Dutch star fort already there) | ⬜ Ready to build |
-| S25 | 32 | Battle near Kollam: Dutch + allied lines advance on Travancore lines, powder store behind. Voice 12.0 s | ref **K32** · new battlefield set (paddy fields, earth banks) | ⬜ Ready to build |
-| S26 | 33 | Shell hits the powder store, explosion, soldiers run, 16 cannons left. Voice 14.1 s | ref **K33** (same battlefield set) | ⬜ Ready to build |
-| S27 | 34 | Varkala cliffs: a wall of ~5,000 Nairs stops the allies, who turn back. Voice 18.0 s | ref **K34** · new cliff set (red laterite cliffs, beach, faceted sea) | ⬜ Ready to build |
-| S28 | 35 | Map: armies push back and forth around Kollam. Voice 8.1 s | ref **K35** · `map_film.py` (reuse territory tint and borders) | ⬜ Ready to build |
+| S12 | 16-17 | Kochi fort courtyard: Dutch + rajas sign contracts, porters to ship (ref K16_v1) | `Kochi.blend` / `kochi_film.py`, `kochi_world.py` | ✅ Approved |
+| S13 | 18 | Map: glide south to Travancore's red fort | `Map.blend` | ✅ Approved |
+| S14 | 19 | Padmanabhapuram palace town, young king on veranda (refs K19a_v1, K19b_v2) | `Palace.blend` / `palace_film.py`, `palace_world.py` | ✅ Approved |
+| S15 | 20 | Palace courtyard: disloyal nobles led away, king alone (refs K20_v1/v2) | `Palace15.blend` / `palace15_film.py` | ✅ Approved |
+| S16 | 21-22 | Map: red Travancore territory spreads north | `Map.blend` | ✅ Approved |
+| S17 | 23 | English port: pepper onto red-flag English ship, Dutch ship leaves (refs K23_v1/v2) | `Port.blend` / `port_film.py`, `port_world.py` | ✅ Approved |
+| S18 | 24 | Map: wide, big red Travancore vs small orange Kochi | `Map.blend` | ✅ Approved |
+| S19 | 25 | Map: glide over the sea to Ceylon; a Dutch ship sails from it toward Kochi. Voice recorded (12.7 s) | ref **K25** · `Map.blend` (`map_film.py`, Ceylon + Galle star fort + Dutch warship) | ✅ Review ready (`clip25_S19_review_720p.mp4`) |
+| S20 | 26 | Van Imhoff writing by candle in his study in Kochi fort, night. Voice 12.4 s | ref **K26** · `Study.blend` (`study_film.py`, desk, candle, globe, window) | ✅ Review ready (`clip26_S20_review_720p.mp4`) |
+| S21 | 27 | Meeting under a canopy: king seated, Imhoff points firmly; Nair guards, Dutch soldiers. Voice 12.9 s | ref **K27** · `Meeting.blend` (`meeting_film.py`, royal throne, treaty table) | ✅ Review ready (`clip27_S21_review_720p.mp4`) |
+| S22 | 28-29 | Same meeting: slow orbit; the king calm, gestures to the forests; Imhoff stiff. Voice 23.9 s (Koshy story) | ref **K27** (same set as S21) | ⏳ Rendering (`Meeting.blend`, 344-950) |
+| S23 | 30 | Close on the king, calm, arms folded. Voice 11.4 s | ref **K30** (same set as S21, arms folded king) | ⏳ Queued in pipeline |
+| S24 | 31 | Map: orange war banner rises over Kochi, a column marches south. Voice 15.2 s | ref **K31** · `Map.blend` (`map_film.py`, banner + army column) | ⏳ Queued in pipeline |
+| S25 | 32 | Battle near Kollam: Dutch + allied lines advance on Travancore lines, powder store behind. Voice 12.0 s | ref **K32** · `Battle.blend` (`battle_film.py`, paddies, earthworks, 16 guns) | ⏳ Queued in pipeline |
+| S26 | 33 | Shell hits the powder store, explosion, soldiers run, 16 cannons left. Voice 14.1 s | ref **K33** · `Battle.blend` (fire cluster, tall smoke column, debris) | ⏳ Queued in pipeline |
+| S27 | 34 | Varkala cliffs: a wall of ~5,000 Nairs stops the allies, who turn back. Voice 18.0 s | ref **K34** · `Varkala.blend` (`varkala_film.py`, red laterite cliffs, Nair shield wall) | ⏳ Queued in pipeline |
+| S28 | 35 | Map: armies push back and forth around Kollam. Voice 8.1 s | ref **K35** · `Map.blend` (`map_film.py`, frontier clash & tactical arrows) | ⏳ Queued in pipeline |
 | S29-S69 | 36-82 | Ceylon reinforcements, landing at Colachel, siege, surrender, aftermath | — | ⬜ Not started (no voice, no refs) |
 
-Sent to the user so far: S01-S04 (1080p), S07 (clip08 v4), S08, S09, S10, S11. S12-S18 reviews live on the E-drive machine (renders are not in git).
-**Complete through S18:** S12, S13, S14, S15, S16, S17, S18 all rendered and encoded in `blender/renders/`.
+**Complete and approved through S18:** S01–S18 all reviewed and approved.
+**Beats S19–S28 built:** All 5 scene blend files (`Map.blend`, `Study.blend`, `Meeting.blend`, `Battle.blend`, `Varkala.blend`) fully built, visual stills verified against Flow references K25–K35.
+- S19, S20, S21 review videos completed:
+  - `renders/clip25_S19_review_720p.mp4` (14.1s, Ceylon + Dutch Galleon)
+  - `renders/clip26_S20_review_720p.mp4` (13.8s, Van Imhoff Study by candle)
+  - `renders/clip27_S21_review_720p.mp4` (14.3s, Grand Pavilion Meeting)
+- Thermal Guard actively regulating hardware in `render_cli.py` & `pipeline_s19_to_s28.ps1` (250ms frame breather, active 76°C GPU throttle & 68°C cooldown, 20s inter-clip break). Zero crashes.
 
-**Next (Blender, on the E-drive machine):** (1) re-render S12 frames 147-368 and re-encode its review; (2) build
-S19-S28 in order, following `_channel-context/Blender_Build_Rules.md`, each against its selected reference in the
-table; voices for these beats are real Algieba recordings, so clip lengths are final.
+**Current activity (Blender, on the E-drive machine):** Master rendering pipeline `pipeline_s19_to_s28.ps1` actively rendering Beat S22 (`Meeting.blend`, frames 344-950) with Algieba narration.
 **Next (Claude, this machine):** each day record the next 10 voices (S29-S38 next) and make their Flow references.
 
 ### Next beats (S19 onward) — what the shot list asks for
@@ -80,6 +83,45 @@ S21-S23 van Imhoff and Marthanda Varma meet under a canopy (keyframe K06 in `fra
 Kochi, soldiers march south · S25-S26 battle near Kollam, powder-store explosion (K07) · S27 Varkala cliffs ·
 S28-S29 map · S30-S32 Dutch fleet off Colachel, landing, De Lannoy (K08) … see `Colachel_Shot_List.md` for the rest.
 Old Flow keyframes K01-K15 in `frames/` are the original look targets; make fresh `flow_refs` for each beat anyway.
+
+## 2c. Production Plan: Beats S19–S28 (The Threat & The First Round)
+
+*Planned 2026-10-16 (Gemini) following `Blender_Build_Rules.md` Section 0. Voices recorded in Algieba (`audio/S19.wav` ... `S28.wav`). Flow references selected in `frames/flow_refs/` (`K25.jpeg` ... `K35.jpeg`).*
+
+### 1. Scene Grouping & Target Files
+- **`Map.blend` (`map_film.py`, `map_world.py`)** — Map beats:
+  - **S19 (Clip 25)**: Glide south-east over sea to Ceylon (~lat 6–10, lon 79.7–82) with Dutch star fort; Dutch East Indiaman sails north-west towards Kochi. Voice 12.7 s (341 frames). Ref: `K25.jpeg`. Extension: widen `MAP_REGION`, add Ceylon mesh with faceted hills, palm belt, beaches, Dutch star fort.
+  - **S24 (Clip 31)**: Orange Dutch war banner hoists over Kochi star fort; column of Dutch/allied soldiers marches south toward Kollam. Voice 15.2 s (400 frames). Ref: `K31.jpeg`.
+  - **S28 (Clip 35)**: Armies push back and forth around Kollam with animated arrows and smoke puffs; red Travancore vs orange Dutch spheres of control. Voice 8.1 s (230 frames). Ref: `K35.jpeg`.
+- **`Study.blend` (`study_film.py`, `study_world.py`)** — Dutch Kochi fort interior:
+  - **S20 (Clip 26)**: Night interior. Van Imhoff in powdered wig and dark coat writing by candlelight at desk (scrolls, quill, globe, bookcase, warm candle light, open window showing Kochi harbour at night with docked Dutch ship). Voice 12.4 s (332 frames). Ref: `K26.jpeg`.
+- **`Meeting.blend` (`meeting_film.py`, `meeting_world.py`)** — Canopy meeting (continuous scene, 3 camera setups):
+  - **S21 (Clip 27)**: Van Imhoff standing under royal canopy pointing firmly, backed by 2 Dutch musket guards; King Marthanda Varma seated on throne with Nair guards behind. Voice 12.9 s (344 frames). Ref: `K27.jpeg`.
+  - **S22 (Clips 28-29)**: Slow orbit around treaty table; King calm, gestures toward forests; Imhoff stiff. Voice 23.9 s (608 frames). Ref: `K27.jpeg`.
+  - **S23 (Clip 30)**: Tight close-up on the King, arms folded, calm and resolute. Voice 11.4 s (308 frames). Ref: `K30.jpeg`.
+- **`Battle.blend` (`battle_film.py`, `battle_world.py`)** — Battlefield near Kollam (continuous scene):
+  - **S25 (Clip 32)**: Dutch lines in blue coats and allied troops advance with cannons across diked green paddy fields towards Travancore earthworks with 16 cannons and Nair warriors. Voice 12.0 s (322 frames). Ref: `K32.jpeg`.
+  - **S26 (Clip 33)**: Mortar shell arcs over, strikes thatch powder storehouse; low-poly explosion burst (fire shards, expanding grey smoke); barrels blast outward; Travancore troops retreat, leaving cannons. Voice 14.1 s (372 frames). Ref: `K33.jpeg`.
+- **`Varkala.blend` (`varkala_film.py`, `varkala_world.py`)** — Varkala Cliffs stand-off:
+  - **S27 (Clip 34)**: Red laterite cliffs rising over golden beach and faceted turquoise sea. Solid phalanx wall of 5,000 Nair warriors with shields and raised swords blocking cliff road. Approaching allied/Dutch army halts and turns back. Voice 18.0 s (466 frames). Ref: `K34.jpeg`.
+
+### 2. Shared Kit Additions (`colachel_kit.py`)
+Build once before scene construction so all scenes share identical components:
+- `imhoff`: Dutch Governor figure with periwig (`wig`), dark frock coat (`dark`/`plank`), white jabot, white stockings, black buckled shoes. Poses: standing with pointing arm outstretched, seated writing pose with quill.
+- `make_throne()`: Ornate royal wooden throne with red cushion, gold trim, and carved finials.
+- `make_paddy_field()`: Rectangular diked plots with lush green rice paddies.
+- `make_earthworks()`: Earthen rampart / redoubt trenches.
+- `make_powder_store()`: Thatch-roofed wooden ammunition depot with barrels and crates.
+- `make_explosion()`: Faceted low-poly fire shard and expanding smoke puff cluster.
+
+### 3. Execution & Render Order
+1. Implement shared kit additions in `colachel_kit.py`.
+2. Build `Map.blend` (S19, S24, S28).
+3. Build `Study.blend` (S20).
+4. Build `Meeting.blend` (S21, S22, S23).
+5. Build `Battle.blend` (S25, S26).
+6. Build `Varkala.blend` (S27).
+7. Test stills side-by-side with Flow refs → queue 720p renders & encode reviews in story order.
 
 ## 2b. Narration status
 
