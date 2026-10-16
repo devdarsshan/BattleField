@@ -43,11 +43,14 @@ DESIGN_CLIPS = [
     ("25", "S19", 2071, 2375),       # after S18: Ceylon across the Gulf of Mannar, the governor's ship (K25)
     ("31", "S24", 2376, 2740),       # after S23 (the meeting): war banner over Kochi, column marches south (K31)
     ("35", "S28", 2741, 2935),       # after S27 (Varkala cliffs): the frontier near Kollam goes back and forth (K35)
+    ("36", "S29", 2936, 3380),       # cut on from S28: the ship from Ceylon at Kochi, the dotted route south (K36)
 ]
 # S19, S24 and S28 look a little down the map toward the north (as their Flow refs K25, K31,
 # K35 do), so the sails, the war banner and the soldiers read; the earlier map shots are
 # straight top-down. Camera keys for them are given as the ground point aimed at.
-SHOT_TILT = {"MapCameraS19": 10.0, "MapCameraS24": 38.0, "MapCameraS28": 25.0}
+SHOT_TILT = {"MapCameraS19": 10.0, "MapCameraS24": 38.0, "MapCameraS28": 25.0, "MapCameraS29": 30.0}
+# S29 eases from a low look at Kochi up to a high, nearly top-down view of the whole route
+S29_TILT = [(2936, 30.0), (3170, 30.0), (3380, 8.0)]
 
 
 def aim(x, y, h, tilt):
@@ -97,6 +100,11 @@ CAM_KEYS = [
     # S28: (cut in from the Varkala cliffs) the frontier at the coast near Kollam
     (2741, aim(-2870.0, 3640.0, 2900.0, 25.0)),
     (2935, aim(-2850.0, 3600.0, 2600.0, 25.0)),
+    # S29: (cut in from S28) low over Kochi as the ship from Ceylon comes in and the men land,
+    # then up and south over the whole coast while the dotted route runs to the tip
+    (2936, aim(-5700.0, 9250.0, 3600.0, 30.0)),
+    (3170, aim(-5560.0, 9520.0, 3800.0, 30.0)),
+    (3380, aim(-3300.0, 4250.0, 16500.0, 8.0)),
 ]
 # Travancore's growth, S16. Frontiers run across the strip, perpendicular to the coast
 # (t = distance along the coast from Colachel, w = distance inland), with a gentle wobble.
@@ -126,12 +134,13 @@ FORTS_APPEAR = (760, 930)
 CUT_SHOTS = [
     (691, "MapCameraS10"), (1291, "MapCameraS13"), (1531, "MapCameraS16"),
     (1831, "MapCameraS18"), (2071, "MapCameraS19"), (2376, "MapCameraS24"),
-    (2741, "MapCameraS28")
+    (2741, "MapCameraS28"), (2936, "MapCameraS29")
 ]
 CLOUDS_PART = (1, 78)         # clouds hold for 0.5 s (the dissolve), then part by ~3.2 s
 SHIPS = [(-1200.0, -650.0, 200), (-500.0, -1050.0, 160), (-2100.0, 250.0, 210), (-4700.0, 3900.0, 190),
          (-6300.0, 6500.0, 175), (-6700.0, 8400.0, 185)]
 LENS = 30
+SEA_SWELL_FRAMES = 3094       # the map film's length when S07-S28 were approved; keep fixed
 
 
 def frontier_xy(T, w):
@@ -142,7 +151,7 @@ def frontier_xy(T, w):
     return x, y
 
 
-def s28_sea_wash_and_border(coll, bvh, frames, coast_pt, t_min=1500.0, w_sea=-1500.0):
+def s28_sea_wash_and_border(coll, bvh, frames, coast_pt, t_min=1500.0, w_sea=-1500.0, tag="S28"):
     """S28 (K35): Travancore's red wash carried out over the sea with a clean straight-edged
     outline (not the cell-stepped S16 sea wash), and the red frontier ribbon drawn from the
     sea up to where the S16 border starts inland."""
@@ -167,16 +176,16 @@ def s28_sea_wash_and_border(coll, bvh, frames, coast_pt, t_min=1500.0, w_sea=-15
             bm.faces.new([vs[i] for i in f])
         except ValueError:
             pass
-    me = bpy.data.meshes.new("Territory_S28Sea")
+    me = bpy.data.meshes.new(f"Territory_{tag}Sea")
     bm.to_mesh(me)
     bm.free()
-    me.materials.append(map_world.territory_material("TerritoryMat_S28Sea", map_world.TERRITORY_WASH,
+    me.materials.append(map_world.territory_material(f"TerritoryMat_{tag}Sea", map_world.TERRITORY_WASH,
                                                      (frames[0], frames[0] + 1)))
-    ob = bpy.data.objects.new("Territory_S28Sea", me)
+    ob = bpy.data.objects.new(f"Territory_{tag}Sea", me)
     ob.visible_shadow = False
     coll.objects.link(ob)
     pts = [frontier_xy(T, w_sea + k * 60.0) for k in range(int((1500 - w_sea) / 60) + 1)]
-    bo = map_world.build_border(coll, bvh, pts, (frames[0], frames[0] + 1), None, name="Border_S28")
+    bo = map_world.build_border(coll, bvh, pts, (frames[0], frames[0] + 1), None, name=f"Border_{tag}")
     for v in bo.data.vertices:
         if v.co.z < 20:
             v.co.z = 50.0
@@ -217,7 +226,11 @@ def build(samples=32):
     sc.view_settings.view_transform = "AgX"           # softer than Standard, richer than the beach grade
     sc.view_settings.look = "AgX - Base Contrast"     # close to the beach grade, a touch richer
     sc.view_settings.exposure = 0.05
-    coll, land, bvh = map_world.build_map_world(end)
+    # the approved sea's swell keys are fixed (their ease depends on this length, so it must not
+    # follow the film's end: adding beats would shift the S07-S18 sea). Seas of the later beats
+    # (S29 on) get their own linear swell drivers (build_late_swell).
+    coll, land, bvh = map_world.build_map_world(SEA_SWELL_FRAMES)
+    map_world.build_late_swell(coll, end)
     map_world.build_ships(coll, SHIPS)
     map_world.build_kingdoms(coll, bvh, (rt(FORTS_APPEAR[0]), rt(FORTS_APPEAR[1])), scale=26.0)
     map_world.build_dutch_kochi(coll, bvh, (rt(KOCHI_TURNS_ORANGE[0]), rt(KOCHI_TURNS_ORANGE[1])), coll)
@@ -272,6 +285,19 @@ def build(samples=32):
                           *s28)
     # S24 and S28 see the approved sea low and tilted: the same sea with softer highlights
     map_world.matte_sea_copy(coll, [beat["S24"], beat["S28"]])
+    # S29 (K36): 175 fresh soldiers from Ceylon (~5.5-7.8 s); "a new plan" (8-10.5 s); the route
+    # south is drawn through "Stop fighting ... in the north. Strike him at home, in the south."
+    map_world.build_s29(coll, lib_c, land, bvh, beat["S29"], end, arrive=word("S29", 7.0),
+                        land_men=word("S29", 7.6), route=(word("S29", 10.2), word("S29", 15.6)))
+    # S29: Travancore red in the south as in K36: its whole land up to the frontier, the frontier
+    # ribbon from the sea; the S16 washes (with their stepped sea cells) swap out
+    s29 = beat["S29"]
+    map_world.build_territory(coll, land_ob, bvh, [("S29", lambda x, y: _t(x, y) < TERRITORY[-1][3] and y < 9000,
+                                                     (s29[0], s29[0] + 1))])
+    map_world.show_only([bpy.data.objects["Territory_S29"]], *s29)
+    s28_sea_wash_and_border(coll, bvh, s29, (fx, fy), tag="S29")
+    map_world.hide_during([o for o in bpy.data.objects if o.name.startswith("Territory_")
+                           and not o.name.startswith(("Territory_S28", "Territory_S29"))], *s29)
 
     cd = bpy.data.cameras.new("MapCamera")
     cd.lens = LENS
@@ -291,6 +317,10 @@ def build(samples=32):
         shot_cam = [c for s0, c in shots if f >= s0][-1]
         shot_cam.location = pos
         shot_cam.keyframe_insert("location", frame=rt(f))
+    s29cam = [c for s0, c in shots if c.name == "MapCameraS29"][0]
+    for f, tilt in S29_TILT:
+        s29cam.rotation_euler = (math.radians(tilt), 0, 0)
+        s29cam.keyframe_insert("rotation_euler", frame=rt(f))
     for s0, c in shots:
         m = sc.timeline_markers.new(c.name, frame=rt(s0))
         m.camera = c

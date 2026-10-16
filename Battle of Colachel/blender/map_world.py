@@ -1004,10 +1004,57 @@ def hide_during(obs, f0, f1):
             ob.keyframe_insert("hide_render", frame=f)
 
 
-def sea_lift(x, y, f, w=1.0, names=("MapSwellA", "MapSwellB")):
+def build_late_swell(coll, end):
+    """Drivers for the swell of the seas built after S18 (the S19 sea, the matte copy, the
+    wakes). The approved sea's own drivers are keyed over S07-S18 only (their ease depends on
+    that length, so S07-S18 never change when beats are added); these run at the same pace,
+    strictly linear, to the end of the film."""
+    for tex, strength, (tx, ty), frames in SWELLS:
+        drv = bpy.data.objects.new(tex.name + "Late", None)
+        coll.objects.link(drv)
+        vx, vy = tx / (frames - 1), ty / (frames - 1)
+        for f in (1, end):
+            drv.location = (vx * (f - 1), vy * (f - 1), 0.0)
+            drv.keyframe_insert("location", frame=f)
+        LATE[tex.name] = (tex, strength, (vx, vy), drv)
+    for drv in [v[3] for v in LATE.values()]:
+        sc = bpy.context.scene
+        for f in (2, end - 1):                       # check it really is linear
+            sc.frame_set(f)
+            exp = LATE[drv.name[:-4]][2][0] * (f - 1)
+            assert abs(drv.location.x - exp) < 1.0 or _linearise(drv), drv.name
+
+
+def _linearise(drv):
+    """Set every key of the driver to linear interpolation (works with layered actions)."""
+    ad = drv.animation_data
+    act = ad.action
+    curves = []
+    try:
+        curves = list(act.fcurves)
+    except AttributeError:
+        for layer in act.layers:
+            for strip in layer.strips:
+                curves += list(strip.channelbag(ad.action_slot).fcurves)
+    for fc in curves:
+        for kp in fc.keyframe_points:
+            kp.interpolation = "LINEAR"
+    return True
+
+
+LATE = {}
+
+
+def sea_lift(x, y, f, w=1.0, names=("MapSwellA", "MapSwellB"), late=False):
     """Height of the map sea's swell at (x, y) on frame f (same textures as the Displace
-    modifiers), so ships ride on the faceted sea instead of sinking into its crests."""
+    modifiers), so ships ride on the faceted sea instead of sinking into its crests.
+    late: the linear drivers of S29 on (build_late_swell)."""
     z = 0.0
+    if late:
+        for name, (tex, strength, (vx, vy), _) in LATE.items():
+            if name in names:
+                z += (tex.evaluate((x - vx * (f - 1), y - vy * (f - 1), 0.0))[3] - 0.5) * strength
+        return z * w
     for tex, strength, (tx, ty), frames in SWELLS:
         if tex.name not in names:
             continue
@@ -1016,17 +1063,17 @@ def sea_lift(x, y, f, w=1.0, names=("MapSwellA", "MapSwellB")):
     return z * w
 
 
-def add_swell(ob, group="Swell", names=("MapSwellA", "MapSwellB")):
+def add_swell(ob, group="Swell", names=("MapSwellA", "MapSwellB"), sea="MapSea", late=False):
     """Give a mesh the sea's Displace modifiers (same textures and drivers), so it follows
     the faceted swell. The vertex group must exist."""
-    sea = bpy.data.objects["MapSea"]
+    sea = bpy.data.objects[sea]
     for m in sea.modifiers:
         if m.type != "DISPLACE" or m.name not in names:
             continue
         mod = ob.modifiers.new(m.name, "DISPLACE")
         mod.texture = m.texture
         mod.texture_coords = "OBJECT"
-        mod.texture_coords_object = m.texture_coords_object
+        mod.texture_coords_object = LATE[m.name][3] if late else m.texture_coords_object
         mod.strength = m.strength
         mod.mid_level = m.mid_level
         mod.vertex_group = group
@@ -1053,14 +1100,14 @@ def dutch_ship(name, coll, sails=True, seed=7):
 
 
 def rock_ship(ob, frames, base_rot_z, amp=(1.6, 2.4), bob=3.0, seed=0, path=None, lift_w=1.0,
-              swells=("MapSwellA", "MapSwellB")):
+              swells=("MapSwellA", "MapSwellB"), late=False):
     """Roll, pitch and heave on the swell (keys every 6 frames). path(f) -> (x, y) sails
     the ship; its height follows the sea's swell at the hull."""
     ph = random.Random(seed).uniform(0, 10)
     x0, y0 = ob.location.x, ob.location.y
     for f in range(1, frames + 7, 6):
         x, y = path(f) if path else (x0, y0)
-        ob.location = (x, y, sea_lift(x, y, f, lift_w, swells) + bob * math.sin(f / 19.0 + ph))
+        ob.location = (x, y, sea_lift(x, y, f, lift_w, swells, late) + bob * math.sin(f / 19.0 + ph))
         ob.rotation_euler = (math.radians(amp[0] * math.sin(f / 21.0 + ph)),
                              math.radians(amp[1] * math.sin(f / 15.0 + 1 + ph)), base_rot_z)
         ob.keyframe_insert("location", frame=f)
@@ -1228,12 +1275,12 @@ def show_ranges(ob, ranges):
         ob.keyframe_insert("hide_render", frame=f)
 
 
-def matte_sea_copy(coll, ranges):
+def matte_sea_copy(coll, ranges, name="MapSeaMatte", late=False):
     """The approved map sea (same mesh, swell and colours) with the matte material, swapped
     in for the given beats."""
     sea = bpy.data.objects["MapSea"]
     cp = sea.copy()
-    cp.name = "MapSeaMatte"
+    cp.name = name
     coll.objects.link(cp)
     cp.animation_data_clear()
     cp.material_slots[0].link = "OBJECT"
@@ -1241,6 +1288,8 @@ def matte_sea_copy(coll, ranges):
     for m in cp.modifiers:                 # a calmer swell for the low, tilted shots
         if m.type == "DISPLACE":
             m.strength *= 0.5
+            if late:
+                m.texture_coords_object = LATE[m.name][3]
     show_ranges(cp, ranges)
     for a, b in ranges:
         hide_during([sea], a, b)
@@ -1475,7 +1524,8 @@ def build_s19(coll, lib_c, frames, end, ship_path):
     return fort
 
 
-def build_wake(name, coll, carrier, length=1140.0, beam=300.0, seed=0, spread_deg=17.0, reach=3000.0, size=1.0):
+def build_wake(name, coll, carrier, length=1140.0, beam=300.0, seed=0, spread_deg=17.0, reach=3000.0, size=1.0,
+               sea=None, late=False):
     """Foam wake behind a ship: a broken V of white streaks and a churned centre trail,
     fading out astern. It follows the carrier in x, y and heading and rides the sea's
     swell (same Displace modifiers), so it lies on the faceted water."""
@@ -1518,7 +1568,10 @@ def build_wake(name, coll, carrier, length=1140.0, beam=300.0, seed=0, spread_de
     ob.visible_shadow = False
     vg = ob.vertex_groups.new(name="Swell")
     vg.add(list(range(len(ob.data.vertices))), 1.0, "REPLACE")
-    add_swell(ob, names=("MapSwellA",))
+    if sea:
+        add_swell(ob, sea=sea, late=late)
+    else:
+        add_swell(ob, names=("MapSwellA",))
     c = ob.constraints.new("COPY_LOCATION")
     c.target = carrier
     c.use_z = False
@@ -1894,3 +1947,147 @@ def build_ground_arrow(name, coll, bvh, tail, direction, length, width, m, lift=
     ob.rotation_euler[2] = rot
     ob.visible_shadow = False
     return ob
+
+
+# ------------------------------------------- S29: fresh troops, a new plan (K36)
+def sea_route(land, start, y_end, off=1100.0, step=45.0):
+    """A sea lane parallel to the coast, `off` metres out, from `start` south to y_end and
+    round the tip toward Colachel: [(x, y)] smoothed, north to south."""
+    coast = [(x, y) for x, y in geo.coast_detailed(step) if x < 900 and y_end - 2500 < y < start[1] + 200]
+    # follow the coast in order (it runs north to south on the west side, then east past the tip)
+    coast.sort(key=lambda p: -(p[1] - 0.35 * p[0]))
+    pts = []
+    for i, (x, y) in enumerate(coast):
+        j, k = min(i + 1, len(coast) - 1), max(i - 1, 0)
+        tx, ty = coast[j][0] - coast[k][0], coast[j][1] - coast[k][1]
+        L = math.hypot(tx, ty) or 1.0
+        nx, ny = -ty / L, tx / L
+        if geo.point_in_poly(x + nx * 300, y + ny * 300, land.poly):
+            nx, ny = -nx, -ny
+        pts.append((x + nx * off, y + ny * off))
+    sm = []
+    for i in range(len(pts)):
+        a, b = max(0, i - 12), min(len(pts), i + 13)
+        sm.append((sum(p[0] for p in pts[a:b]) / (b - a), sum(p[1] for p in pts[a:b]) / (b - a)))
+    return [start] + [p for p in sm if p[1] < start[1] - 400]
+
+
+def build_s29(coll, lib_c, land, bvh, frames, end, arrive, land_men, route):
+    """S29 (K36): a Dutch ship from Ceylon, with the fresh soldiers, comes up the coast and
+    berths at the orange Kochi star fort (wake behind it); the soldiers go ashore; then the
+    new plan: a dotted sea route of small white dots swings south from Kochi along the coast
+    to the tip, ending in a dotted arrowhead off Colachel. Travancore's land stays red."""
+    f0, f1 = frames
+    obs = []
+    swap_forts(coll, f0, f1)                             # only the star fort, as in K36
+    matte_sea_copy(coll, [frames], name="MapSeaMatteS29", late=True)
+    kx, ky = geo.xy(*FORT_KOCHI)
+    fort = bpy.data.objects["DutchFortKochi"]
+    fx, fy, fz = fort.location
+    # 1. the ship from Ceylon: up the coast from the south-west, to a berth off the fort
+    ship, parts, _ = dutch_ship("S29CeylonShip", coll, seed=17)
+    ship.scale = (6.5, 6.5, 6.5)
+    p0, p1 = (kx - 2300, ky - 3600), (kx - 760, ky - 520)
+    hd = math.atan2(-(p1[0] - p0[0]), p1[1] - p0[1])
+    carrier = bpy.data.objects.new("S29ShipPath", None)
+    coll.objects.link(carrier)
+    carrier.rotation_euler[2] = hd
+
+    def course(f):
+        u = min(1.0, max(0.0, (f - f0 + 40) / (arrive - f0 + 40)))
+        u = 1 - (1 - u) ** 2.2                              # slows as it comes in
+        return p0[0] + (p1[0] - p0[0]) * u, p0[1] + (p1[1] - p0[1]) * u
+
+    def sail():
+        for f in range(f0 - 4, f1 + 5, 4):
+            x, y = course(f)
+            carrier.location = (x, y, sea_lift(x, y, f, 0.5, late=True))
+            carrier.keyframe_insert("location", frame=f)
+    kit.keyframe_linear(sail)
+    ship.parent = carrier
+    for f in range(f0 - 6, f1 + 7, 6):
+        ship.rotation_euler = (math.radians(1.6 * math.sin(f / 13.0)), math.radians(2.5 + 1.8 * math.sin(f / 17.0)), 0)
+        ship.keyframe_insert("rotation_euler", frame=f)
+    wake = build_wake("S29Wake", coll, carrier, length=247.0, beam=70.0, seed=29, reach=1400.0, size=0.45,
+                      sea="MapSeaMatteS29", late=True)
+    # the wake dies away once the ship has stopped
+    for f, s_ in ((arrive - 30, 1.0), (arrive + 50, 0.0)):
+        wake.scale = (max(s_, 0.01), max(s_, 0.01), 1.0)
+        wake.keyframe_insert("scale", frame=f)
+    obs += parts + [wake]
+    # 2. the fresh soldiers come ashore below the fort and march up to it
+    tpls = [walker_template(f"S29DutchTpl{i}", lib_c, "dutch", seed=50 + i) for i in range(3)]
+    rng = random.Random(29)
+    shore = beach_path(land, fy - 350, fy - 1500, inland=45.0)
+    (sx, sy), _ = path_at(shore, 120.0)
+    gate = (fx + 260, fy - 520)
+    ground = lambda x, y: ground_z(bvh, x, y) - 0.5
+    for k in range(36):
+        r, c = divmod(k, 3)
+        root, prt = new_walker(f"S29Soldier{k}", coll, tpls[k % 3], 20.0 * rng.uniform(0.96, 1.04))
+        a = (sx - 30 + c * 18 + rng.uniform(-4, 4), sy - 180 - r * 26)
+        b = (gate[0] - 30 + c * 18, gate[1] + 40 - r * 26 + 150)
+        root.location = (a[0], a[1], ground(*a))
+        root.rotation_euler = (0, 0, math.atan2(b[1] - a[1], b[0] - a[0]) - math.pi / 2)
+        st = land_men + k // 3 * 3
+        kit.animate_walk(root, prt, [a, ((a[0] + b[0]) / 2 + 40, (a[1] + b[1]) / 2), b], ground,
+                         start=st, end=min(f1, st + 150), stride_frames=12, swing=0.5)
+        for f, h in ((1, True), (land_men - 1, True), (land_men, False), (f1, False), (f1 + 1, True)):
+            for o in prt.values():
+                o.hide_render = h
+                o.keyframe_insert("hide_render", frame=f)
+    # the ships moored off the fort rock on the swell
+    olds = [bpy.data.objects[f"DutchShipKochi{i}"] for i in range(3)]
+    sc_ = bpy.context.scene
+    sc_.frame_set(f0)
+    for i, o in enumerate(olds):
+        cp = kit.instance(o, f"S29KochiShip{i}", coll, tuple(o.matrix_world.translation), scale=6.0)
+        rock_ship(cp, end, o.matrix_world.to_euler()[2], amp=(1.6, 1.2), bob=2.0, seed=160 + i, lift_w=0.25,
+                  late=True)
+        obs.append(cp)
+    hide_during(olds, f0, f1)
+    # 3. the new plan: a dotted route south along the coast to the tip, then a dotted arrowhead
+    r0, r1 = route
+    path = sea_route(land, (kx - 900, ky - 900), 0.0)
+    tail_end = (-400.0, -850.0)                             # off Colachel, the head points at the beach
+    path = [p for p in path if p[0] < -900 or p[1] > 600] + [tail_end]
+    pts, acc, spacing = [], 0.0, 150.0
+    total = sum(math.hypot(b[0] - a[0], b[1] - a[1]) for a, b in zip(path, path[1:]))
+    s = 0.0
+    while s < total - 60:
+        (x, y), d = path_at(path, s)
+        pts.append((x, y, d))
+        s += spacing
+    kit.mat("m_route", (0.97, 0.97, 0.95))
+    dot = kit.MB()
+    dot.cone(kit.Matrix.Identity(4), "m_route", segments=8, r1=1.0, r2=0.8, depth=0.5)
+    dot_src = dot.obj("S29DotSrc", lib_c)
+    kit.hide_source(dot_src)
+    n = len(pts)
+    for i, (x, y, d) in enumerate(pts):
+        f = round(r0 + (r1 - r0) * i / max(1, n - 1))
+        ob = kit.instance(dot_src, f"S29Dot{i}", coll, (x, y, 48.0), scale=0.01)
+        for fk, s_ in ((f - 1, 0.01), (f + 4, 72.0), (f + 9, 56.0)):
+            ob.scale = (s_, s_, s_)
+            ob.keyframe_insert("scale", frame=fk)
+        ob.visible_shadow = False
+        obs.append(ob)
+    # dotted arrowhead: two short rows of dots swept back from the tip
+    (ex, ey), (dx, dy) = path_at(path, total)
+    for side in (-1, 1):
+        for k in range(1, 5):
+            bx = ex - dx * k * 150 + side * (-dy) * k * 130
+            by = ey - dy * k * 150 + side * dx * k * 130
+            ob = kit.instance(dot_src, f"S29Head{side}_{k}", coll, (bx, by, 48.0), scale=0.01)
+            for fk, s_ in ((r1 + 2 + k * 2, 0.01), (r1 + 7 + k * 2, 78.0), (r1 + 12 + k * 2, 60.0)):
+                ob.scale = (s_, s_, s_)
+                ob.keyframe_insert("scale", frame=fk)
+            ob.visible_shadow = False
+            obs.append(ob)
+    tip = kit.instance(dot_src, "S29HeadTip", coll, (ex, ey, 48.0), scale=0.01)
+    for fk, s_ in ((r1, 0.01), (r1 + 5, 84.0), (r1 + 10, 64.0)):
+        tip.scale = (s_, s_, s_)
+        tip.keyframe_insert("scale", frame=fk)
+    obs.append(tip)
+    show_only(obs, f0, f1)
+    print("S29 built:", n, "route dots, 36 soldiers ashore")

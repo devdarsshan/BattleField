@@ -64,7 +64,7 @@ images sometimes paint the sea with wave lines; ignore that, the sea is always t
 | S26 | 33 | Powder store explosion, 16 guns lost | `Battle.blend` · ref **K33** | ✅ REBUILT. Frames 323-695 |
 | S27 | 34 | Varkala cliffs, the Nair wall | `Varkala.blend` / `varkala_film.py`, `varkala_world.py` · ref **K34** | ✅ REBUILT. Frames 1-465 |
 | S28 | 35 | Map: armies push back and forth at the frontier | `Map.blend` · ref **K35** | ✅ REBUILT. Map frames 2855-3094 |
-| S29 | 36 | Map: a Dutch ship from Ceylon arrives at Kochi; a dotted sea route swings south to the tip. Device voice | ref **K36** · `map_film.py` | ⬜ Ready to build |
+| S29 | 36 | Map: ship from Ceylon arrives at Kochi; dotted sea route south to the tip | `Map.blend` · ref **K36** | ✅ BUILT (device voice). Map frames 3095-3540. Map sea swell is now pinned (`SEA_SWELL_FRAMES`), so adding beats never shifts earlier frames |
 | S30 | 37 | Off Colachel: Dutch warships fire broadsides at the shore (Nov 1740). Device voice | ref **K37** · beach world (`colachel_world.py`), new film script | ⬜ Ready to build |
 | S31 | 38 | Seven ships, a crowd of boats, soldiers wade ashore north of Colachel (Feb 1741). Device voice | ref **K38** · beach world | ⬜ Ready to build |
 | S32 | 39 | De Lannoy (new kit character) on the beach pointing, posts being unloaded. Device voice | ref **K39** · beach world; add kind "delannoy" to the kit | ⬜ Ready to build |
