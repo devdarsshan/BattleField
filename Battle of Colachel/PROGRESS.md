@@ -65,8 +65,8 @@ images sometimes paint the sea with wave lines; ignore that, the sea is always t
 | S27 | 34 | Varkala cliffs, the Nair wall | `Varkala.blend` / `varkala_film.py`, `varkala_world.py` · ref **K34** | ✅ REBUILT. Frames 1-465 |
 | S28 | 35 | Map: armies push back and forth at the frontier | `Map.blend` · ref **K35** | ✅ REBUILT. Map frames 2855-3094 |
 | S29 | 36 | Map: ship from Ceylon arrives at Kochi; dotted sea route south to the tip | `Map.blend` · ref **K36** | ✅ BUILT (device voice). Map frames 3095-3540. Map sea swell is now pinned (`SEA_SWELL_FRAMES`), so adding beats never shifts earlier frames |
-| S30 | 37 | Warships fire broadsides at Colachel | `Landing.blend` / `landing_film.py`, `landing_world.py` · ref **K37** | ⚠ BUILT, frames 1-456. **Fix before render:** camera looks into the low sun → haze + sea glare wash the water white (K37 is clear blue). Turn the shot / lower haze & sea specular for this beat |
-| S31 | 38 | Seven ships, boats, soldiers wade ashore | `Landing.blend` · ref **K38** | ⚠ BUILT, frames 457-799. **Same wash-out fix as S30** |
+| S30 | 37 | Warships fire broadsides at Colachel | `Landing.blend` / `landing_film.py`, `landing_world.py` · ref **K37** | ✅ BUILT, frames 1-456 (wash-out fixed: beat-only sun/haze/sea keys; sea facets could be crisper) |
+| S31 | 38 | Seven ships, boats, soldiers wade ashore | `Landing.blend` · ref **K38** | ✅ BUILT, frames 457-799 (wash-out fixed) |
 | S32 | 39 | De Lannoy on the beach, pointing | `Landing.blend` · ref **K39** | ✅ BUILT, frames 800-1192 (kit kind `delannoy`) |
 | S33 | 40 | High view: beach, paddies, palms, Padmanabhapuram 13 km inland. Device voice | ref **K40** · map or a beach→palace aerial reusing palace_world | ⬜ Ready to build |
 | S34 | 41 | Stockade rises post by post; column marches inland, villages burn | `Landing.blend` · ref **K41** | ✅ BUILT, frames 1193-1556 |

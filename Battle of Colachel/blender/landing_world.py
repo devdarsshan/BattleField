@@ -801,6 +801,76 @@ def sway_palms(f0, f1, near, radius, rng, amount=0.07):
             f += rng.randint(9, 14)
 
 
+# ===================================================================== clear light at sea (S30-S31)
+def sea_light(sun, f_last, sun_dir=(-0.72, 0.45, -0.32), haze=0.00028, spec=0.2, rough=0.45, sat=1.45):
+    """The two open-sea beats look west along the coast, straight into the default low sun, so
+    haze and sun glare wash the water out. Up to f_last only: the sun comes from behind the
+    camera's left, the haze is thinner and the sea is less glossy, so the facets read
+    turquoise-to-blue (K37, K38). From f_last + 1 (the cut to S32) everything is as before."""
+    from mathutils import Vector
+    base_rot = sun.rotation_euler.copy()
+    sun.rotation_euler = Vector(sun_dir).normalized().to_track_quat("-Z", "Y").to_euler()
+    sun.keyframe_insert("rotation_euler", frame=1)
+    sun.keyframe_insert("rotation_euler", frame=f_last)
+    sun.rotation_euler = base_rot
+    sun.keyframe_insert("rotation_euler", frame=f_last + 1)
+    vol = next(n for n in bpy.data.objects["Haze"].data.materials[0].node_tree.nodes
+               if n.bl_idname == "ShaderNodeVolumePrincipled")
+    dens = vol.inputs["Density"]
+    normal = 0.0008                                    # colachel_world's clear-weather density
+    bsdf = bpy.data.materials["Sea"].node_tree.nodes.get("Principled BSDF")
+    sp, ro = bsdf.inputs["Specular IOR Level"], bsdf.inputs["Roughness"]
+    for sock, low, high in ((dens, haze, normal), (sp, spec, sp.default_value), (ro, rough, ro.default_value)):
+        sock.default_value = low
+        sock.keyframe_insert("default_value", frame=1)
+        sock.keyframe_insert("default_value", frame=f_last)
+        sock.default_value = high
+        sock.keyframe_insert("default_value", frame=f_last + 1)
+    # deeper turquoise-to-blue facets: a saturation lift on the sea colour, these beats only
+    nt = bpy.data.materials["Sea"].node_tree
+    mix = nt.nodes["StormMix"]
+    hsv = nt.nodes.new("ShaderNodeHueSaturation")
+    out = next(sk for sk in mix.outputs if sk.identifier == "Result_Color")
+    nt.links.new(out, hsv.inputs["Color"])
+    nt.links.new(hsv.outputs["Color"], bsdf.inputs["Base Color"])
+    sat_in = hsv.inputs["Saturation"]
+    sat_in.default_value = sat
+    sat_in.keyframe_insert("default_value", frame=1)
+    sat_in.keyframe_insert("default_value", frame=f_last)
+    sat_in.default_value = 1.0
+    sat_in.keyframe_insert("default_value", frame=f_last + 1)
+    # muzzle flashes (S30 only): a saturated orange glow instead of a pale, washed-out pink
+    for name, rgb, k in (("muzzle_core", (1.0, 0.62, 0.06), 1.8), ("muzzle_fire", (1.0, 0.30, 0.0), 1.6)):
+        m = bpy.data.materials.get(name)
+        if m:
+            b = m.node_tree.nodes.get("Principled BSDF")
+            b.inputs["Emission Color"].default_value = (*kit.srgb_to_linear(rgb), 1)
+            b.inputs["Emission Strength"].default_value = k
+            b.inputs["Base Color"].default_value = (*kit.srgb_to_linear(rgb), 1)
+    for owner in (sun, nt, bpy.data.objects["Haze"].data.materials[0].node_tree):
+        ad = owner.animation_data
+        _constant_cut(ad, f_last)
+
+
+def _constant_cut(ad, f_last):
+    """No easing across the cut: keys at f_last hold flat until the jump at f_last + 1."""
+    if not ad or not ad.action:
+        return
+    act = ad.action
+    curves = []
+    try:
+        curves = list(act.fcurves)
+    except AttributeError:
+        for layer in act.layers:
+            for strip in layer.strips:
+                for bag in strip.channelbags:
+                    curves += list(bag.fcurves)
+    for fc in curves:
+        for kp in fc.keyframe_points:
+            if f_last - 0.5 < kp.co.x < f_last + 1.5 or kp.co.x < 1.5:
+                kp.interpolation = "CONSTANT"
+
+
 # ===================================================================== whole set
 def build_world(ev):
     end = ev["end"]

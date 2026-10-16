@@ -170,6 +170,7 @@ def build(samples=32):
         storm=[(rt(f), v) for f, v in EVENTS["storm"]] + [(end + 200, 1.0), (end + 300, 0.0)],
     )
     rig, sun, dl = lw.build_world(ev)
+    lw.sea_light(sun, ev["r31"][1])                  # S30-S31: light from behind the camera, clear water
     # keep every camera out of the palms and trees it flies past
     path = []
     for keys in CAMS.values():
