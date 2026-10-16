@@ -1,11 +1,16 @@
-"""The Varkala Cliff Halt & Nair Shield Wall (Beat S27, Clip 34).
+"""Varkala cliffs (S27, clip 34) in Varkala.blend, one continuous camera gliding along the
+clifftop road (K34).
 
-Built in its own file Varkala.blend reusing varkala_world.py.
-Matches Flow reference:
-- frames/flow_refs/K34.jpeg (S27: Sheer red laterite cliffs, turquoise sea, coconut palms,
-  massive Nair warrior shield wall halting the advancing Dutch and allied column).
+"The allies push south toward Attingal and Varkala." -> high behind the allied column as it
+marches along the road, sea and red cliffs on the left.
+"But at Varkala they meet about five thousand Nairs ..." -> the camera rises and looks ahead:
+a solid wall of Nairs fills the road; the column halts.
+"... men trained to fight with sword and shield from boyhood." -> the Nairs stamp and
+brandish their swords; the front ranks step forward.
+"The allies cannot break through, and they pull back." -> the column turns about and walks
+back the way it came; the camera lifts away.
 
-Headless: blender -b -P varkala_film.py
+Headless: blender -b -P varkala_film.py   (writes Varkala.blend and renders/timing_varkala.json)
 """
 import importlib
 import json
@@ -18,12 +23,14 @@ if HERE not in sys.path:
     sys.path.insert(0, HERE)
 
 import bpy
-from mathutils import Vector
 
 import colachel_kit as kit
 import colachel_world as world
+import pepper_world
+import kochi_world
+import port_world
 import varkala_world as vw
-for m in (kit, world, vw):
+for m in (kit, world, pepper_world, kochi_world, port_world, vw):
     importlib.reload(m)
 
 sys.argv = sys.argv[:1]
@@ -33,15 +40,29 @@ exec(compile(film_src, "film.py", "exec"), F)
 
 FPS = kit.FPS
 DESIGN_CLIPS = [
-    ("34", "S27", 1, 460),
+    ("34", "S27", 1, 465),
 ]
 
+# Story events in design frames (clip time = narration time + 0.8 s; pauses in audio/S27.wav at
+# 3.9, 8.0, 14.0 and 16.5 s).
+EVENTS = dict(
+    march=8,          # the column is already on the move
+    halt=168,         # 7.0 s, just after "...they meet about five thousand Nairs"
+    brandish=221,     # 9.2 s: "men trained to fight with sword and shield ..."
+    step=245,         # 10.2 s: the front ranks step forward
+    back=392,         # 16.3 s: "The allies cannot break through, and they pull back."
+    end=465,
+)
+
+# (design frame, camera position, look-at, lens mm)
 CAM_DESIGN = [
-    # Elevated 3/4 view looking down along the clifftop road and Arabian sea (K34 framing)
-    (1,   (16.0, -25.0, 26.0), (2.0, 4.0, 12.0), 32),
-    (220, (14.0, -19.0, 23.0), (2.0, 6.0, 12.0), 32),
-    (460, (12.0, -13.0, 20.0), (2.0, 8.0, 12.0), 32),
+    (1,   (-26.0, -68.0, 47.0), (-6.0, -40.0, 19.0), 30),
+    (120, (-25.0, -55.0, 47.0), (-7.0, -27.0, 19.0), 30),
+    (200, (-24.0, -45.0, 47.0), (-7.0, -14.5, 19.0), 30),
+    (330, (-23.0, -42.5, 48.0), (-7.0, -13.0, 19.0), 30),
+    (465, (-26.0, -52.0, 52.0), (-7.0, -23.0, 19.0), 30),
 ]
+K34_DESIGN = 300
 
 
 def timed_clips():
@@ -67,7 +88,7 @@ def retime(frame, clips):
     raise ValueError(frame)
 
 
-def build(samples=24):
+def build(samples=32):
     clips = timed_clips()
     end = clips[-1][3]
     rt = lambda f: retime(f, clips)
@@ -75,65 +96,51 @@ def build(samples=24):
     kit.reset_scene()
     sc = world.setup_render(samples=samples)
     sc.frame_start, sc.frame_end = 1, end
-    sc.view_settings.view_transform = "AgX"
     sc.view_settings.look = "AgX - Base Contrast"
-    sc.view_settings.exposure = 0.0
 
-    w = vw.build_world(end_frame=end + 20)
+    ev = {k: rt(v) for k, v in EVENTS.items()}
+    ev["end"] = end
+    keep = [(p[0], p[1], 8.0) for _, p, _, _ in CAM_DESIGN]
+    vw.build_world(ev, keep=keep)
 
-    # Animate allied column advancing and then coming to a dead halt
-    halt_frame = round(end * 0.45)
-    if "allies" in w:
-        figs = w["allies"].get("figures", [])
-        for fig in figs:
-            base_y = fig.location.y
-            fig.keyframe_insert("location", frame=1)
-            # Advance +3.8m
-            fig.location.y = base_y + 3.8
-            fig.keyframe_insert("location", frame=halt_frame)
-            # Halted until end of scene
-            fig.keyframe_insert("location", frame=end)
-
-        banner = w["allies"].get("banner")
-        if banner:
-            base_y = banner.location.y
-            banner.keyframe_insert("location", frame=1)
-            banner.location.y = base_y + 3.8
-            banner.keyframe_insert("location", frame=halt_frame)
-            banner.keyframe_insert("location", frame=end)
-
-    # Camera setup
     cd = bpy.data.cameras.new("VarkalaCamera")
-    cd.lens = 38
+    cd.lens = 30
     cd.clip_start = 0.5
-    cd.clip_end = 800.0
+    cd.clip_end = 1500.0
     cam = bpy.data.objects.new("VarkalaCamera", cd)
     sc.collection.objects.link(cam)
     sc.camera = cam
-
     target = bpy.data.objects.new("VarkalaCamTarget", None)
     sc.collection.objects.link(target)
     c = cam.constraints.new("TRACK_TO")
     c.target = target
     c.track_axis = "TRACK_NEGATIVE_Z"
     c.up_axis = "UP_Y"
-
     for f_d, pos, look, lens in CAM_DESIGN:
-        f_real = rt(f_d)
+        f = rt(f_d)
         cam.location = pos
         target.location = look
         cd.lens = lens
-        cam.keyframe_insert("location", frame=f_real)
-        target.keyframe_insert("location", frame=f_real)
-        cd.keyframe_insert("lens", frame=f_real)
+        cam.keyframe_insert("location", frame=f)
+        target.keyframe_insert("location", frame=f)
+        cd.keyframe_insert("lens", frame=f)
 
-    out_blend = os.path.join(HERE, "Varkala.blend")
-    bpy.ops.wm.save_as_mainfile(filepath=out_blend)
+    for clip, beat, f0, f1, _, _ in clips:
+        sc.timeline_markers.new(f"{clip} {beat}", frame=f0)
+    sc.timeline_markers.new("K34", frame=rt(K34_DESIGN))
+    sc.timeline_markers.new("halt", frame=ev["halt"])
+    sc.timeline_markers.new("turn back", frame=ev["back"])
+
+    bpy.ops.wm.save_as_mainfile(filepath=os.path.join(HERE, "Varkala.blend"))
+    os.makedirs(os.path.join(HERE, "renders"), exist_ok=True)
+    with open(os.path.join(HERE, "renders", "timing_varkala.json"), "w") as f:
+        json.dump({"fps": FPS, "lead": F["NARRATION_LEAD"],
+                   "clips": [dict(clip=c, beat=b, first=f0, last=f1, wav=w, seconds=round(s, 2),
+                                  placeholder="placeholder" in w)
+                             for c, b, f0, f1, w, s in clips]}, f, indent=1)
     print(f"Varkala film built: {end} frames, {len(bpy.data.objects)} objects")
     for clip, beat, f0, f1, wav, secs in clips:
-        dur = (f1 - f0 + 1) / FPS
-        print(f"  clip {clip} {beat}: frames {f0}-{f1} ({dur:.1f} s, narration {secs:.1f} s)")
+        print(f"  clip {clip} {beat}: frames {f0}-{f1} ({(f1 - f0 + 1) / FPS:.1f} s, narration {secs:.1f} s)")
 
 
-if __name__ == "__main__":
-    build()
+build()

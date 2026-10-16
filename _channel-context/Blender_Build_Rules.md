@@ -3,6 +3,26 @@
 These are the rules the approved clips S01-S18 were built with. Follow them for every new beat so the film keeps one
 look. If a rule conflicts with what the user asks, the user wins; write the new decision into `PROGRESS.md`.
 
+## Why S19-S28 v1 were rejected (do not repeat these)
+
+The first agent-built S19-S28 scenes were all redone. Every one of these was a cause:
+1. **Each scene wrote its own `setup_sky()` and extra fill lights** → flat grey skies, no warm sun, no haze.
+   Fix: every scene calls `colachel_world.scene_base(rig_c, sun_dir=...)`. Writing a sky or a fill light is
+   not allowed. Interiors (night study) are the only exception, and they must still use warm key + cool fill.
+2. **Water was a flat blue plane** (and the map got a hard rectangular seam where the faceted sea stopped).
+   Fix: `colachel_world.make_faceted_sea(coll, rig, frames, box, depth_fn, ...)` for any coast; on the map,
+   `map_world.build_sea` must cover the whole camera view (extend `MAP_REGION` when the camera goes further).
+3. **Scene-local palettes and copies of figures** (`register_palette()`, `make_seated_king`, `make_nair_guard` in
+   scene files) → colours and characters that don't match the rest of the film. Fix: `kit.PALETTE` colours and
+   `kit.make_figure` kinds only; add new kinds/poses to the kit.
+4. **Terrain improvised as tilted boxes/planes** → no cliffs at Varkala, flat brown and green slabs at Kollam.
+   Fix: heightfield terrain (see `colachel_world.make_land`, `map_world.build_land`) with real relief, faceted,
+   materials by height/slope, and the scene's key landform (cliffs, paddy bunds, earthworks) modelled for real.
+5. **Too few objects and no life** → a dozen soldiers, bare palms, empty rooms, a static camera (three identical
+   stills). Fix: match the reference's crowd and prop counts, idle/walk animation, and a camera that moves.
+6. **No side-by-side check against the Flow reference.** Fix: section 1, step 5 is mandatory, and the comparison
+   images are kept in `renders/compare/` so the user can see them.
+
 ## 0. The three things that matter most (the user has flagged all three)
 
 ### A. Same world, same parts, every scene: REUSE
@@ -72,9 +92,10 @@ list what is missing before you call it done. Empty ground, flat walls and froze
   (blue coats on figures), English = plain red flag ships, other kingdoms = their own colours.
 - **Colour management:** AgX, look "AgX - Medium Low Contrast" (beach) or "AgX - Base Contrast" (map, close scenes).
   Exposure near 0.
-- **Light:** warm low sun with long soft shadows, slight haze (the bounded haze box, never a world volume).
-- **Sea:** always the faceted low-poly sea (jittered triangulated grid, vertex colours turquoise → blue, rolling
-  Displace swell, flat near the shore). Never painted wave lines. Ships rock and bob on it.
+- **Light:** `colachel_world.scene_base()` for every outdoor scene: warm low sun with long soft shadows, slight haze
+  (the bounded haze box, never a world volume). Choose `sun_dir` per scene; never write a new sky or fill light.
+- **Sea:** always the faceted low-poly sea: `colachel_world.make_faceted_sea()` (close scenes) or
+  `map_world.build_sea()` (map). Never a flat plane or painted wave lines. Ships rock and bob on it.
 - **No text anywhere.** Flags are plain colour. Parchment and contracts are blank.
 - **Animate life:** idle sway on standing figures (`kit.animate_idle`), walkers (`kit.make_walker` +
   `kit.animate_walk`), ships rocking, smoke, flags. A frozen scene reads as a still.

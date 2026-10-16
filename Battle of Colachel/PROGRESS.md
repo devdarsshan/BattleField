@@ -54,17 +54,27 @@ images sometimes paint the sea with wave lines; ignore that, the sea is always t
 | S16 | 21-22 | Map: red Travancore territory spreads north | `Map.blend` | ✅ Approved |
 | S17 | 23 | English port: pepper onto red-flag English ship, Dutch ship leaves (refs K23_v1/v2) | `Port.blend` / `port_film.py`, `port_world.py` | ✅ Approved |
 | S18 | 24 | Map: wide, big red Travancore vs small orange Kochi | `Map.blend` | ✅ Approved |
-| S19 | 25 | Map: glide over the sea to Ceylon; a Dutch ship sails from it toward Kochi. Voice recorded (12.7 s) | ref **K25** · `Map.blend` (`map_film.py`, Ceylon + Galle star fort + Dutch warship) | ✅ Review ready (`clip25_S19_review_720p.mp4`) |
-| S20 | 26 | Van Imhoff writing by candle in his study in Kochi fort, night. Voice 12.4 s | ref **K26** · `Study.blend` (`study_film.py`, desk, candle, globe, window) | ✅ Review ready (`clip26_S20_review_720p.mp4`) |
-| S21 | 27 | Meeting under a canopy: king seated, Imhoff points firmly; Nair guards, Dutch soldiers. Voice 12.9 s | ref **K27** · `Meeting.blend` (`meeting_film.py`, royal throne, treaty table) | ✅ Review ready (`clip27_S21_review_720p.mp4`) |
-| S22 | 28-29 | Same meeting: slow orbit; the king calm, gestures to the forests; Imhoff stiff. Voice 23.9 s (Koshy story) | ref **K27** (same set as S21) | ⏳ Rendering (`Meeting.blend`, 344-950) |
-| S23 | 30 | Close on the king, calm, arms folded. Voice 11.4 s | ref **K30** (same set as S21, arms folded king) | ⏳ Queued in pipeline |
+| S19 | 25 | Map: sea route from Ceylon | `Map.blend` · ref **K25** | ⏳ Being fixed (sea seam, Ceylon island) |
+| S20 | 26 | Van Imhoff writing by candle in his study in Kochi fort, night | `Study.blend` / `study_film.py`, `study_world.py` · ref **K26** | ✅ REBUILT 2026-10-16 (v1 rejected). Frames 1-331 (real voice). Render on GPU machine |
+| S21 | 27 | Meeting: king on throne, Imhoff points, guards | `Meeting.blend` / `meeting_film.py`, `meeting_world.py` · ref **K27** | ✅ REBUILT. Frames 1-343 |
+| S22 | 28-29 | Same meeting, orbit, the Koshy story | `Meeting.blend` · ref **K27** | ✅ REBUILT. Frames 344-950 |
+| S23 | 30 | Close on the king, arms folded | `Meeting.blend` · ref **K30** | ✅ REBUILT. Frames 951-1258 |
 | S24 | 31 | Map: orange war banner rises over Kochi, a column marches south. Voice 15.2 s | ref **K31** · `Map.blend` (`map_film.py`, banner + army column) | ⏳ Queued in pipeline |
-| S25 | 32 | Battle near Kollam: Dutch + allied lines advance on Travancore lines, powder store behind. Voice 12.0 s | ref **K32** · `Battle.blend` (`battle_film.py`, paddies, earthworks, 16 guns) | ⏳ Queued in pipeline |
-| S26 | 33 | Shell hits the powder store, explosion, soldiers run, 16 cannons left. Voice 14.1 s | ref **K33** · `Battle.blend` (fire cluster, tall smoke column, debris) | ⏳ Queued in pipeline |
-| S27 | 34 | Varkala cliffs: a wall of ~5,000 Nairs stops the allies, who turn back. Voice 18.0 s | ref **K34** · `Varkala.blend` (`varkala_film.py`, red laterite cliffs, Nair shield wall) | ⏳ Queued in pipeline |
+| S25 | 32 | Battle near Kollam | `Battle.blend` / `battle_film.py`, `battle_world.py` · ref **K32** | ✅ REBUILT. Frames 1-322 |
+| S26 | 33 | Powder store explosion, 16 guns lost | `Battle.blend` · ref **K33** | ✅ REBUILT. Frames 323-695 |
+| S27 | 34 | Varkala cliffs, the Nair wall | `Varkala.blend` / `varkala_film.py`, `varkala_world.py` · ref **K34** | ✅ REBUILT. Frames 1-465 |
 | S28 | 35 | Map: armies push back and forth around Kollam. Voice 8.1 s | ref **K35** · `Map.blend` (`map_film.py`, frontier clash & tactical arrows) | ⏳ Queued in pipeline |
-| S29-S69 | 36-82 | Ceylon reinforcements, landing at Colachel, siege, surrender, aftermath | — | ⬜ Not started (no voice, no refs) |
+| S29 | 36 | Map: a Dutch ship from Ceylon arrives at Kochi; a dotted sea route swings south to the tip. Device voice | ref **K36** · `map_film.py` | ⬜ Ready to build |
+| S30 | 37 | Off Colachel: Dutch warships fire broadsides at the shore (Nov 1740). Device voice | ref **K37** · beach world (`colachel_world.py`), new film script | ⬜ Ready to build |
+| S31 | 38 | Seven ships, a crowd of boats, soldiers wade ashore north of Colachel (Feb 1741). Device voice | ref **K38** · beach world | ⬜ Ready to build |
+| S32 | 39 | De Lannoy (new kit character) on the beach pointing, posts being unloaded. Device voice | ref **K39** · beach world; add kind "delannoy" to the kit | ⬜ Ready to build |
+| S33 | 40 | High view: beach, paddies, palms, Padmanabhapuram 13 km inland. Device voice | ref **K40** · map or a beach→palace aerial reusing palace_world | ⬜ Ready to build |
+| S34 | 41 | Stockade being built on the beach; a column marches inland taking villages to Kottar. Device voice | ref **K41** · beach world (the stockade asset exists, animate it going up) | ⬜ Ready to build |
+| S35 | 42-43 | Dutch column near Kottar, palace roofs in the distance. Device voice | ref **K42** · inland road set reusing palace_world for the roofs | ⬜ Ready to build |
+| S36 | 44-45 | Kalkulam fort: the king arrives on an elephant, ~2,000 Nairs gather. Device voice | ref **K44** · new fort set; add an elephant to the kit | ⬜ Ready to build |
+| S37 | 46 | Thiruvattar temple at dawn: the king lays his sword before the shrine. Device voice | ref **K46** · new temple set | ⬜ Ready to build |
+| S38 | 47 | The monsoon hits Colachel beach: rain, wind, rough sea, ships can't come close. Device voice | no Flow ref (both options were rejected); reuse the approved S05 storm (`WEATHER` in `film.py`) on the half-built stockade | ⬜ Ready to build |
+| S39-S69 | 48-82 | Siege, fake cannons, the powder-store shot, surrender, De Lannoy's service, aftermath | — | ⬜ Not started (31 beats) |
 
 **Complete and approved through S18:** S01–S18 all reviewed and approved.
 **Beats S19–S28 built:** All 5 scene blend files (`Map.blend`, `Study.blend`, `Meeting.blend`, `Battle.blend`, `Varkala.blend`) fully built, visual stills verified against Flow references K25–K35.
@@ -76,6 +86,23 @@ images sometimes paint the sea with wave lines; ignore that, the sea is always t
 
 **Current activity (Blender, on the E-drive machine):** Master rendering pipeline `pipeline_s19_to_s28.ps1` actively rendering Beat S22 (`Meeting.blend`, frames 344-950) with Algieba narration.
 **Next (Claude, this machine):** each day record the next 10 voices (S29-S38 next) and make their Flow references.
+
+### Build plan for S29-S38 (plan first, then parallel, per Blender_Build_Rules.md section 0)
+Shared parts to add to `colachel_kit.py` FIRST (once, before any scene uses them):
+- figure kind `"delannoy"` (young officer: navy coat with gold trim, white cross-belts, orange sash, tricorn, sword,
+  own dark hair) and a pointing pose; an **elephant** with a royal howdah (for S36); a **rowing boat full of soldiers**
+  (instance figures into `make_boat`); **muzzle flash + smoke puff** helper (generalise `build_battery`'s shot) for ship
+  broadsides; a **stockade build-up** helper (posts rise one by one; the `make_stockade` asset already exists).
+Then three independent streams (separate files, can run in parallel on different agents):
+1. **Beach stream** (one new film script, e.g. `landing_film.py`, reusing `colachel_world.py` + its weather):
+   S30 broadside (K37) → S31 landing (K38) → S32 De Lannoy (K39) → S34 stockade going up + column inland (K41) →
+   S38 monsoon (reuse the approved S05 storm settings). Same Colachel beach, village and stockade site as S01-S06.
+2. **Inland stream** (reuse `palace_world.py` for every palace view): S33 high view beach→paddies→palace (K40),
+   S35 Dutch column near Kottar with the palace roofs behind (K42), S36 Kalkulam fort + elephant + Nair crowd (K44,
+   new fort set), S37 Thiruvattar temple at dawn (K46, new temple set).
+3. **Map stream** (`map_film.py`, one agent only): S29 ship arrives at Kochi + dotted route to the tip (K36).
+Each beat: stills vs its ref saved to `blender/renders/compare/`, then commit; renders happen on the GPU machine
+(or Kaggle, see `_tools/kaggle/README.md`).
 
 ### Next beats (S19 onward) — what the shot list asks for
 S19 map glide over the sea to Ceylon, a Dutch ship sails to Kochi · S20 van Imhoff at a desk by candle in Kochi fort ·
@@ -129,7 +156,9 @@ Build once before scene construction so all scenes share identical components:
   are for now; re-record them in Algieba at the very end**, then re-time and re-render those beats.
 - **S19-S28:** recorded in Algieba on 2026-10-16 (`audio/S19.wav` ... `S28.wav`). Clips for these beats take their
   length from the real recording automatically.
-- **S29 onward:** not recorded. Free quota is 10 lines a day: record the next 10 each day with
+- **S29-S38:** DEVICE voice (`audio/placeholder/`, made by `blender/device_voice.py`); final Algieba later.
+  See `audio/VOICES.md` for every beat's voice.
+- **S39 onward:** not recorded. Free quota is 10 lines a day: record the next 10 each day with
   `python _tools/tts.py "Battle of Colachel/audio/Sxx.wav" "<line from lines.txt>" --voice Algieba`
   (wait ~25 s between lines). `audio/lines.txt` is filled to S30.
 

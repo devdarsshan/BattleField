@@ -26,3 +26,8 @@ credentials.json
 # OS metadata
 Thumbs.db
 .DS_Store
+
+# Kaggle bundle (rebuild with make_kaggle_bundle.py)
+_tools/kaggle/bundle/
+_tools/kaggle/*.zip
+_tools/kaggle/local_reference*.png

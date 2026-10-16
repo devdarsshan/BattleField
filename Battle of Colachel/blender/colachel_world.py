@@ -971,3 +971,80 @@ def build_world(frames, weather=None):
     for ob in lib_c.objects:
         kit.hide_source(ob)
     return rig_c
+
+
+# ============================================================ shared scene base
+# EVERY scene (beach, close sets, battlefields, coasts) starts from these two, so the whole
+# film shares one sky, one sun, one haze and one sea. Never write a scene-specific sky,
+# fill light or flat-blue water plane: that is what made S19-S28 v1 look grey and flat.
+def scene_base(rig_c, sun_dir=(0.7, -0.45, -0.38), sun_energy=8.0, haze_density=0.0008):
+    """Standard warm-dawn sky gradient, low warm sun with long soft shadows, and the bounded
+    haze box. Returns the sun object. Change only the direction/energy for time of day."""
+    setup_world()
+    add_haze(rig_c, density=haze_density)
+    return add_sun(rig_c, direction=sun_dir, energy=sun_energy)
+
+
+def make_faceted_sea(coll, rig_c, frames, box, depth_fn, step=2.5, far_step=10.0, detail_box=None,
+                     name="Sea", seed=7):
+    """The film's faceted low-poly sea for ANY coastline: a jittered triangulated grid with
+    turquoise shallows -> blue depths, foam at the waterline and the rolling swell of the beach
+    clips. box = (x0, x1, y0, y1) in metres; depth_fn(x, y) = metres of water (<= 0 on land, so
+    the land mesh covers it). Fine `step` inside detail_box (default: whole box), coarse outside."""
+    rng = random.Random(seed)
+    x0, x1, y0, y1 = box
+    dx0, dx1, dy0, dy1 = detail_box or box
+
+    def axis(a0, a1, d0, d1):
+        vals, v = [], a0
+        while v < a1:
+            vals.append(v)
+            v += step if d0 <= v < d1 else far_step
+        return vals + [a1]
+
+    xs, ys = axis(x0, x1, dx0, dx1), axis(y0, y1, dy0, dy1)
+    bm = bmesh.new()
+    col = bm.verts.layers.float_color.new("Col")
+    dl = bm.verts.layers.deform.verify()
+    lin = [kit.srgb_to_linear(c) for c in (SEA_SHALLOW, SEA_DEEP, SEA_FOAM)]
+    grid = []
+    for j, y in enumerate(ys):
+        row = []
+        for i, x in enumerate(xs):
+            jx = jy = 0.0
+            if 0 < i < len(xs) - 1 and 0 < j < len(ys) - 1:
+                s = step if (dx0 <= x < dx1 and dy0 <= y < dy1) else far_step
+                jx, jy = rng.uniform(-0.3, 0.3) * s, rng.uniform(-0.3, 0.3) * s
+            px, py = x + jx, y + jy
+            v = bm.verts.new((px, py, 0.0))
+            depth = depth_fn(px, py)
+            t = max(0.0, min(1.0, depth / 25.0))
+            t = t * t * (3 - 2 * t)
+            c = [lin[0][k] * (1 - t) + lin[1][k] * t for k in range(3)]
+            if depth < 1.2:
+                u = max(0.0, 1.0 - max(0.0, depth) / 1.2)
+                c = [c[k] * (1 - u) + lin[2][k] * u for k in range(3)]
+            shade = rng.uniform(0.95, 1.05)
+            v[col] = (c[0] * shade, c[1] * shade, c[2] * shade, 1.0)
+            edge = min(px - x0, x1 - px, py - y0, y1 - py)
+            mask = _smooth(0, 40, edge)
+            v[dl][0] = mask * _smooth(0.5, 6, depth)          # calm right at the shore
+            v[dl][1] = mask * _smooth(4, 45, depth)
+            row.append(v)
+        grid.append(row)
+    for j in range(len(ys) - 1):
+        for i in range(len(xs) - 1):
+            bm.faces.new((grid[j][i], grid[j][i + 1], grid[j + 1][i + 1], grid[j + 1][i]))
+    bmesh.ops.triangulate(bm, faces=bm.faces[:])
+    me = bpy.data.meshes.new(name)
+    bm.to_mesh(me)
+    bm.free()
+    me.materials.append(sea_material())
+    for p in me.polygons:
+        p.use_smooth = False
+    ob = bpy.data.objects.new(name, me)
+    coll.objects.link(ob)
+    ob.vertex_groups.new(name="SwellMask")
+    ob.vertex_groups.new(name="Offshore")
+    animate_sea(ob, rig_c, frames)
+    return ob

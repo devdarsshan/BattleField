@@ -962,35 +962,6 @@ def make_paddy_field(name, collection, w=35.0, d=20.0, ridge_w=1.2, ridge_h=0.45
     return mb.obj(name, collection)
 
 
-def make_earthworks(name, collection, length=40.0, height=2.2, depth=3.5):
-    """Earthen defensive rampart / redoubt (matches K32)."""
-    mb = MB(bevel=0.03)
-    mb.box(T(0, 0, height * 0.45) @ Rx(0.3) @ S(length, depth * 0.65, height * 0.8), "soil")
-    mb.box(T(0, -depth * 0.2, height * 0.85) @ S(length, depth * 0.45, height * 0.3), "soil_dk")
-    mb.box(T(0, -depth * 0.65, height * 0.35) @ S(length, depth * 0.5, height * 0.7), "soil")
-    return mb.obj(name, collection)
-
-
-def make_powder_store(name, collection, w=7.5, d=5.5, h=3.2):
-    """Thatched wooden gunpowder storehouse with powder barrels (matches K32, K33)."""
-    mb = MB(bevel=0.02)
-    for sx in (-1, 1):
-        for sy in (-1, 1):
-            mb.box(T(sx * (w / 2 - 0.2), sy * (d / 2 - 0.2), h / 2) @ S(0.3, 0.3, h), "beam")
-    mb.box(T(0, -d / 2 + 0.1, h / 2) @ S(w, 0.15, h), "plank")
-    for sx in (-1, 1):
-        mb.box(T(sx * (w / 2 - 0.1), 0, h / 2) @ S(0.15, d, h), "plank")
-    mb.box(T(-w * 0.3, d / 2 - 0.1, h / 2) @ S(w * 0.35, 0.15, h), "plank")
-    mb.box(T(w * 0.3, d / 2 - 0.1, h / 2) @ S(w * 0.35, 0.15, h), "plank")
-    mb.box(T(0, d / 2 - 0.1, h * 0.88) @ S(w * 0.4, 0.15, h * 0.24), "plank")
-    roof_h = 1.6
-    mb.cone(T(0, 0, h + roof_h / 2) @ S(w + 1.2, d + 1.2, 1.0), "thatch", segments=4, r1=0.75, r2=0.05, depth=roof_h)
-    for bx, by in [(-1.5, -0.8), (-0.8, -1.2), (1.2, -0.9), (1.8, -1.5), (w / 2 + 0.8, 0.5), (w / 2 + 1.4, -0.2)]:
-        mb.cone(T(bx, by, 0.45), "plank", segments=10, r1=0.38, r2=0.34, depth=0.85)
-        mb.cone(T(bx, by, 0.45), "iron", segments=10, r1=0.385, r2=0.345, depth=0.05)
-    return mb.obj(name, collection)
-
-
 def make_explosion(name, collection, seed=0, scale=1.0):
     """Low-poly faceted explosion burst with fire shards & smoke clouds (matches K33)."""
     rng = random.Random(seed)
@@ -1267,3 +1238,635 @@ def keyframe_linear(fn):
         fn()
     finally:
         prefs.keyframe_new_interpolation_type = old
+
+
+# ===================================================================== posable kit figures (S20-S23)
+# The same figures as make_figure (same _draw_figure parts, colours and proportions), split into
+# objects so they can act: root empty -> body -> head, armL, armR (+ legs, or bent legs on a seat).
+# Use for named characters who must move (Imhoff writing / pointing, the king gesturing, folding
+# his arms). Every part rotates about its pivot; the figure faces +Y.
+SEAT_H = 0.5            # seat top height for seated rigs (desk chairs 0.5; raise a throne's figure to its seat)
+RIG_SEAT_DROP = -0.30   # seated: the upper body is lowered so the hips rest on the seat
+RIG_HEAD = (0.0, 0.0, 1.47)
+
+
+class _SplitMB:
+    """Routes _draw_figure's body primitives to the body or the head part (above the neck),
+    and drops the long lower garment of a seated figure (the seated legs replace it)."""
+
+    def __init__(self, body, head, seated):
+        self.body, self.head, self.seated = body, head, seated
+        self.off = T(-Vector(RIG_HEAD))
+
+    def _pick(self, p):
+        if p.z > 1.445 and abs(p.x) < 0.25:
+            return self.head, self.off
+        if self.seated and p.z < 0.8:
+            return None, None
+        return self.body, Matrix.Identity(4)
+
+    def box(self, M, m, **kw):
+        mb, P = self._pick(M.translation)
+        if mb:
+            mb.box(P @ M, m, **kw)
+
+    def cone(self, M, m, **kw):
+        mb, P = self._pick(M.translation)
+        if mb:
+            mb.cone(P @ M, m, **kw)
+
+    def ico(self, M, m, **kw):
+        mb, P = self._pick(M.translation)
+        if mb:
+            mb.ico(P @ M, m, **kw)
+
+    def seg(self, p0, p1, r0, r1, m, **kw):
+        mb, P = self._pick(Vector(p0))
+        if mb:
+            mb.seg(P @ Vector(p0), P @ Vector(p1), r0, r1, m, **kw)
+
+
+def _rig_seated_legs(mb, kind):
+    """Legs bent onto a seat of height SEAT_H, in root space (knees forward along +Y)."""
+    hz = SEAT_H + 0.09
+    mats = {"imhoff": ("white", "white", "black"), "dutch": ("white", "black", "black")}
+    thigh, shin, shoe = mats.get(kind, ("skin", "skin", "skin"))
+    for sx in (-1, 1):
+        x = sx * 0.1
+        mb.box(T(x, 0.2, hz) @ S(0.17, 0.52, 0.17), thigh)
+        mb.box(T(x, 0.44, hz / 2) @ S(0.15, 0.16, hz), shin)
+        mb.box(T(x, 0.5, 0.035) @ S(0.15, 0.27, 0.07), shoe)
+        if kind == "imhoff":
+            mb.box(T(x, 0.635, 0.075) @ S(0.07, 0.03, 0.04), "gold")
+    if kind in ("imhoff", "dutch"):                       # coat skirts over the seat
+        c = "coat_dark" if kind == "imhoff" else "coat_blue"
+        mb.cone(T(0, -0.02, hz + 0.08), c, segments=8, r1=0.29, r2=0.25, depth=0.2)
+        for sx in (-1, 1):
+            mb.box(T(sx * 0.13, 0.12, hz + 0.1) @ S(0.17, 0.34, 0.05), c)
+    if kind in ("king", "commander"):                     # white mundu over the lap, to the ankles
+        mb.cone(T(0, 0.0, hz + 0.04), "white", segments=8, r1=0.3, r2=0.27, depth=0.26)
+        mb.box(T(0, 0.2, hz + 0.02) @ S(0.5, 0.56, 0.2), "white")
+        mb.box(T(0, 0.5, (hz + 0.12) / 2 + 0.04) @ S(0.47, 0.1, hz - 0.04), "white")
+        mb.box(T(0, 0.5, 0.11) @ S(0.48, 0.11, 0.05), "gold")
+        if kind == "king":                                # red and gold border down the front
+            mb.box(T(0.08, 0.556, hz / 2 + 0.06) @ S(0.11, 0.012, hz - 0.02), "red")
+            mb.box(T(0.08, 0.558, hz / 2 + 0.06) @ S(0.035, 0.012, hz - 0.02), "gold")
+            mb.box(T(0.0, 0.48, hz + 0.13) @ S(0.5, 0.06, 0.05), "gold")
+
+
+def make_rig(name, collection, kind, seed=0, cloth="cloth_w", seated=False, armed=True, fold=False):
+    """Posable version of make_figure. Returns (root, parts) with parts body, head, armL, armR
+    (+ legL/legR standing, or 'hips' seated). fold=True adds parts['fold'], crossed forearms in
+    front of the chest (see pose_arms_folded)."""
+    rng = random.Random(seed)
+    root = bpy.data.objects.new(name, None)
+    root.empty_display_size = 0.3
+    collection.objects.link(root)
+    mbs = {p: MB(bevel=FIG_BEVEL) for p in ("body", "head", "armL", "armR", "legL", "legR")}
+    split = _SplitMB(mbs["body"], mbs["head"], seated)
+
+    def get(p):
+        if p == "body":
+            return split, Matrix.Identity(4)
+        return mbs[p], Matrix.Identity(4)
+
+    _draw_figure(get, kind, rng, cloth, armed=armed)
+    parts = {}
+    body = mbs["body"].obj(f"{name}_body", collection, parent=root)
+    body.location = (0, 0, RIG_SEAT_DROP if seated else 0.0)
+    parts["body"] = body
+    head = mbs["head"].obj(f"{name}_head", collection, parent=body)
+    head.location = RIG_HEAD
+    parts["head"] = head
+    for a in ("armL", "armR"):
+        ob = mbs[a].obj(f"{name}_{a}", collection, parent=body)
+        ob.location = PIVOTS[a]
+        parts[a] = ob
+    if seated:
+        legs = MB(bevel=FIG_BEVEL)
+        _rig_seated_legs(legs, kind)
+        parts["hips"] = legs.obj(f"{name}_hips", collection, parent=root)
+        mbs["legL"].bm.free()
+        mbs["legR"].bm.free()
+    else:
+        for leg in ("legL", "legR"):
+            ob = mbs[leg].obj(f"{name}_{leg}", collection, parent=root)
+            ob.location = PIVOTS[leg]
+            parts[leg] = ob
+    if fold:
+        skin = "skin_pale" if kind in ("dutch", "imhoff") else "skin"
+        fm = MB(bevel=FIG_BEVEL)
+        for sgn in (-1, 1):                                # two forearms crossing over the chest
+            z = 1.13 + 0.035 * sgn
+            fm.box(T(0, 0.21 + 0.025 * sgn, z) @ Rz(0.2 * sgn) @ Ry(0.14 * sgn) @ S(0.44, 0.12, 0.12), skin)
+            fm.box(T(-sgn * 0.21, 0.2, z + 0.02) @ S(0.11, 0.13, 0.13), skin)              # hands on the arms
+            if kind == "king":
+                fm.cone(T(sgn * 0.13, 0.21 + 0.025 * sgn, z) @ Rz(0.2 * sgn) @ Ry(math.pi / 2), "gold",
+                        segments=6, r1=0.072, r2=0.072, depth=0.04)
+        ob = fm.obj(f"{name}_fold", collection, parent=body)
+        ob.scale = (0, 0, 0)
+        parts["fold"] = ob
+    return root, parts
+
+
+def key_pose(parts, frame, pose):
+    """pose: {part: (rx, ry, rz)} in radians. Keys those parts' rotations at frame."""
+    for p, r in pose.items():
+        if p in parts:
+            parts[p].rotation_euler = r
+            parts[p].keyframe_insert("rotation_euler", frame=frame)
+
+
+ARM_REST_SEATED = {"armL": (0.62, -0.1, 0.0), "armR": (0.62, 0.1, 0.0)}      # forearms toward the armrests
+ARM_REST = {"armL": (0.04, -0.06, 0.0), "armR": (0.04, 0.06, 0.0)}
+ARMS_FOLDED = {"armL": (0.36, 0.0, -0.3), "armR": (0.36, 0.0, 0.3)}          # upper arms in; 'fold' part shown
+POINT_R = {"armR": (1.5, 0.0, 0.15)}                                         # right arm straight out, forward
+GESTURE_OUT_L = {"armL": (1.0, -0.8, 0.0)}                                   # left arm swept out, palm open
+
+
+def pose_arms_folded(parts, f0, f1):
+    """Arms move in over f0..f1 and the crossed forearms appear (needs make_rig(fold=True))."""
+    key_pose(parts, f0, {a: tuple(parts[a].rotation_euler) for a in ("armL", "armR")})
+    key_pose(parts, f1, ARMS_FOLDED)
+    fold = parts.get("fold")
+    if fold:
+        fold.scale = (0, 0, 0)
+        fold.keyframe_insert("scale", frame=f0 + (f1 - f0) // 2)
+        fold.scale = (1, 1, 1)
+        fold.keyframe_insert("scale", frame=f1)
+
+
+def animate_rig_idle(parts, rng, start, end, body=0.015, head=0.1, every=(40, 75), skip=()):
+    """Breathing sway of the body and small head turns/nods, so a character never freezes.
+    Key the rig's pose first; parts named in skip are left alone."""
+    for p, amt, z_amt in (("body", body, body * 1.5), ("head", head * 0.35, head)):
+        if p not in parts or p in skip:
+            continue
+        ob = parts[p]
+        base = ob.rotation_euler.copy()
+        f = start + rng.randint(0, 20)
+        while f <= end:
+            ob.rotation_euler = (base.x + rng.uniform(-amt, amt), base.y + rng.uniform(-amt * 0.5, amt * 0.5),
+                                 base.z + rng.uniform(-z_amt, z_amt))
+            ob.keyframe_insert("rotation_euler", frame=f)
+            f += rng.randint(*every)
+        ob.rotation_euler = base
+
+
+# ===================================================================== court props (S21-S23)
+def make_brass_lamp(name, collection, h=1.5, lit=True):
+    """Kerala standing brass oil lamp (nilavilakku): stepped round foot, ringed stem, a wide
+    oil dish with five wick spouts and a finial. lit=True adds small glowing flames."""
+    mb = MB(bevel=0.008)
+    mb.cone(T(0, 0, 0.04), "brass", segments=12, r1=0.26, r2=0.22, depth=0.08)
+    mb.cone(T(0, 0, 0.12), "brass", segments=12, r1=0.18, r2=0.12, depth=0.1)
+    mb.seg((0, 0, 0.16), (0, 0, h * 0.78), 0.04, 0.03, "brass", sides=8)
+    for t in (0.3, 0.5, 0.68):
+        mb.ico(T(0, 0, h * t) @ S(1, 1, 0.6), "gold", r=0.065, sub=1)
+    dz = h * 0.8
+    mb.cone(T(0, 0, dz), "brass", segments=12, r1=0.08, r2=0.24, depth=0.08)
+    mb.cone(T(0, 0, dz + 0.05), "gold", segments=12, r1=0.245, r2=0.245, depth=0.02)
+    for k in range(5):
+        a = k * math.tau / 5
+        mb.cone(T(0.24 * math.cos(a), 0.24 * math.sin(a), dz + 0.05) @ Rz(a) @ Ry(math.pi / 2),
+                "brass", segments=4, r1=0.035, r2=0.015, depth=0.08)
+    mb.seg((0, 0, dz + 0.05), (0, 0, h), 0.025, 0.02, "brass", sides=6)
+    mb.cone(T(0, 0, h + 0.06), "gold", segments=8, r1=0.06, r2=0.0, depth=0.14)
+    ob = mb.obj(name, collection)
+    if lit:
+        fl = MB()
+        for k in range(5):
+            a = k * math.tau / 5
+            fl.ico(T(0.29 * math.cos(a), 0.29 * math.sin(a), dz + 0.12) @ S(0.03, 0.03, 0.06), "lamp_flame",
+                   r=1.0, sub=1)
+        mat_emit("lamp_flame", (1.0, 0.72, 0.28), strength=12.0)
+        fl.obj(name + "Flames", collection, parent=ob)
+    return ob
+
+
+def make_drape(name, collection, h=2.8, w=0.7, seed=0, tie=0.45):
+    """Cloth curtain hanging from a canopy corner, gathered and tied to the post at tie*h
+    with a gold tassel (K30). Hangs in the local XZ plane from x=0 (the post) toward +X."""
+    rng = random.Random(seed)
+    mb = MB()
+    nz, nx = 10, 6
+    vs = []
+    zt = h * tie
+    for j in range(nz + 1):
+        z = h * (1 - j / nz)
+        g = abs(z - zt) / max(zt, h - zt)                 # 0 at the tie, 1 at top and bottom
+        width = w * (0.18 + 0.82 * g ** 0.8)
+        row = []
+        for i in range(nx + 1):
+            u = i / nx
+            fold = 0.07 * math.sin(u * math.pi * 4 + j * 0.3) * (0.4 + g)
+            row.append(mb.bm.verts.new((0.06 + u * width, fold + rng.uniform(-0.01, 0.01), z)))
+        vs.append(row)
+    for j in range(nz):
+        for i in range(nx):
+            mb.face([vs[j][i], vs[j][i + 1], vs[j + 1][i + 1], vs[j + 1][i]], "canvas")
+    mb.cone(T(0.1, 0, zt), "gold", segments=8, r1=0.08, r2=0.08, depth=0.06)
+    mb.seg((0.14, 0.03, zt), (0.16, 0.05, zt - 0.32), 0.03, 0.055, "gold", sides=6)
+    ob = mb.obj(name, collection)
+    sol = ob.modifiers.new("Thick", "SOLIDIFY")
+    sol.thickness = 0.025
+    return ob
+
+
+# ============================================================================
+# S25-S27 shared parts (battle near Kollam, Varkala cliffs). Append-only block:
+# allied soldiers, extra poses, routed walkers, paddies, ramparts, fire and smoke.
+# ============================================================================
+for _k, _v in {
+    "flag_o":     (0.95, 0.50, 0.10),     # Dutch: plain orange, no symbols (same as port_world)
+    "turban_or":  (0.93, 0.52, 0.12),     # allied (Kollam / Kayamkulam / Kochi) turbans, K32 / K34
+    "turban_gr":  (0.22, 0.56, 0.27),
+    "turban_bl":  (0.20, 0.58, 0.70),
+    "turban_ye":  (0.92, 0.78, 0.22),
+    "field_dirt": (0.76, 0.62, 0.44),     # dry battlefield ground between the paddies (K32)
+    "field_dirt_dk": (0.66, 0.52, 0.36),
+    "paddy_lt":   (0.50, 0.68, 0.26),     # light rows in a paddy
+    "char":       (0.15, 0.11, 0.09),     # burnt timber
+    "ash":        (0.38, 0.35, 0.33),
+}.items():
+    PALETTE.setdefault(_k, _v)
+
+# Nair warrior with sword raised and the shield held in front (K34 shield wall).
+SWORD_UP = {"body": Matrix.Identity(4),
+            "legL": T(0.1, 0, 0.88), "legR": T(-0.1, 0, 0.88),
+            "armL": T(0.27, 0, 1.4) @ Rx(0.45) @ Rz(math.pi / 2 - 0.35),
+            "armR": T(-0.27, 0, 1.4) @ Rx(math.pi - 0.5) @ Ry(0.15)}
+POSES.setdefault("sword_up", SWORD_UP)
+
+ALLY_TURBANS = ("turban_or", "turban_gr", "turban_bl", "turban_ye", "red", "cloth_w")
+
+
+def recolor(ob, mapping=None, strip=()):
+    """Swap materials on a mesh by palette name (old -> new) and delete the faces that use
+    any material in `strip`. Works in place on the mesh data (shared by its instances)."""
+    me = ob.data
+    names = [m.name if m else "" for m in me.materials]
+    if strip:
+        bm = bmesh.new()
+        bm.from_mesh(me)
+        idx = {i for i, n in enumerate(names) if n in strip}
+        dead = [f for f in bm.faces if f.material_index in idx]
+        if dead:
+            bmesh.ops.delete(bm, geom=dead, context="FACES")
+        bm.to_mesh(me)
+        bm.free()
+    for i, n in enumerate(names):
+        if mapping and n in mapping:
+            me.materials[i] = mat(mapping[n])
+    return ob
+
+
+def make_ally(name, collection, seed=0, turban="turban_or", pose="stand", shield=False):
+    """Soldier of the rajas allied to the Dutch (Kollam, Kayamkulam, Kochi): the Nair body
+    with a white mundu, a turban in his raja's colour and a spear; no shield by default."""
+    ob = make_figure(name, collection, "nair_spear", seed=seed, pose=pose)
+    return recolor(ob, {"red": turban}, strip=() if shield else ("shield", "brass"))
+
+
+def make_ally_walker(name, collection, seed=0, turban="turban_or", shield=False):
+    root, parts = make_walker(name, collection, "nair_spear", seed=seed)
+    for p in parts.values():
+        recolor(p, {"red": turban}, strip=() if shield else ("shield", "brass"))
+    return root, parts
+
+
+def clone_walker(parts, name, collection):
+    """A new walker that shares the limb meshes of `parts` (cheap crowds of walkers)."""
+    root = bpy.data.objects.new(name, None)
+    root.empty_display_size = 0.3
+    collection.objects.link(root)
+    out = {}
+    for p, src in parts.items():
+        ob = bpy.data.objects.new(f"{name}_{p}", src.data)
+        collection.objects.link(ob)
+        ob.parent = root
+        ob.location = PIVOTS[p]
+        out[p] = ob
+    return root, out
+
+
+def animate_route(root, parts, legs, ground, stride_frames=14, swing=0.45, turn=10, lean=0.0,
+                  bob=0.035, phase=0, heading=None):
+    """Walk (or run) a figure through timed legs [(f0, f1, (x0, y0), (x1, y1)), ...]. It stands
+    still between legs and turns on the spot over `turn` frames at the start of a leg, so a
+    column can halt and turn back. lean > 0 tips the body forward (running)."""
+    prefs = bpy.context.preferences.edit
+    old = prefs.keyframe_new_interpolation_type
+    head = heading
+    for li, (f0, f1, a, b) in enumerate(legs):
+        a3, b3 = Vector((a[0], a[1], 0)), Vector((b[0], b[1], 0))
+        d = b3 - a3
+        moving = d.length > 1e-3
+        h = math.atan2(d.y, d.x) - math.pi / 2 if moving else (head or 0.0)
+        if head is not None:
+            h = head + ((h - head + math.pi) % math.tau - math.pi)
+        t_turn = min(turn, max(1, (f1 - f0) // 3)) if head is not None and abs(h - head) > 0.05 else 0
+        m0 = f0 + t_turn
+        prefs.keyframe_new_interpolation_type = "LINEAR"
+        try:
+            if t_turn:
+                root.location = (a3.x, a3.y, ground(a3.x, a3.y))
+                root.rotation_euler = (0, 0, head)
+                root.keyframe_insert("location", frame=f0)
+                root.keyframe_insert("rotation_euler", frame=f0)
+            f = m0
+            while True:
+                ff = min(f, f1)
+                u = (ff - m0) / max(1, f1 - m0)
+                p = a3.lerp(b3, u)
+                root.location = (p.x, p.y, ground(p.x, p.y))
+                root.rotation_euler = (-lean if moving else 0.0, 0, h)
+                root.keyframe_insert("location", frame=ff)
+                root.keyframe_insert("rotation_euler", frame=ff)
+                if ff >= f1:
+                    break
+                f += 6
+            if moving and lean:
+                root.rotation_euler = (0, 0, h)
+                root.keyframe_insert("rotation_euler", frame=f1 + 3)
+        finally:
+            prefs.keyframe_new_interpolation_type = old
+        head = h
+        if not moving:
+            continue
+        for key in ("legL", "legR", "armL", "armR"):
+            parts[key].rotation_euler = (0, 0, 0)
+            parts[key].keyframe_insert("rotation_euler", frame=m0)
+        f = m0 + 2 + phase % max(1, stride_frames // 2)
+        k = 0
+        while f < f1 - stride_frames // 2:
+            sgn = 1 if k % 2 == 0 else -1
+            parts["legL"].rotation_euler = (sgn * swing, 0, 0)
+            parts["legR"].rotation_euler = (-sgn * swing, 0, 0)
+            parts["armL"].rotation_euler = (-sgn * swing * 0.8, 0, 0)
+            parts["armR"].rotation_euler = (sgn * swing * 0.8, 0, 0)
+            for key in ("legL", "legR", "armL", "armR"):
+                parts[key].keyframe_insert("rotation_euler", frame=f)
+            parts["body"].location = (0, 0, 0.0)
+            parts["body"].keyframe_insert("location", frame=f)
+            parts["body"].location = (0, 0, bob)
+            parts["body"].keyframe_insert("location", frame=f + stride_frames // 2)
+            f += stride_frames
+            k += 1
+        for key in ("legL", "legR", "armL", "armR"):
+            parts[key].rotation_euler = (0, 0, 0)
+            parts[key].keyframe_insert("rotation_euler", frame=f1)
+        parts["body"].location = (0, 0, 0)
+        parts["body"].keyframe_insert("location", frame=f1)
+
+
+def animate_bob(ob, rng, start, end, height=0.12, period=(14, 22), sway=0.04):
+    """Rhythmic up-and-down (warriors stamping and brandishing) with a little sway."""
+    base_z = ob.location.z
+    base = ob.rotation_euler.copy()
+    f = start + rng.randint(0, 8)
+    per = rng.randint(*period)
+    up = False
+    while f <= end:
+        ob.location.z = base_z + (height * rng.uniform(0.7, 1.1) if up else 0.0)
+        ob.rotation_euler = (base.x + rng.uniform(-sway, sway), base.y + rng.uniform(-sway, sway), base.z)
+        ob.keyframe_insert("location", index=2, frame=f)
+        ob.keyframe_insert("rotation_euler", frame=f)
+        up = not up
+        f += per // 2
+    ob.location.z = base_z
+    ob.rotation_euler = base
+
+
+# --------------------------------------------------------------- battlefield
+def make_paddy_cell(name, collection, w=14.0, d=10.0, seed=0, bund=0.9, bund_h=0.38):
+    """One rice paddy: rows of young rice in two greens (the stripes in K32) inside a raised
+    earth bund. Long side along X; origin at the centre on the ground."""
+    rng = random.Random(seed)
+    mb = MB(bevel=0.04)
+    rows = max(4, int(d / 1.1))
+    iw, idp = w - 2 * bund, d - 2 * bund
+    for i in range(rows):
+        y = -idp / 2 + (i + 0.5) * idp / rows
+        mb.box(T(0, y, 0.06 + rng.uniform(0, 0.03)) @ S(iw, idp / rows * 1.001, 0.12),
+               "paddy_green" if i % 2 else "paddy_lt")
+    for sy in (-1, 1):
+        mb.box(T(0, sy * (d / 2 - bund / 2), bund_h / 2) @ S(w, bund, bund_h), "paddy_bund")
+    for sx in (-1, 1):
+        mb.box(T(sx * (w / 2 - bund / 2), 0, bund_h / 2) @ S(bund, d - 2 * bund + 0.02, bund_h), "paddy_bund")
+    return mb.obj(name, collection)
+
+
+def make_rampart(name, collection, length=12.0, h=2.2, base_w=5.0, top_w=1.8, seed=0,
+                 side="earth_wall", top="paddy_bund"):
+    """Faceted earth rampart (packed red-brown earth) running along Y, tapered ends.
+    Origin on the ground at its centre."""
+    rng = random.Random(seed)
+    mb = MB()
+    n = max(3, int(length / 1.4))
+    rings = []
+    for i in range(n + 1):
+        t = i / n
+        y = (t - 0.5) * length
+        end = min(1.0, min(t, 1 - t) * length / 1.1)       # steep ends
+        hh = h * (0.25 + 0.75 * end) * rng.uniform(0.92, 1.06)
+        tw = top_w * rng.uniform(0.85, 1.15)
+        prof = [(-base_w * 0.5, 0.0), (-tw * 0.5 + rng.uniform(-0.15, 0.15), hh),
+                (tw * 0.5 + rng.uniform(-0.15, 0.15), hh * rng.uniform(0.95, 1.05)), (base_w * 0.5, 0.0)]
+        inner = 0 < i < n
+        rings.append([mb.bm.verts.new((x + rng.uniform(-0.12, 0.12), y + rng.uniform(-0.2, 0.2) * inner, z - 0.3 * (z == 0)))
+                      for x, z in prof])
+    for i in range(n):
+        for j in range(3):
+            mb.face([rings[i][j], rings[i + 1][j], rings[i + 1][j + 1], rings[i][j + 1]], top if j == 1 else side)
+    mb.face(rings[0][::-1], side)
+    mb.face(rings[n], side)
+    return mb.obj(name, collection)
+
+
+def make_bronze_cannon(name, collection):
+    """kit field gun with a bronze barrel (the Travancore guns in K32)."""
+    return recolor(make_cannon(name, collection), {"iron": "brass"})
+
+
+def make_boulder(name, collection, seed=0, size=1.0, m="laterite"):
+    """Faceted fallen block in any palette colour (laterite boulders under the Varkala cliffs)."""
+    rng = random.Random(seed)
+    mb = MB()
+    mb.ico(S(size, size * rng.uniform(0.7, 1.0), size * rng.uniform(0.55, 0.85)) @ Rz(rng.uniform(0, 3)), m,
+           r=1.0, sub=1, jitter=0.22, rng=rng)
+    return mb.obj(name, collection)
+
+
+# ------------------------------------------------------------ fire and smoke
+def fx_materials():
+    """Glowing fire colours (emissive) and the grey smoke shades, created once."""
+    for name, rgb, k in (("fx_core", (1.0, 0.74, 0.12), 1.3), ("fx_fire", (1.0, 0.40, 0.02), 1.1),
+                         ("fx_fire_dk", (0.90, 0.22, 0.02), 0.85), ("fx_ember", (0.90, 0.26, 0.02), 0.7)):
+        if not bpy.data.materials.get(name):
+            m = mat_emit(name, rgb, k)
+            # mostly glow, little diffuse: lit by the sun, a bright orange washes out to salmon
+            m.node_tree.nodes.get("Principled BSDF").inputs["Base Color"].default_value =                 (*[c * 0.12 for c in srgb_to_linear(rgb)], 1)
+    for k in ("smoke", "smoke_md", "smoke_dk", "char", "ash"):
+        mat(k)
+
+
+def make_fireball(name, collection, seed=0, r=4.0):
+    """Faceted low-poly fireball (K33): a glowing yellow core, orange facet blobs and long
+    spikes thrown outward. Origin at the centre; grow it from scale 0 when it goes off."""
+    fx_materials()
+    rng = random.Random(seed)
+    mb = MB()
+    mb.ico(S(r * 0.55, r * 0.55, r * 0.6), "fx_core", r=1.0, sub=1, jitter=0.2, rng=rng)
+    for k in range(14):
+        d = Vector((rng.uniform(-1, 1), rng.uniform(-1, 1), rng.uniform(-0.3, 1))).normalized()
+        s = r * rng.uniform(0.32, 0.5)
+        mb.ico(T(d * r * rng.uniform(0.45, 0.7)) @ S(s, s, s * rng.uniform(0.9, 1.2)) @ Rz(rng.uniform(0, 3)),
+               ("fx_fire", "fx_core", "fx_fire", "fx_fire_dk")[k % 4], r=1.0, sub=1, jitter=0.18, rng=rng)
+    for k in range(11):
+        d = Vector((rng.uniform(-1, 1), rng.uniform(-1, 1), rng.uniform(-0.1, 1))).normalized()
+        mb.seg(d * r * 0.4, d * r * rng.uniform(1.2, 1.7), r * 0.16, 0.0, "fx_core" if k % 2 else "fx_fire",
+               sides=4, spin=rng.uniform(0, 1))
+    return mb.obj(name, collection)
+
+
+def make_flames(name, collection, seed=0, size=1.0):
+    """Cluster of faceted flame tongues for a burning ruin. Origin at the base."""
+    fx_materials()
+    rng = random.Random(seed)
+    mb = MB()
+    for k in range(rng.randint(5, 8)):
+        x, y = rng.uniform(-0.6, 0.6) * size, rng.uniform(-0.6, 0.6) * size
+        hgt = size * rng.uniform(1.0, 2.3)
+        mb.cone(T(x, y, hgt / 2) @ Rx(rng.uniform(-0.15, 0.15)) @ Ry(rng.uniform(-0.15, 0.15)),
+                "fx_fire" if k % 3 else "fx_core", segments=5, r1=size * rng.uniform(0.3, 0.5), r2=0.0, depth=hgt)
+    mb.ico(T(0, 0, 0.25 * size) @ S(size * 0.8, size * 0.8, size * 0.35), "fx_fire_dk", r=1.0, sub=1)
+    return mb.obj(name, collection)
+
+
+def animate_flicker(ob, rng, start, end, amount=0.22, every=(3, 6)):
+    """Fire flicker: quick random scale keys."""
+    base = ob.scale.copy()
+    f = start
+    while f <= end:
+        ob.scale = (base.x * (1 + rng.uniform(-amount, amount) * 0.5),
+                    base.y * (1 + rng.uniform(-amount, amount) * 0.5),
+                    base.z * (1 + rng.uniform(-amount, amount)))
+        ob.keyframe_insert("scale", frame=f)
+        f += rng.randint(*every)
+    ob.scale = base
+
+
+def make_puff(name, collection, seed=0, m="smoke_md"):
+    """One faceted smoke puff (radius 1) for smoke columns and gun smoke."""
+    rng = random.Random(seed)
+    mb = MB()
+    mb.ico(S(1.0, 1.0, 0.88) @ Rz(rng.uniform(0, 3)), m, r=1.0, sub=1, jitter=0.16, rng=rng)
+    return mb.obj(name, collection)
+
+
+def animate_puff(ob, born, end, p0, vel, s0=0.4, s1=3.0, grow=40.0, drag=0.0, step=6, fade=None):
+    """Puff appears at `born` (scale 0 before), drifts with `vel` (m/s, slowing with `drag`)
+    and swells from s0 to s1 with time constant `grow` frames. fade=(f0, f1) shrinks it away."""
+    prefs = bpy.context.preferences.edit
+    old = prefs.keyframe_new_interpolation_type
+    prefs.keyframe_new_interpolation_type = "LINEAR"
+    try:
+        ob.scale = (0, 0, 0)
+        ob.location = p0
+        ob.keyframe_insert("scale", frame=born - 1)
+        ob.keyframe_insert("location", frame=born - 1)
+        f = born
+        while True:
+            ff = min(f, end)
+            t = (ff - born) / FPS
+            k = t if drag <= 0 else (1 - math.exp(-drag * t)) / drag
+            ob.location = (p0[0] + vel[0] * k, p0[1] + vel[1] * k, p0[2] + vel[2] * k)
+            s = s0 + (s1 - s0) * (1 - math.exp(-(ff - born) / grow))
+            if fade and ff > fade[0]:
+                s *= max(0.0, 1 - (ff - fade[0]) / max(1, fade[1] - fade[0]))
+            ob.scale = (s, s, s)
+            ob.keyframe_insert("location", frame=ff)
+            ob.keyframe_insert("scale", frame=ff)
+            if ff >= end:
+                break
+            f += step if ff > born else 2
+    finally:
+        prefs.keyframe_new_interpolation_type = old
+
+
+def animate_ballistic(ob, f0, p0, vel, ground, end, spin=(3.0, 2.0, 1.0), g=9.8, step=2, hide_before=True):
+    """Thrown debris: hidden before f0, flies from p0 with vel (m/s) under gravity, tumbling,
+    and comes to rest where it lands."""
+    prefs = bpy.context.preferences.edit
+    old = prefs.keyframe_new_interpolation_type
+    prefs.keyframe_new_interpolation_type = "LINEAR"
+    try:
+        sc = ob.scale.copy()
+        if hide_before:
+            ob.scale = (0, 0, 0)
+            ob.keyframe_insert("scale", frame=f0 - 1)
+            ob.scale = sc
+            ob.keyframe_insert("scale", frame=f0)
+        else:
+            ob.keyframe_insert("location", frame=f0 - 1)
+            ob.keyframe_insert("rotation_euler", frame=f0 - 1)
+        f = f0
+        r0 = ob.rotation_euler.copy()
+        while f <= end:
+            t = (f - f0) / FPS
+            x, y = p0[0] + vel[0] * t, p0[1] + vel[1] * t
+            z = p0[2] + vel[2] * t - 0.5 * g * t * t
+            gz = ground(x, y) + 0.1
+            landed = z <= gz and t > 0.1
+            ob.location = (x, y, max(z, gz))
+            ob.rotation_euler = (r0.x + spin[0] * t, r0.y + spin[1] * t, r0.z + spin[2] * t)
+            ob.keyframe_insert("location", frame=f)
+            ob.keyframe_insert("rotation_euler", frame=f)
+            if landed:
+                break
+            f += step
+    finally:
+        prefs.keyframe_new_interpolation_type = old
+
+
+def make_ruin(name, collection, w=5.0, d=4.0, seed=0):
+    """What is left of a timber shed after a blast: charred floor, broken posts, fallen
+    planks, collapsed scorched thatch and glowing embers. Origin on the ground at the centre."""
+    fx_materials()
+    rng = random.Random(seed)
+    mb = MB(bevel=0.02)
+    mb.box(T(0, 0, 0.12) @ S(w + 0.5, d + 0.5, 0.24), "stone")
+    mb.box(T(0, 0, 0.26) @ S(w, d, 0.06), "char")
+    for sx in (-1, 1):
+        for sy in (-1, 1):
+            hgt = rng.uniform(0.6, 2.0)
+            mb.box(T(sx * w / 2, sy * d / 2, 0.24 + hgt / 2) @ Rx(rng.uniform(-0.2, 0.2)) @ S(0.2, 0.2, hgt), "char")
+    for k in range(14):
+        a = rng.uniform(0, math.tau)
+        L = rng.uniform(1.0, 2.6)
+        x, y = rng.uniform(-w / 2, w / 2), rng.uniform(-d / 2, d / 2)
+        mb.box(T(x, y, 0.4 + rng.uniform(0, 0.6)) @ Rz(a) @ Rx(rng.uniform(-0.5, 0.5)) @ S(0.22, L, 0.06),
+               "char" if k % 3 else "hull_dark")
+    for k in range(4):                      # wall stubs with ragged burnt tops
+        x = rng.choice((-1, 1)) * w / 2 if k % 2 else rng.uniform(-w / 2, w / 2)
+        y = rng.uniform(-d / 2, d / 2) if k % 2 else rng.choice((-1, 1)) * d / 2
+        hgt = rng.uniform(0.5, 1.3)
+        mb.box(T(x, y, 0.24 + hgt / 2) @ Rz(0 if k % 2 == 0 else math.pi / 2) @ S(rng.uniform(1.0, 2.2), 0.12, hgt),
+               "char")
+    for k in range(5):                      # heaps of scorched thatch
+        x, y = rng.uniform(-w / 2, w / 2) * 0.8, rng.uniform(-d / 2, d / 2) * 0.8
+        mb.ico(T(x, y, 0.3) @ S(rng.uniform(0.8, 1.4), rng.uniform(0.7, 1.2), 0.35), "ash" if k % 2 else "char",
+               r=1.0, sub=1, jitter=0.2, rng=rng)
+    for k in range(9):                      # embers
+        x, y = rng.uniform(-w / 2, w / 2) * 0.9, rng.uniform(-d / 2, d / 2) * 0.9
+        mb.ico(T(x, y, 0.32) @ S(rng.uniform(0.25, 0.5), rng.uniform(0.25, 0.5), 0.12), "fx_ember", r=1.0, sub=1)
+    return mb.obj(name, collection)
+
+
+def make_shell(name, collection, r=0.3):
+    """Mortar shell: an iron ball with a short fuse."""
+    mb = MB()
+    mb.ico(Matrix.Identity(4), "iron", r=r, sub=2)
+    mb.seg((0, 0, r * 0.9), (0, 0, r * 1.5), 0.035, 0.035, "post", sides=4)
+    return mb.obj(name, collection)

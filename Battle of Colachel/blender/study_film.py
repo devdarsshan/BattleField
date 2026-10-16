@@ -1,11 +1,12 @@
-"""Van Imhoff in his study in Dutch Kochi fort (S20, shot-list clip 26).
+"""Van Imhoff in his study in the Dutch fort at Kochi, at night (S20, shot-list clip 26).
 
-Built in its own file Study.blend.
-Matches Flow reference frames/flow_refs/K26.jpeg.
-Camera drifts gently into the room, framing Van Imhoff writing at his desk by
-candlelight, with the moonlit harbor and Dutch ship visible through the open window.
+Built in its own file Study.blend; matches the Flow reference frames/flow_refs/K26.jpeg.
+One slow push-in: it opens on the K26 view (Imhoff writing by the candle, bookcase behind,
+the open orange window on the moonlit harbour and the ship at right) and drifts in toward
+him while he writes. On the last sentence ("And he believes the answer is force.") he stops
+writing, straightens and lifts his head.
 
-Headless: blender -b -P study_film.py
+Headless: blender -b -P study_film.py   (saves Study.blend and renders/timing_study.json)
 """
 import importlib
 import json
@@ -21,8 +22,9 @@ import bpy
 
 import colachel_kit as kit
 import colachel_world as world
+import kochi_world as kw
 import study_world as sw
-for m in (kit, world, sw):
+for m in (kit, world, kw, sw):
     importlib.reload(m)
 
 sys.argv = sys.argv[:1]
@@ -32,18 +34,20 @@ exec(compile(film_src, "film.py", "exec"), F)
 
 FPS = kit.FPS
 DESIGN_CLIPS = [
-    ("26", "S20", 1, 332),
+    ("26", "S20", 1, 331),
 ]
 
-# Camera keys: (frame, cam_pos, look_at_pos)
-# Framed to match K26.jpeg: 3/4 front angle, Imhoff on left, globe and window on right
+# Camera keys in design frames: (frame, position, look-at, lens).
 CAM_KEYS = [
-    (1,   (0.85, 3.05, 1.70), (-0.15, -0.40, 1.15)),
-    (150, (0.75, 2.75, 1.62), (-0.15, -0.40, 1.15)),
-    (332, (0.62, 2.45, 1.55), (-0.15, -0.40, 1.15)),
+    (1,   (0.35, 2.45, 1.8), (-0.75, -1.1, 1.05), 21),
+    (165, (0.4, 1.95, 1.74), (-0.5, -0.95, 1.08), 23),
+    (331, (0.45, 1.5, 1.66), (-0.15, -0.85, 1.12), 26),
 ]
-K26 = 150
-LENS = 25
+# Imhoff's action, design frames (voice 12.4 s; words estimated from audio/lines.txt):
+# 0.8-4.7 s "Van Imhoff comes to Kochi ...", 4.9-9.8 s "He writes that Dutch business ... ruin"
+# (pen dips at "He writes"), 10.2-12.4 s "And he believes the answer is force."
+BEATS = {"dip": 112, "stop": 246, "look": 268}
+K26 = 1
 
 
 def timed_clips():
@@ -69,7 +73,7 @@ def retime(frame, clips):
     raise ValueError(frame)
 
 
-def build(samples=24):
+def build(samples=32):
     clips = timed_clips()
     end = clips[-1][3]
     rt = lambda f: retime(f, clips)
@@ -77,33 +81,30 @@ def build(samples=24):
     kit.reset_scene()
     sc = world.setup_render(samples=samples)
     sc.frame_start, sc.frame_end = 1, end
-    sc.view_settings.view_transform = "AgX"
     sc.view_settings.look = "AgX - Base Contrast"
     sc.view_settings.exposure = 0.0
 
-    w = sw.build_world(end + 20)
+    sw.build_world(end, {k: rt(v) for k, v in BEATS.items()})
 
-    # Camera setup
     cd = bpy.data.cameras.new("StudyCamera")
-    cd.lens = LENS
-    cd.clip_start = 0.1
-    cd.clip_end = 500.0
+    cd.clip_start = 0.05
+    cd.clip_end = 600.0
     cam = bpy.data.objects.new("StudyCamera", cd)
     sc.collection.objects.link(cam)
     sc.camera = cam
-
     target = bpy.data.objects.new("StudyCamTarget", None)
     sc.collection.objects.link(target)
     c = cam.constraints.new("TRACK_TO")
     c.target = target
     c.track_axis = "TRACK_NEGATIVE_Z"
     c.up_axis = "UP_Y"
-
-    for f, pos, look in CAM_KEYS:
+    for f, pos, look, lens in CAM_KEYS:
         cam.location = pos
         target.location = look
+        cd.lens = lens
         cam.keyframe_insert("location", frame=rt(f))
         target.keyframe_insert("location", frame=rt(f))
+        cd.keyframe_insert("lens", frame=rt(f))
 
     for clip, beat, f0, f1, _, _ in clips:
         sc.timeline_markers.new(f"{clip} {beat}", frame=f0)
