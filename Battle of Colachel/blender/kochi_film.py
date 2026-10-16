@@ -55,8 +55,10 @@ CAM_KEYS = [
     # "They sign contracts with the small rajas." orbit round to the south-east of the table
     (146, (3.1, -5.4, 2.7),   (-0.6, -2.3, 0.9)),
     # "Sell your pepper only to us, at our price." rise to the K16_v1 view: the gate, the porters, the ship
-    (215, (8.0, -4.6, 5.2),   (-3.4, -0.9, 1.2)),
-    (300, (5.0, -2.2, 4.8),   (-9.0, 2.4, 0.8)),
+    (215, (8.0, -4.6, 6.4),   (-3.4, -0.9, 1.2)),
+    # (kept north of the canopy and high, so its roof never fills the frame on the way to the gate)
+    (250, (7.2, -0.4, 6.6),   (-5.0, 2.0, 1.0)),
+    (300, (5.0, 2.6, 6.2),    (-9.0, 4.6, 0.8)),
     # "...none of them is strong enough to refuse. Remember that." down past the rajas
     (369, (4.8, 2.9, 3.6),    (-0.9, -2.4, 1.0)),
     (397, (4.6, 2.3, 3.9),    (-0.9, -2.5, 0.9)),
