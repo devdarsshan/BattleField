@@ -88,12 +88,13 @@ images sometimes paint the sea with wave lines; ignore that, the sea is always t
 **Voices:** S29 recorded in Algieba today (`audio/S29.wav`). The Gemini free quota then said "10 per day, retry in ~18 h",
 so S30-S38 are still device voice. `audio/lines.txt` is now filled to S48. Next quota window: record S30-S38 (9 lines),
 then S39-S40.
-**Flow references (S39 onward):** blocked, Flow Studio has no project open. Open/create a Flow project in its Chrome window,
-then make K48 onward (0 credits, Nano Banana 2).
+**Flow references (S39 onward):** K48-K58 made 2026-10-17 (S39-S48, one image each, `frames/flow_refs/K48.jpeg` ... `K58.jpeg`),
+awaiting the user's approval. Notes: K52 has a pale studio background (re-make if rejected); K54 shows real black cannons
+(the fake palm-trunk cannons need a re-prompt). Next refs: K59+ (S49 onward).
 **Render note:** S29's real voice changes its length, so the map beat S29 (frames 3095-3540) re-times; rebuild `Map.blend`
 and delete map frames >= 3095 before rendering. Any other device must pull the latest commit first (audio wavs are tracked,
 `renders/` is not).
-**Next (Claude, this machine):** record S30-S38 voices, then Flow refs K48+, then build S39+ in story order.
+**Next (Claude, this machine):** record S30-S38 voices, then Flow refs K59+, then build S39+ in story order once K48-K58 are approved.
 
 ### Build plan for S29-S38 (plan first, then parallel, per Blender_Build_Rules.md section 0)
 Shared parts to add to `colachel_kit.py` FIRST (once, before any scene uses them):
