@@ -5,7 +5,7 @@
   look (timing unchanged): delete and re-render those frames in `frames_map_*` (S07-S13 and S39 are unaffected). Code: `build_territory` is called without `sea_test`;
   `s28_sea_wash_and_border` now only draws the ribbon where the frontier crosses land.
 
-- **Ready to render at 720p (final Algieba voice, polished, committed): S29 to S40.** S29 and S39 are in `Map.blend`; S30-S32, S34, S38 in `Landing.blend`;
+- **Ready to render at 720p (final Algieba voice, polished, committed): S29 to S40.** S29 and S39 are in `Map.blend` (S29 needs the map re-render above); S30-S32, S34, S38 in `Landing.blend`;
   S33, S35-S37 in `Inland.blend`; S40 in `Siege.blend`. S01-S28 were rendered earlier (older voices for S05-S18 and S01-S04 to be re-recorded at the end).
 - **Polish of S29-S40 is finished (2026-10-17 night).** Small differences from the refs that were accepted: Landing sand/sea a little paler than the K37-K41 sunset gold;
   S38 foam reads as thin shards (no curling crests); S33 palace town has more houses than K40; S36 shows a strip of open sand at far left in one frame (crowd = 2,409);
@@ -19,7 +19,7 @@
 Then read `../CLAUDE.md` (channel rules and the Blender pipeline) and `../_channel-context/*.md`.
 Update this file whenever you finish, start or change a beat. Keep it the single source of truth.
 
-Last updated: 2026-10-17 (Claude: S29 voice, lines S39-S48, Flow refs K48-K58, S39-S48 built in Blender)
+Last updated: 2026-10-17 night (Claude: S29-S40 final voice and polish; S41-S58 built, waiting for voices; map red wash fixed to land only; S59-S69 not started)
 
 ---
 
