@@ -1,0 +1,94 @@
+{
+  "batch_name": "S30_to_S40",
+  "description": "Battle of Colachel production batch (Beats S30 through S40: Landing, Inland, Map, Siege)",
+  "shots": [
+    {
+      "clip": "clip37",
+      "beat": "S30",
+      "blend": "Landing.blend",
+      "start": 1,
+      "end": 447,
+      "audio": "S30.wav"
+    },
+    {
+      "clip": "clip38",
+      "beat": "S31",
+      "blend": "Landing.blend",
+      "start": 448,
+      "end": 831,
+      "audio": "S31.wav"
+    },
+    {
+      "clip": "clip39",
+      "beat": "S32",
+      "blend": "Landing.blend",
+      "start": 832,
+      "end": 1194,
+      "audio": "S32.wav"
+    },
+    {
+      "clip": "clip40",
+      "beat": "S33",
+      "blend": "Inland.blend",
+      "start": 1,
+      "end": 418,
+      "audio": "S33.wav"
+    },
+    {
+      "clip": "clip41",
+      "beat": "S34",
+      "blend": "Landing.blend",
+      "start": 1195,
+      "end": 1635,
+      "audio": "S34.wav"
+    },
+    {
+      "clip": "clip42-43",
+      "beat": "S35",
+      "blend": "Inland.blend",
+      "start": 419,
+      "end": 1007,
+      "audio": "S35.wav"
+    },
+    {
+      "clip": "clip44-45",
+      "beat": "S36",
+      "blend": "Inland.blend",
+      "start": 1008,
+      "end": 1299,
+      "audio": "S36.wav"
+    },
+    {
+      "clip": "clip46",
+      "beat": "S37",
+      "blend": "Inland.blend",
+      "start": 1300,
+      "end": 1735,
+      "audio": "S37.wav"
+    },
+    {
+      "clip": "clip47",
+      "beat": "S38",
+      "blend": "Landing.blend",
+      "start": 1636,
+      "end": 2111,
+      "audio": "S38.wav"
+    },
+    {
+      "clip": "clip48",
+      "beat": "S39",
+      "blend": "Map.blend",
+      "start": 3535,
+      "end": 3887,
+      "audio": "S39.wav"
+    },
+    {
+      "clip": "clip49",
+      "beat": "S40",
+      "blend": "Siege.blend",
+      "start": 1,
+      "end": 262,
+      "audio": "S40.wav"
+    }
+  ]
+}

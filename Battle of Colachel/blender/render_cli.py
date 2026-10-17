@@ -13,9 +13,9 @@ rest = args[2:]
 res = (1280, 720)
 frange = None
 frames = []
-pause_s = 0.25
-max_temp = 76
-cooldown_temp = 68
+pause_s = 0.05
+max_temp = 90
+cooldown_temp = 80
 i = 0
 while i < len(rest):
     if rest[i] == "--res":
@@ -29,6 +29,9 @@ while i < len(rest):
         i += 2
     elif rest[i] == "--max-temp":
         max_temp = int(rest[i + 1])
+        i += 2
+    elif rest[i] == "--cooldown-temp":
+        cooldown_temp = int(rest[i + 1])
         i += 2
     else:
         frames.append(int(rest[i]))
