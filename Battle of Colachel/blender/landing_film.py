@@ -193,6 +193,9 @@ def build(samples=32):
     lw.heavy_rain(kit.new_collection("Rain"), cams["S38"],
                   [(rt(f), v) for f, v in EVENTS["rain"]] + [(end, 1.0)], end)
 
+    foam_c = kit.new_collection("S38_Foam")
+    lw.foam_on_waves(foam_c, bpy.data.collections["Library"], ev["r38"][0], ev["r38"][1], ev["storm"][1][0])
+    lw.set_vis(foam_c, [ev["r38"]])
     # the storm light is lifted a little, as in the S05 monsoon
     vs = sc.view_settings
     base = vs.exposure

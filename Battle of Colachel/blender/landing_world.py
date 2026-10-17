@@ -899,31 +899,6 @@ def build_s38(c, lib, ev):
                               heading=math.radians(ST_AXIS))
             f += rng.randint(32, 46)
             k += 1
-    # whitecaps rolling in over the open water, a long way out: short, chunky crests
-    capsrc = [make_crest(f"LibCap{j}", lib, seed=20 + j) for j in range(4)]
-    for ob in capsrc:
-        kit.hide_source(ob)
-    for lane, x in enumerate(range(-30, 170, 6)):
-        f = f0 + rng.randint(-20, 60)
-        while f < f1 + 20:
-            x0 = x + rng.uniform(-3, 3)
-            p_from, p_to = cy(x0, -92.0 + rng.uniform(-8, 8)), cy(x0, -28.0)
-            sz = (0.8 + 0.9 * grow(f + 50)) * rng.uniform(0.9, 1.3)
-            ob = kit.instance(capsrc[k % 4], f"S38Cap{k}", c, (*p_from, 0.0), scale=0.0)
-            kit.animate_surge(ob, f, f + 120, p_from, p_to, z_from=0.35, z_to=0.2, size=sz * 0.8,
-                              heading=math.radians(ST_AXIS) + rng.uniform(-0.35, 0.35))
-            f += rng.randint(75, 120)
-            k += 1
-    # spray thrown up where the surf breaks: small round foam bursts, kept well away from the lens
-    spl = [kit.make_puff(f"LibSpray{i}", lib, seed=70 + i, m="foam") for i in range(3)]
-    for ob in spl:
-        kit.hide_source(ob)
-    for i in range(110):
-        t = rng.randint(f0 + 40, f1 - 20)
-        x = rng.uniform(10, 130)
-        px, py = cy(x, -rng.uniform(8.0, 22.0))
-        sp = kit.instance(spl[i % 3], f"S38Spray{i}", c, (px, py, 0.2), rot_z=rng.uniform(0, 6.28), scale=0.0)
-        kit.animate_splash(sp, t, size=rng.uniform(0.5, 1.0) * (0.6 + 0.7 * grow(t)), rise=6, hold=4, fall=18)
     # one ship far out, pitching hard, unable to come in
     ship = make_sailing_ship("S38Ship", c, 40.0, 10.0, {}, 0.6, 77)
     x, y = 30.0, SY(30.0) - 240.0
@@ -1061,18 +1036,111 @@ def _constant_cut(ad, f_last):
                 kp.interpolation = "CONSTANT"
 
 
-def make_crest(name, lib, seed=0):
-    """A small whitecap: a thin, tilted, faceted ridge of foam made of a few flattened blobs of
-    different sizes (long along X, origin at its middle on the water)."""
+def make_foam_piece(name, lib, seed, kind):
+    """Thin faceted foam: 'ridge' = two or three ragged tapered wedges along a crest (X); 'streak' = a long thin
+    tail along Y, trailing downwind. No flat discs."""
     rng = random.Random(seed)
     mb = kit.MB()
-    n = rng.randint(4, 6)
-    for i in range(n):
-        u = (i / (n - 1) - 0.5)
-        r = rng.uniform(0.35, 0.8) * (1.0 - 0.8 * abs(u))
-        mb.ico(kit.T(u * 5.5 + rng.uniform(-0.3, 0.3), rng.uniform(-0.2, 0.2), r * 0.8) @ kit.Rx(rng.uniform(-0.8, 0.8))
-               @ kit.Ry(rng.uniform(-0.6, 0.6)) @ kit.S(1.3, 0.5, 1.4), "foam", r=r + 0.15, sub=1, jitter=0.25, rng=rng)
+    if kind == "ridge":
+        x = -rng.uniform(0.8, 1.4)
+        for _ in range(rng.randint(2, 3)):
+            ln = rng.uniform(0.9, 2.0)
+            y = rng.uniform(-0.3, 0.3)
+            mb.seg((x, y, 0.06), (x + ln, y + rng.uniform(-0.25, 0.25), 0.1 + rng.uniform(0.0, 0.14)),
+                   rng.uniform(0.28, 0.42), rng.uniform(0.04, 0.08), "foam", sides=3, spin=rng.uniform(0, 3))
+            x += ln * rng.uniform(0.6, 1.0) + rng.uniform(0.0, 0.5)
+    else:
+        for _ in range(rng.randint(1, 2)):
+            x = rng.uniform(-0.3, 0.3)
+            ln = rng.uniform(2.5, 4.5)
+            mb.seg((x, 0.0, 0.05), (x + rng.uniform(-0.3, 0.3), ln, 0.04), rng.uniform(0.1, 0.15), 0.015, "foam", sides=3,
+                   spin=rng.uniform(0, 3))
     return mb.obj(name, lib)
+
+
+def foam_on_waves(coll, lib, f0, f1, full, seed=11, n_ridge=340, n_streak=110, step=12):
+    """Whitecaps that follow the real swell: at every `step` frames the evaluated sea is ray-cast, each
+    foam piece is born on a local crest (higher than the water a few metres up- and down-wave of it),
+    then rides the water: its height and tilt are keyed from the sea surface at each sample, it drifts
+    downwind and fades out. Random positions (denser near the beach), sizes and headings: no rows.
+    Call after everything is built and animated, before saving."""
+    from mathutils.bvhtree import BVHTree
+    sc = bpy.context.scene
+    sea = bpy.data.objects["Sea"]
+    rng = random.Random(seed)
+    srcs = {"ridge": [make_foam_piece(f"LibFoamR{j}", lib, 40 + j, "ridge") for j in range(5)],
+            "streak": [make_foam_piece(f"LibFoamS{j}", lib, 60 + j, "streak") for j in range(3)]}
+    for lst in srcs.values():
+        for ob in lst:
+            kit.hide_source(ob)
+    n_total = n_ridge + n_streak
+    frames = list(range(f0, f1 + 1, step))
+
+    def level(f):
+        return min(1.0, max(0.0, (f - f0) / max(1, full - f0)))
+    births = []
+    for i in range(n_total):
+        kind = "ridge" if i < n_ridge else "streak"
+        life = rng.randint(4, 7) * step if kind == "ridge" else rng.randint(5, 8) * step
+        # births weighted toward the middle/late storm, when the sea is up
+        tb = frames[min(len(frames) - 1, int(len(frames) * rng.random() ** 0.8))]
+        births.append(dict(kind=kind, tb=tb, te=tb + life, src=rng.choice(srcs[kind]), ob=None, pos=None,
+                           yaw=rng.uniform(-0.5, 0.5), size=rng.uniform(1.6, 3.2), drift=rng.uniform(0.02, 0.05)))
+    for f in frames:
+        sc.frame_set(f)
+        dg = bpy.context.evaluated_depsgraph_get()
+        bvh = BVHTree.FromObject(sea, dg)
+
+        def hz(x, y):
+            hit = bvh.ray_cast((x, y, 40.0), (0.0, 0.0, -1.0), 80.0)
+            return hit[0].z if hit[0] is not None else None
+        lv = level(f)
+        for bd in births:
+            if not (bd["tb"] <= f <= bd["te"]):
+                continue
+            if bd["pos"] is None:
+                for _ in range(60):          # find a crest: denser toward the beach
+                    d = 3.0 + rng.expovariate(1.0 / 22.0)
+                    if d > 85:
+                        continue
+                    x = rng.uniform(-10, 150)
+                    px, py = cy(x, -d)
+                    h0 = hz(px, py)
+                    hu, hd = hz(px, py - 3.0), hz(px, py + 3.0)
+                    if None in (h0, hu, hd):
+                        continue
+                    if h0 > hu + 0.03 and h0 > hd + 0.03 and h0 > 0.05:
+                        bd["pos"] = (px, py)
+                        break
+                if bd["pos"] is None:
+                    bd["te"] = -1
+                    continue
+                bd["ob"] = kit.instance(bd["src"], f"S38Foam{len(coll.objects)}", coll, (*bd["pos"], 0.0), scale=0.0)
+                bd["ob"].keyframe_insert("scale", frame=max(1, f - step))
+            x = bd["pos"][0]
+            y = bd["pos"][1] + bd["drift"] * (f - bd["tb"])
+            h = hz(x, y)
+            if h is None:
+                continue
+            hx0, hx1, hy0, hy1 = hz(x - 1.0, y), hz(x + 1.0, y), hz(x, y - 1.0), hz(x, y + 1.0)
+            if None in (hx0, hx1, hy0, hy1):
+                hx0 = hx1 = hy0 = hy1 = h
+            ob = bd["ob"]
+            ob.location = (x, y, h - 0.03)
+            ob.rotation_euler = (math.atan2(hy1 - hy0, 2.0), -math.atan2(hx1 - hx0, 2.0),
+                                 math.radians(ST_AXIS) + bd["yaw"] if bd["kind"] == "ridge" else bd["yaw"] * 0.5)
+            t = f - bd["tb"]
+            grow = min(1.0, t / (2.0 * step), (bd["te"] - f) / (2.0 * step))
+            sz = bd["size"] * (0.6 + 0.7 * lv) * max(0.0, grow)
+            ob.scale = (sz, sz, sz)
+            ob.keyframe_insert("location", frame=f)
+            ob.keyframe_insert("rotation_euler", frame=f)
+            ob.keyframe_insert("scale", frame=f)
+    for bd in births:
+        if bd["ob"] is not None:                   # gone after the last key
+            bd["ob"].scale = (0, 0, 0)
+            bd["ob"].keyframe_insert("scale", frame=bd["te"] + step)
+    sc.frame_set(1)
 
 
 def heavy_rain(coll, cam, rain_points, frames, half=38.0, count=6200, speed=0.5):

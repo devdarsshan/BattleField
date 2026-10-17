@@ -1,9 +1,11 @@
 # Battle of Colachel: production tracker
 
 ## CURRENT PROGRESS (updated 2026-10-17, evening)
-- **Ready to render (final Algieba voice, built and committed): S29 to S40.** S29 and S39 are in `Map.blend`; S30-S32, S34, S38 in `Landing.blend`;
+- **Ready to render at 720p (final Algieba voice, polished, committed): S29 to S40.** S29 and S39 are in `Map.blend`; S30-S32, S34, S38 in `Landing.blend`;
   S33, S35-S37 in `Inland.blend`; S40 in `Siege.blend`. S01-S28 were rendered earlier (older voices for S05-S18 and S01-S04 to be re-recorded at the end).
-- **In final polish right now (until S40 is 100% done):** S30-S38 review/polish (two helper agents, one for Landing, one for Inland). Do not render these until this line is replaced.
+- **Polish of S29-S40 is finished (2026-10-17 night).** Small differences from the refs that were accepted: Landing sand/sea a little paler than the K37-K41 sunset gold;
+  S38 foam reads as thin shards (no curling crests); S33 palace town has more houses than K40; S36 shows a strip of open sand at far left in one frame (crowd = 2,409);
+  S37 tree-line palms greener than K46; S39 camera is capped at 38 deg tilt.
 - **Built but waiting for voices (device voice, lengths will change):** S41-S58 (`Siege.blend`, `Surrender.blend`, `Udayagiri.blend`). Voices S41-S58 need two daily quota windows.
 - **Not started:** S59-S69. Flow references K71-K82 made, waiting for the user's approval.
 - **Rule from the user:** finish each set 100% before starting the next.
@@ -286,3 +288,10 @@ Also added: low cloud band over the sea (`siege_world.build_low_clouds`) and dul
 - Left to do for this range: (1) voices S41-S58 (18 lines, two quota windows) then rebuild each film script; (2) polish: S38 rain heavier and crisper sea, S39 oblique look (tilt cap 38 deg),
   S43 fishermen stiff line-up, S54 yellow haze, S50 flat fireball shading; (3) render 720p previews per beat, review, then 1080p finals (GPU machine); (4) merge the new parts
   (udayagiri/surrender/siege) into colachel_kit.py when convenient; (5) the user approves K71-K82 before S59+.
+
+## Polish round S30-S38 (2026-10-17 night, helper agents)
+- Landing: crisp per-triangle sea, lower hills, deeper palm groves, S30 flash + light pulse, S31 boats spaced, S32 fuller foreground, S34 neutral haze, S38 storm builds across the beat
+  with 6,200 rain streaks and `foam_on_waves` (foam sampled from the animated sea). Events (volleys, wading, pointing, posts, villages burning) re-timed to the words (`EVENTS` in landing_film.py).
+- Inland: new sky setup (`sky_setup`, keyed dawn for S37), richer greens and calmer hills, S35 loose column + stragglers, S36 crowd of 2,409 in tight companies + king/elephant larger,
+  S37 five-tier gopuram with carved bands and niches, lamps, grey-brown stone.
+- `build` times: Landing about 80 s, Inland builds 16.5k objects. Review sheets in `blender/renders/compare/`.
