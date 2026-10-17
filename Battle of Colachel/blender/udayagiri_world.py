@@ -428,7 +428,31 @@ FIRE_POSE = {"body": kit.Matrix.Identity(4), "legL": T(0.1, 0, 0.88), "legR": T(
 MUSKET_MUZZLE = (-0.04, 1.42, 1.43)
 
 
-def make_musketeer(name, coll, seed=0, cloth="cloth_w", pose=FIRE_POSE, shoulder=False):
+STAND_POSE = {"body": kit.Matrix.Identity(4), "legL": T(0.1, 0, 0.88), "legR": T(-0.1, 0, 0.88),
+              "armL": T(0.27, 0, 1.4), "armR": T(-0.27, 0, 1.4)}
+
+
+def _redcoat(mb, pose):
+    """Drilled Travancore infantry (K69): red coat with white cross-belts, white trousers, over the kit nair."""
+    b = pose["body"]
+    mb.cone(b @ T(0, 0, 1.17) @ kit.Rz(math.pi / 4) @ S(1.0, 0.62, 1.0), "red", segments=4, r1=0.25, r2=0.335, depth=0.5)
+    mb.cone(b @ T(0, 0, 0.84), "red", segments=8, r1=0.235, r2=0.215, depth=0.2)                      # coat skirt
+    mb.box(b @ T(0, 0.17, 1.2) @ kit.Ry(0.62) @ S(0.06, 0.03, 0.66), "white")
+    mb.box(b @ T(0, 0.17, 1.2) @ kit.Ry(-0.62) @ S(0.06, 0.03, 0.66), "white")
+    mb.box(b @ T(0, 0, 0.98) @ S(0.44, 0.3, 0.06), "white")
+    for z in (1.0, 1.1, 1.2, 1.3):
+        mb.box(b @ T(0, 0.175, z) @ S(0.03, 0.02, 0.03), "gold")
+    for arm in ("armL", "armR"):
+        a = pose[arm]
+        mb.box(a @ T(0, 0, -0.27) @ S(0.14, 0.15, 0.56), "red")
+        mb.box(a @ T(0, 0, -0.53) @ S(0.15, 0.16, 0.07), "white")
+    for leg in ("legL", "legR"):
+        lg = pose[leg]
+        mb.box(lg @ T(0, 0, -0.42) @ S(0.17, 0.18, 0.84), "white")
+        mb.box(lg @ T(0, 0.05, -0.86) @ S(0.16, 0.26, 0.07), "black")
+
+
+def make_musketeer(name, coll, seed=0, cloth="cloth_w", pose=FIRE_POSE, shoulder=False, coat=True):
     """Travancore soldier (kit 'nair': red turban, white dress) holding a musket at the ready. The kit's
     nair carries a sword and shield, so those parts are dropped and a musket added in the same mesh."""
     rng = random.Random(seed)
@@ -437,6 +461,8 @@ def make_musketeer(name, coll, seed=0, cloth="cloth_w", pose=FIRE_POSE, shoulder
     def get(p):
         return kit._PartFilter(mb, pose[p], _musket_drop), pose[p]
     kit._draw_figure(get, "nair", rng, cloth)
+    if coat:
+        _redcoat(mb, pose)
     if shoulder:                     # musket held upright at the side
         mb.box(T(-0.3, 0.12, 0.9) @ S(0.06, 0.08, 1.0), "post")
         mb.seg((-0.3, 0.12, 1.4), (-0.3, 0.12, 2.25), 0.022, 0.02, "steel", sides=4)
@@ -445,6 +471,32 @@ def make_musketeer(name, coll, seed=0, cloth="cloth_w", pose=FIRE_POSE, shoulder
         mb.seg((-0.05, 0.62, 1.42), MUSKET_MUZZLE, 0.022, 0.02, "steel", sides=4)
         mb.box(T(-0.07, 0.04, 1.36) @ S(0.06, 0.12, 0.14), "post")
     return mb.obj(name, coll)
+
+
+def court_robe(name, parts):
+    """The king's ceremonial robe (K68, K70): red with gold borders, long sleeves with gold cuffs, over the kit king
+    (same face, proportions and rig). Parented to the rig's own parts, so it follows every pose."""
+    mb = kit.MB(bevel=0.01)
+    mb.cone(T(0, 0, 0.63), "red", segments=10, r1=0.36, r2=0.27, depth=1.02)
+    mb.cone(T(0, 0, 1.2) @ kit.Rz(math.pi / 4) @ S(1.0, 0.7, 1.0), "red", segments=4, r1=0.27, r2=0.345, depth=0.5)
+    mb.cone(T(0, 0, 0.13), "gold", segments=10, r1=0.375, r2=0.375, depth=0.07)
+    mb.cone(T(0, 0, 0.99), "gold", segments=10, r1=0.285, r2=0.285, depth=0.07)
+    mb.box(T(0, 0.3, 0.62) @ S(0.11, 0.03, 0.9), "gold")
+    mb.box(T(0, 0.255, 1.2) @ S(0.1, 0.03, 0.42), "gold")
+    mb.cone(T(0, 0, 1.44), "gold", segments=10, r1=0.2, r2=0.2, depth=0.05)
+    mb.obj(name + "Body", parts["body"].users_collection[0], parent=parts["body"])
+    if "fold" in parts:                       # the crossed forearms of the folded-arms pose get red sleeves too
+        fm = kit.MB(bevel=0.01)
+        for sgn in (-1, 1):
+            z = 1.13 + 0.035 * sgn
+            fm.box(T(0, 0.21 + 0.025 * sgn, z) @ kit.Rz(0.2 * sgn) @ kit.Ry(0.14 * sgn) @ S(0.40, 0.165, 0.165), "red")
+            fm.box(T(sgn * 0.17, 0.21 + 0.025 * sgn, z) @ kit.Rz(0.2 * sgn) @ kit.Ry(0.14 * sgn) @ S(0.05, 0.18, 0.18), "gold")
+        fm.obj(name + "Fold", parts["fold"].users_collection[0], parent=parts["fold"])
+    for arm in ("armL", "armR"):
+        am = kit.MB(bevel=0.01)
+        am.cone(T(0, 0, -0.36), "red", segments=8, r1=0.15, r2=0.125, depth=0.74)
+        am.cone(T(0, 0, -0.72), "gold", segments=8, r1=0.135, r2=0.135, depth=0.06)
+        am.obj(f"{name}{arm}", parts[arm].users_collection[0], parent=parts[arm])
 
 
 def make_delannoy_hatless(name, coll, seed=0):
@@ -500,6 +552,9 @@ def build_lib(lib):
     L["guard"] = [kit.make_figure(f"LibUGuard{i}", lib, "nair_spear" if i % 2 == 0 else "nair", seed=i) for i in range(4)]
     L["spear"] = [kit.make_figure(f"LibUSpear{i}", lib, "nair_spear", seed=30 + i) for i in range(4)]
     L["musket"] = [make_musketeer(f"LibUMusket{i}", lib, seed=40 + i) for i in range(4)]
+    L["rank"] = [make_musketeer(f"LibURank{i}", lib, seed=90 + i, pose={
+        "body": kit.Matrix.Identity(4), "legL": T(0.1, 0, 0.88), "legR": T(-0.1, 0, 0.88),
+        "armL": T(0.27, 0, 1.4) @ Rx(0.04), "armR": T(-0.27, 0, 1.4) @ Rx(0.5) @ Rz(-0.1)}, shoulder=True) for i in range(4)]
     L["ready"] = [make_musketeer(f"LibUReady{i}", lib, seed=50 + i, pose={
         "body": kit.Matrix.Identity(4), "legL": T(0.1, 0, 0.88), "legR": T(-0.1, 0, 0.88),
         "armL": T(0.27, 0, 1.4) @ Rx(0.04), "armR": T(-0.27, 0, 1.4) @ Rx(0.5) @ Rz(-0.1)}, shoulder=True)
@@ -536,7 +591,7 @@ def build_lib(lib):
     rng = random.Random(4)
     mb.ico(S(1.0, 0.8, 0.07), "grass", r=1.8, sub=1, jitter=0.25, rng=rng)
     L["patch"] = mb.obj("LibUPatch", lib)
-    for k in (L["guard"] + L["spear"] + L["musket"] + L["ready"] + L["crew"] + L["worker"] + L["puff"] + L["flames"] +
+    for k in (L["guard"] + L["spear"] + L["musket"] + L["ready"] + L["rank"] + L["crew"] + L["worker"] + L["puff"] + L["flames"] +
               L["boulder"] + L["bush"] + L["tree"] + L["palm"] + L["cone"] + L["balls"] + L["blocks"] + L["gravel"] +
               [L["cannon"], L["puff_dk"], L["flash"], L["barrel"], L["crate"], L["sack"], L["ridge"], L["patch"]]):
         kit.hide_source(k)
@@ -698,6 +753,7 @@ def build_s55(c, L, ev, rng):
     """King, De Lannoy, guards; the offer."""
     f0, f1 = ev["r55"]
     king, kp = kit.make_rig("King55", c, "king")
+    court_robe("Robe55", kp)
     king.location = (-8.3, 0.4, 0.46)
     king.rotation_euler[2] = face(6.0, -1.2)
     king.scale = (1.04, 1.04, 1.04)
@@ -731,6 +787,7 @@ def build_s56(c, L, ev, rng):
     """The bow: De Lannoy bows deeply, a hand on his chest; the king, arms folded, calm."""
     f0, f1 = ev["r56"]
     king, kp = kit.make_rig("King56", c, "king", fold=True)
+    court_robe("Robe56", kp)
     king.location = (2.7, 4.3, 0.0)
     king.rotation_euler[2] = face(-1.0, -0.9)
     king.scale = (1.04, 1.04, 1.04)
@@ -760,6 +817,10 @@ def build_s56(c, L, ev, rng):
     bow(y + 22, 0.62)                                    # down on "yes"
     bow(y + 70, 0.66)
     bow(y + 108, 0.0)
+    kit.key_pose(dp, y + 6, {"head": (0.0, 0, 0.0)})
+    kit.key_pose(dp, y + 26, {"head": (0.38, 0, 0.0), "armR": (-0.5, 0.0, -0.25)})
+    kit.key_pose(dp, y + 80, {"head": (0.38, 0, 0.0), "armR": (-0.45, 0.0, -0.2)})
+    kit.key_pose(dp, y + 118, {"head": (0.0, 0, 0.0), "armR": (0.0, 0.0, 0.0)})
     kit.key_pose(dp, y + 106, chest)
     kit.key_pose(dp, y + 130, kit.ARM_REST)
     kit.animate_rig_idle(kp, rng, f0, f1, body=0.006, head=0.0, skip=("head",))
@@ -999,7 +1060,7 @@ def build_s57(c, L, ev, rng):
                 ob.rotation_euler = (0.0, 0.0, rz)
                 ob.keyframe_insert("rotation_euler", frame=t + 14)
     for k, (u, v, dx, dy) in enumerate(((-12.0, 4.0, 0.2, -1), (-11.5, 8.0, 0.3, -1), (6.5, 6.0, -0.4, -1))):
-        put(L["ready"][k % 2], f"Reserve{k}", c, ox + u, oy + v, face(dx, dy))
+        put(L["rank"][k % 4], f"Reserve{k}", c, ox + u, oy + v, face(dx, dy))
     # the guns and their crews
     guns = [((2.4, -3.6), math.pi + 0.22, ((0.8, -2.6), (4.0, -4.2), (2.8, -6.0)), (6.0, -4.8)),
             ((-9.6, -0.6), math.pi - 0.25, ((-11.2, 0.8), (-8.0, 0.2), (-8.6, -2.4)), (-6.2, -2.4))]
@@ -1014,6 +1075,18 @@ def build_s57(c, L, ev, rng):
                    f0, f1, 11 + gi)
         for q, cf in enumerate(ev["cannon57"]):
             cannon_shot(c, L, gun, (x, y, height(x, y)), aim, cf + gi * 28, rng, end, f"C{gi}_{q}")
+    # the near ground: spare shot, kegs, crates, sitting crew, loose gravel and tussocks (K69 is full to the edge)
+    for k, (u, v) in enumerate(((-3.0, -6.4), (8.6, -4.0), (-14.0, -4.6), (11.0, -7.0))):
+        put(L["balls"][k % 2], f"FgShot{k}", c, ox + u, oy + v, rng.uniform(0, 6), s=1.0)
+    for k, (u, v) in enumerate(((5.0, -7.2), (5.9, -6.9), (-6.8, -6.8), (-7.6, -6.3), (13.4, -3.2))):
+        put((L["barrel"], L["crate"])[k % 2], f"FgStore{k}", c, ox + u, oy + v, rng.uniform(0, 3))
+    for k, (u, v) in enumerate(((1.0, -8.2), (-11.0, -7.4), (9.5, -8.6))):
+        put(L["gravel"][k % 2], f"FgGravel{k}", c, ox + u, oy + v, rng.uniform(0, 6), s=1.6, sink=0.0)
+    for k, (u, v) in enumerate(((-1.5, -9.0), (7.0, -9.4), (-9.0, -9.2), (12.5, -8.6), (-15.0, -7.5))):
+        put(L["bush"][k % 4], f"FgBush{k}", c, ox + u, oy + v, rng.uniform(0, 6), s=0.55)
+    for k, (u, v) in enumerate(((-4.4, -4.6), (-3.2, -5.2), (9.8, -6.0))):
+        ob = put(L["crew"][k % 3], f"FgRest{k}", c, ox + u, oy + v, rng.uniform(0, 6))
+        kit.animate_idle(ob, rng, f0, f1, 0.03)
     # De Lannoy, in the tricorn, directing the drill
     dl, dp = kit.make_delannoy("DeLannoy57", c, rig=True)
     dl.location = (ox + 7.6, oy + 3.4, height(ox + 7.6, oy + 3.4))
@@ -1032,13 +1105,14 @@ def build_s58(c, L, ev, rng):
     ox, oy = DRILL
     kx, ky = ox - 4.3, oy - 0.7
     king, kp = kit.make_rig("King58", c, "king")
+    court_robe("Robe58", kp)
     king.location = (kx, ky, height(kx, ky))
-    king.rotation_euler[2] = face(1.0, 0.0)
+    king.rotation_euler[2] = face(1.0, -0.9)
     king.scale = (1.04, 1.04, 1.04)
     dx_, dy_ = ox - 3.3, oy - 0.9
     dl, dp = kit.make_delannoy("DeLannoy58", c, rig=True)
     dl.location = (dx_, dy_, height(dx_, dy_))
-    dl.rotation_euler[2] = face(0.0, -1.0) + 0.12
+    dl.rotation_euler[2] = face(-0.5, -1.0)
     hat = make_tricorn("Tricorn58", c)
     hat.parent = dp["body"]
     hat.location = (-0.3, 0.22, 0.96)
@@ -1068,10 +1142,10 @@ def build_s58(c, L, ev, rng):
             u = -16.0 + i * 1.12 + off
             x, y = ox + u * math.cos(ang) - v0 * -math.sin(ang) * 0 , oy + v0 + u * math.sin(ang)
             x = ox + u * math.cos(ang)
-            ob = put(L["spear"][(i + r) % 4], f"Rank{r}_{i}", c, x, y, face(0.18, -1.0) + rng.uniform(-0.04, 0.04))
+            ob = put(L["rank"][(i + r) % 4], f"Rank{r}_{i}", c, x, y, face(0.18, -1.0) + rng.uniform(-0.04, 0.04))
             kit.animate_idle(ob, rng, f0, f1, 0.012)
     for k_, (u, v) in enumerate(((-13.5, 2.0), (3.0, 7.0))):
-        ob = put(L["spear"][k_], f"Sentry{k_}", c, ox + u, oy + v, face(0.2, -1.0))
+        ob = put(L["rank"][k_], f"Sentry{k_}", c, ox + u, oy + v, face(0.2, -1.0))
         kit.animate_idle(ob, rng, f0, f1, 0.012)
     for k_, (u, v, s_) in enumerate(((-6.8, -3.4, 0.8), (1.4, -4.2, 0.7), (4.5, 0.2, 0.6))):         # foreground stones (K70)
         put(L["boulder"][k_ % 5], f"S58Rock{k_}", c, ox + u, oy + v, rng.uniform(0, 6), s=s_ * 1.2)

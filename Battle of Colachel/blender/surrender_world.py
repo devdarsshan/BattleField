@@ -36,7 +36,7 @@ beach = sw.beach
 POW = SW(1.0, -2.0)                                   # the powder barrels in the yard
 RICE = SW(8.5, -0.5)                                  # the thatched rice store
 HC = beach(98.0, 7.0)                                 # where the swords are handed over (S53)
-FORT = (66.0, 168.0)                                  # the hill fort the prisoners are marched to (S54)
+FORT = (66.0, 150.0)                                  # the hill fort the prisoners are marched to (S54)
 LAUNCH = (cw.BATTERY[0] - 1.0, cw.BATTERY[1] - 1.0)
 
 
@@ -52,6 +52,23 @@ def ball_pos(u):
 def ball_dir(u):
     a, b = ball_pos(max(0.0, u - 0.01)), ball_pos(min(1.0, u + 0.01))
     return (b - a).normalized()
+
+
+def flat_site(near, r, span=40.0, step=4.0):
+    """The flattest ground within `span` metres of `near` for a fort of radius r (smallest height range)."""
+    best = None
+    x0, y0 = near
+    gx = x0 - span
+    while gx <= x0 + span:
+        gy = y0 - span
+        while gy <= y0 + span:
+            hs = [H(gx, gy)] + [H(gx + math.cos(k * math.tau / 12) * r, gy + math.sin(k * math.tau / 12) * r) for k in range(12)]
+            score = max(hs) - min(hs) + 0.02 * math.hypot(gx - x0, gy - y0)
+            if best is None or score < best[0]:
+                best = (score, gx, gy)
+            gy += step
+        gx += step
+    return best[1], best[2]
 
 
 # ===================================================================== new parts
@@ -91,7 +108,7 @@ def make_hill_fort(name, c, ground, cx, cy, r=13.0, seed=0):
         hgt = (top - zb)
         mb.box(kit.T(mx, my, zb + hgt / 2) @ kit.Rz(a) @ kit.S(L + 0.2, 1.6, hgt), "stone")
         mb.box(kit.T(mx, my, top - 0.1) @ kit.Rz(a) @ kit.S(L + 0.3, 2.0, 0.3), "stone_lt" if "stone_lt" in kit.PALETTE else "stone")
-        if k != 5:                                      # k == 5: the gate
+        if k != 9:                                      # k == 9: the gate, facing the track
             for j in range(int(L / 1.2)):
                 t = (j + 0.5) / int(L / 1.2) - 0.5
                 px, py = mx + math.cos(a) * L * t, my + math.sin(a) * L * t
@@ -105,8 +122,8 @@ def make_hill_fort(name, c, ground, cx, cy, r=13.0, seed=0):
     zc = ground(cx, cy)
     mb.box(kit.T(cx, cy, zc + 3.0) @ kit.S(5.5, 4.5, 6.0), "stone")                 # the keep
     mb.box(kit.T(cx, cy, zc + 6.15) @ kit.S(6.0, 5.0, 0.3), "stone")
-    gx, gy = pts[5]
-    mb.box(kit.T(gx * 0.99 + cx * 0.01, gy, gz[5] + 1.0) @ kit.Rz(math.atan2(gy - cy, gx - cx)) @ kit.S(0.5, 2.6, 2.2), "dark")
+    gx, gy = pts[9]
+    mb.box(kit.T(gx * 0.99 + cx * 0.01, gy, gz[9] + 1.0) @ kit.Rz(math.atan2(gy - cy, gx - cx)) @ kit.S(0.5, 2.6, 2.2), "dark")
     ob = mb.obj(name, c)
     pw.flag_on_pole(c, name + "Flag", (cx, cy, zc + 6.3), 5.0, 2.2, 1.4, "flag_r", heading=200)
     return ob
@@ -539,7 +556,11 @@ def build_s54(c, lib, L, ev):
             m += 1
     (px, py), _ = lw.path_point(10.0)
     pw.flag_on_pole(c, "S54Standard", (px + 4.0, py, H(px + 4.0, py)), 6.0, 2.2, 1.4, "flag_r", heading=200)
-    make_hill_fort("HillFort", c, H, FORT[0], FORT[1], r=13.0, seed=5)
+    fx, fy = flat_site(FORT, 15.0)
+    for ob in [o for o in bpy.data.objects if o.name.startswith(("Hamlet", "Tree", "Palm", "GrovePalm", "Bush", "GroveBush"))]:
+        if math.hypot(ob.location.x - fx, ob.location.y - fy) < 19.0:
+            bpy.data.objects.remove(ob, do_unlink=True)
+    make_hill_fort("HillFort", c, H, fx, fy, r=15.0, seed=5)
 
 
 # ===================================================================== whole set
