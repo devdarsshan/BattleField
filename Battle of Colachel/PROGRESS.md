@@ -244,6 +244,7 @@ the same `.blend` at the same time; claim a beat by marking it ⏳ with your age
 - New: `siege_world.py`, `siege_film.py` (build: `blender -b -P siege_film.py`, writes `Siege.blend`, `renders/timing_siege.json`).
   Camera keys and events are fractions of each beat, so a later re-recorded voice re-times everything. S41+S42 share one camera.
 - `compare_siege.py TAG f133:K49 ...` makes side-by-side stills against the Flow refs in `renders/compare/`.
-- Device-voice placeholders made for S39-S48. Not rendered as video yet (only 960x540 test stills). Known polish: S40/S48 palms in foreground,
-  S43 framing, S46 first seconds, S47 tents oversized, no low-poly clouds in beach beats.
+- Device-voice placeholders made for S39-S48. Not rendered as video yet (only test stills). Polished 2026-10-17: S43 now filmed from the sea side
+  (officer with bag at left, fishermen turning away), S46 guns recoil, S47 patchy mud and smaller tents, S48 steep top-down camera clear of palms,
+  S40 pursuers and track cleared of palms. Still open: low-poly clouds are rarely in frame in beach beats; S47 tents are still plain white cones.
 - S30-S38 are still the device voice (quota); S29 is Algieba.

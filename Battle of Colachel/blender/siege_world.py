@@ -357,47 +357,44 @@ def build_s40(c, lib, L, ev):
 
 # ===================================================================== S43
 def build_s43(c, L, ev):
-    """Fishermen turn their backs on a Dutch officer's bag of coins (K52)."""
+    """Fishermen turn their backs on a Dutch officer's bag of coins (K52). The camera is on the sea side:
+    the officer stands at the left (west), the fishermen at the right, huts and palms behind."""
     rng = random.Random(43)
     end = ev["end"]
     f0, f1 = ev["r43"]
     turn = ev["refuse"]
     gx, gy = beach(9.5, 3.8)
-    # the fishermen stand in a loose arc by the beached boats, facing the officer
-    offs = ((0.0, 0.0, 0), (1.4, 0.7, 1), (2.7, -0.2, 2), (4.0, 0.6, 3), (5.4, -0.1, 0), (-1.5, -0.8, 1))
-    ox, oy = gx - TX * 1.9 + NX * 1.6, gy - TY * 1.9 + NY * 1.6        # the officer, at the left, nearest the huts
+    ox, oy = gx - TX * 1.0, gy - TY * 1.0                       # the officer
+    offs = ((0.9, 0.5, 0), (2.0, -0.8, 1), (3.1, 0.7, 2), (4.2, -0.6, 3), (5.4, 0.5, 0))
     for i, (dt_, dn, k) in enumerate(offs):
         x, y = gx + TX * dt_ + NX * dn, gy + TY * dt_ + NY * dn
         ob = put(L["fisher"][k], f"S43Fisher{i}", c, x, y, face(ox - x, oy - y) + rng.uniform(-0.15, 0.15))
-        away = face(x - ox, y - oy) + rng.uniform(-0.5, 0.5)
+        # they turn their backs: to the sea and away from him
+        away = face((x - ox) * 0.6 - NX * 0.8, (y - oy) * 0.6 - NY * 0.8) + rng.uniform(-0.3, 0.3)
         kit.animate_idle(ob, rng, f0, turn - 30, amount=0.02)
         turn_to(ob, turn + 3 * i, away, frames=16)
         ob.rotation_euler[2] = away
         kit.animate_idle(ob, rng, turn + 40, end, amount=0.02)
-    # the Dutch officer holding out the bag, two soldiers behind him
-    off = put(L["officer"], "S43Officer", c, ox, oy, face(gx + TX * 2.5 - ox, gy + TY * 2.5 - oy), s=1.04)
+    off = put(L["officer"], "S43Officer", c, ox, oy, face(TX, TY) - 0.1, s=1.04)
     kit.animate_idle(off, rng, f0, end, amount=0.015)
     bag_pos = Vector((ox, oy, H(ox, oy))) + kit.Rz(off.rotation_euler[2]) @ Vector((-0.36, 0.8, 1.27))
-    bag = kit.instance(L["coin"], "S43Bag", c, bag_pos, rot_z=0.5, scale=1.6)
-    for k, (db, dn) in enumerate(((-1.4, 1.2), (-2.4, 2.0))):
+    kit.instance(L["coin"], "S43Bag", c, bag_pos, rot_z=0.5, scale=1.8)
+    for k, (db, dn) in enumerate(((-1.4, 1.0), (-2.5, 1.8))):
         x, y = ox + TX * db + NX * dn, oy + TY * db + NY * dn
         s = put(L["dutch"][k], f"S43Escort{k}", c, x, y, face(gx - x, gy - y))
         kit.animate_idle(s, rng, f0, end, amount=0.02)
-    # nets drying, baskets of fish, boats pulled up, an oar or two
-    for k, (dt_, dn, rz) in enumerate(((-4.5, 5.0, 0.0), (7.5, 6.5, 0.1), (14.0, 4.5, -0.1))):
+    # nets drying, baskets and crates behind the group, boats pulled up beyond it
+    for k, (dt_, dn, rz) in enumerate(((-6.5, 4.5, 0.0), (3.5, 6.0, 0.1), (11.0, 5.0, -0.1))):
         x, y = gx + TX * dt_ + NX * dn, gy + TY * dt_ + NY * dn
         put(L["net"][k % 2], f"S43Net{k}", c, x, y, face(TX, TY) - math.pi / 2 + rz)
     crate, barrel = bpy.data.objects["LibCrate"], bpy.data.objects["LibBarrel"]
-    for k in range(7):
-        x, y = gx + TX * rng.uniform(1, 9) + NX * rng.uniform(3.0, 5.5), gy + TY * rng.uniform(1, 9) + NY * rng.uniform(3.0, 5.5)
-        if math.hypot(x - ox, y - oy) < 1.6:
-            continue
+    for k in range(8):
+        x, y = gx + TX * rng.uniform(-8, 12) + NX * rng.uniform(3.0, 6.0), gy + TY * rng.uniform(-8, 12) + NY * rng.uniform(3.0, 6.0)
         put((crate, barrel)[k % 2], f"S43Gear{k}", c, x, y, rng.uniform(0, 3), s=0.8)
     boat = bpy.data.objects["LibBoat"]
-    for k, (dt_, dn) in enumerate(((3.0, -3.4), (8.5, -3.2), (14.0, -3.0))):
+    for k, (dt_, dn) in enumerate(((8.5, -2.4), (13.5, -2.2), (19.0, -2.0), (-7.5, -2.3))):
         x, y = gx + TX * dt_ + NX * dn, gy + TY * dt_ + NY * dn
-        put(boat, f"S43Boat{k}", c, x, y, face(NX, NY) + rng.uniform(-0.35, 0.35), sink=0.12)
-    # villagers going about the beach behind
+        put(boat, f"S43Boat{k}", c, x, y, face(NX, NY) + rng.uniform(-0.3, 0.3), sink=0.12)
     for k, (xa, da, xb, db) in enumerate(((17, 11, 26, 10), (28, 12, 19, 12), (21, 9, 30, 8))):
         root, parts = kit.make_villager(f"S43Walker{k}", c, seed=80 + k, robe=k == 0, cloth=("cloth_t", "cloth_w", "cloth_r")[k])
         kit.animate_walk(root, parts, [beach(xa, da), beach(xb, db)], H, start=f0, end=end, stride_frames=15, speed=0.5)
@@ -555,7 +552,14 @@ def build_s46(c, L, ev, ships):
     # volleys: each gun fires a few times, ripple along the line
     for vi, vf in enumerate(ev["fire46"]):
         for k, (x, y, rz) in enumerate(guns):
-            fire_gun(c, L, (x, y), rz, vf + 5 * k + rng.randint(0, 3), rng, end, f"S46G{vi}_{k}", size=1.0)
+            tf = vf + 5 * k + rng.randint(0, 3)
+            fire_gun(c, L, (x, y), rz, tf, rng, end, f"S46G{vi}_{k}", size=1.0)
+            g = bpy.data.objects[f"S46Gun{k}"]
+            fw = Vector((-math.sin(rz), math.cos(rz), 0.0))
+            base = Vector((x, y, H(x, y) - 0.03))
+            for df, back in ((-1, 0.0), (2, 0.8), (20, 0.0)):
+                g.location = base - fw * back
+                g.keyframe_insert("location", frame=tf + df)
     # shot falls round the ships
     for vi, vf in enumerate(ev["fire46"]):
         for si, (ship, course) in enumerate(ships):
@@ -575,6 +579,8 @@ def build_s47(c, L, ev):
     f0, f1 = ev["r47"]
     crate, barrel = bpy.data.objects["LibCrate"], bpy.data.objects["LibBarrel"]
     sack = L["sack"]
+    for ob in [o for o in bpy.data.objects if o.name.startswith("StockadeTent")]:
+        ob.scale = (0.72, 0.72, 0.72)
     cu, cv = -2.0, -3.0
     cx, cyy = SW(cu, cv)
     # a few sacks heaped, a couple slumped and empty, open crate of grain
@@ -623,7 +629,7 @@ def build_s47(c, L, ev):
         grid.append(row)
     for j in range(nv):
         for i in range(nu):
-            mb.face([grid[j][i], grid[j][i + 1], grid[j + 1][i + 1], grid[j + 1][i]], "soil_dk" if (i * 7 + j * 3) % 5 else "soil")
+            mb.face([grid[j][i], grid[j][i + 1], grid[j + 1][i + 1], grid[j + 1][i]], "soil" if rng.random() < 0.12 else "soil_dk")
     mb.obj("S47Mud", c)
     pts = [SW(rng.uniform(-12, 12), rng.uniform(-9, 9)) for _ in range(8)]
     puddles(c, rng, pts, n_each=3)
