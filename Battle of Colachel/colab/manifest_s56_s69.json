@@ -1,0 +1,118 @@
+{
+  "batch_name": "S56_to_S69",
+  "description": "Battle of Colachel production batch (Beats S56 through S69: Udayagiri, Map, Chapel, Treaty, Temple, Today)",
+  "shots": [
+    {
+      "clip": "clip68",
+      "beat": "S56",
+      "blend": "Udayagiri.blend",
+      "start": 241,
+      "end": 480,
+      "audio": "S56.wav"
+    },
+    {
+      "clip": "clip69",
+      "beat": "S57",
+      "blend": "Udayagiri.blend",
+      "start": 481,
+      "end": 901,
+      "audio": "S57.wav"
+    },
+    {
+      "clip": "clip70",
+      "beat": "S58",
+      "blend": "Udayagiri.blend",
+      "start": 902,
+      "end": 1141,
+      "audio": "S58.wav"
+    },
+    {
+      "clip": "clip71-72",
+      "beat": "S59",
+      "blend": "Map.blend",
+      "start": 3888,
+      "end": 4441,
+      "audio": "S59.wav"
+    },
+    {
+      "clip": "clip73",
+      "beat": "S60",
+      "blend": "Chapel.blend",
+      "start": 1,
+      "end": 379,
+      "audio": "S60.wav"
+    },
+    {
+      "clip": "clip74",
+      "beat": "S61",
+      "blend": "Map.blend",
+      "start": 4442,
+      "end": 4809,
+      "audio": "S61.wav"
+    },
+    {
+      "clip": "clip75",
+      "beat": "S62",
+      "blend": "Treaty.blend",
+      "start": 1,
+      "end": 360,
+      "audio": "S62.wav"
+    },
+    {
+      "clip": "clip76",
+      "beat": "S63",
+      "blend": "Map.blend",
+      "start": 4810,
+      "end": 5211,
+      "audio": "S63.wav"
+    },
+    {
+      "clip": "clip77",
+      "beat": "S64",
+      "blend": "Temple.blend",
+      "start": 1,
+      "end": 395,
+      "audio": "S64.wav"
+    },
+    {
+      "clip": "clip78",
+      "beat": "S65",
+      "blend": "Today.blend",
+      "start": 1,
+      "end": 485,
+      "audio": "S65.wav"
+    },
+    {
+      "clip": "clip79",
+      "beat": "S66",
+      "blend": "Today.blend",
+      "start": 486,
+      "end": 985,
+      "audio": "S66.wav"
+    },
+    {
+      "clip": "clip80-81",
+      "beat": "S67",
+      "blend": "Today.blend",
+      "start": 986,
+      "end": 1735,
+      "audio": "S67.wav"
+    },
+    {
+      "clip": "clip82",
+      "beat": "S68",
+      "blend": "Today.blend",
+      "start": 1736,
+      "end": 1986,
+      "audio": "S68.wav"
+    },
+    {
+      "clip": "clip82b",
+      "beat": "S69",
+      "blend": "Today.blend",
+      "start": 1987,
+      "end": 2701,
+      "audio": "S69.wav"
+    }
+  ]
+}

@@ -20,6 +20,7 @@
   3. Map frames 1554-3534 (S16, S18, S19, S24, S28, S29) need re-render (red wash fix); Map S59-S63 frames are new (3888-5211).
   4. Re-record S05-S18 and S01-S04 in Algieba at the very end.
   5. User review of S59-S69 stills (this session did not render video).
+- **Cloud GPU Render Batch S56-S69:** Package `colab/s56_to_s69_package.zip` built (51.5 MB, 14 shots, 6,060 frames across `Udayagiri.blend`, `Map.blend`, `Chapel.blend`, `Treaty.blend`, `Temple.blend`, `Today.blend`, audios S56-S69). S41-S55 rendering in parallel on another device.
 - **Rule from the user:** finish each set 100% before starting the next.
 - Render machine: pull the latest commit, delete old `renders/frames_*` for changed beats before rendering.
 

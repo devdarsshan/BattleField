@@ -1,94 +1,118 @@
 {
-  "batch_name": "S30_to_S40",
-  "description": "Battle of Colachel production batch (Beats S30 through S40: Landing, Inland, Map, Siege)",
+  "batch_name": "S56_to_S69",
+  "description": "Battle of Colachel production batch (Beats S56 through S69: Udayagiri, Map, Chapel, Treaty, Temple, Today)",
   "shots": [
     {
-      "clip": "clip37",
-      "beat": "S30",
-      "blend": "Landing.blend",
-      "start": 1,
-      "end": 447,
-      "audio": "S30.wav"
+      "clip": "clip68",
+      "beat": "S56",
+      "blend": "Udayagiri.blend",
+      "start": 241,
+      "end": 480,
+      "audio": "S56.wav"
     },
     {
-      "clip": "clip38",
-      "beat": "S31",
-      "blend": "Landing.blend",
-      "start": 448,
-      "end": 831,
-      "audio": "S31.wav"
+      "clip": "clip69",
+      "beat": "S57",
+      "blend": "Udayagiri.blend",
+      "start": 481,
+      "end": 901,
+      "audio": "S57.wav"
     },
     {
-      "clip": "clip39",
-      "beat": "S32",
-      "blend": "Landing.blend",
-      "start": 832,
-      "end": 1194,
-      "audio": "S32.wav"
+      "clip": "clip70",
+      "beat": "S58",
+      "blend": "Udayagiri.blend",
+      "start": 902,
+      "end": 1141,
+      "audio": "S58.wav"
     },
     {
-      "clip": "clip40",
-      "beat": "S33",
-      "blend": "Inland.blend",
-      "start": 1,
-      "end": 418,
-      "audio": "S33.wav"
-    },
-    {
-      "clip": "clip41",
-      "beat": "S34",
-      "blend": "Landing.blend",
-      "start": 1195,
-      "end": 1635,
-      "audio": "S34.wav"
-    },
-    {
-      "clip": "clip42-43",
-      "beat": "S35",
-      "blend": "Inland.blend",
-      "start": 419,
-      "end": 1007,
-      "audio": "S35.wav"
-    },
-    {
-      "clip": "clip44-45",
-      "beat": "S36",
-      "blend": "Inland.blend",
-      "start": 1008,
-      "end": 1299,
-      "audio": "S36.wav"
-    },
-    {
-      "clip": "clip46",
-      "beat": "S37",
-      "blend": "Inland.blend",
-      "start": 1300,
-      "end": 1735,
-      "audio": "S37.wav"
-    },
-    {
-      "clip": "clip47",
-      "beat": "S38",
-      "blend": "Landing.blend",
-      "start": 1636,
-      "end": 2111,
-      "audio": "S38.wav"
-    },
-    {
-      "clip": "clip48",
-      "beat": "S39",
+      "clip": "clip71-72",
+      "beat": "S59",
       "blend": "Map.blend",
-      "start": 3535,
-      "end": 3887,
-      "audio": "S39.wav"
+      "start": 3888,
+      "end": 4441,
+      "audio": "S59.wav"
     },
     {
-      "clip": "clip49",
-      "beat": "S40",
-      "blend": "Siege.blend",
+      "clip": "clip73",
+      "beat": "S60",
+      "blend": "Chapel.blend",
       "start": 1,
-      "end": 262,
-      "audio": "S40.wav"
+      "end": 379,
+      "audio": "S60.wav"
+    },
+    {
+      "clip": "clip74",
+      "beat": "S61",
+      "blend": "Map.blend",
+      "start": 4442,
+      "end": 4809,
+      "audio": "S61.wav"
+    },
+    {
+      "clip": "clip75",
+      "beat": "S62",
+      "blend": "Treaty.blend",
+      "start": 1,
+      "end": 360,
+      "audio": "S62.wav"
+    },
+    {
+      "clip": "clip76",
+      "beat": "S63",
+      "blend": "Map.blend",
+      "start": 4810,
+      "end": 5211,
+      "audio": "S63.wav"
+    },
+    {
+      "clip": "clip77",
+      "beat": "S64",
+      "blend": "Temple.blend",
+      "start": 1,
+      "end": 395,
+      "audio": "S64.wav"
+    },
+    {
+      "clip": "clip78",
+      "beat": "S65",
+      "blend": "Today.blend",
+      "start": 1,
+      "end": 485,
+      "audio": "S65.wav"
+    },
+    {
+      "clip": "clip79",
+      "beat": "S66",
+      "blend": "Today.blend",
+      "start": 486,
+      "end": 985,
+      "audio": "S66.wav"
+    },
+    {
+      "clip": "clip80-81",
+      "beat": "S67",
+      "blend": "Today.blend",
+      "start": 986,
+      "end": 1735,
+      "audio": "S67.wav"
+    },
+    {
+      "clip": "clip82",
+      "beat": "S68",
+      "blend": "Today.blend",
+      "start": 1736,
+      "end": 1986,
+      "audio": "S68.wav"
+    },
+    {
+      "clip": "clip82b",
+      "beat": "S69",
+      "blend": "Today.blend",
+      "start": 1987,
+      "end": 2701,
+      "audio": "S69.wav"
     }
   ]
 }
