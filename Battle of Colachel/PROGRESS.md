@@ -1,5 +1,14 @@
 # Battle of Colachel: production tracker
 
+## CURRENT PROGRESS (updated 2026-10-17, evening)
+- **Ready to render (final Algieba voice, built and committed): S29 to S40.** S29 and S39 are in `Map.blend`; S30-S32, S34, S38 in `Landing.blend`;
+  S33, S35-S37 in `Inland.blend`; S40 in `Siege.blend`. S01-S28 were rendered earlier (older voices for S05-S18 and S01-S04 to be re-recorded at the end).
+- **In final polish right now (until S40 is 100% done):** S30-S38 review/polish (two helper agents, one for Landing, one for Inland). Do not render these until this line is replaced.
+- **Built but waiting for voices (device voice, lengths will change):** S41-S58 (`Siege.blend`, `Surrender.blend`, `Udayagiri.blend`). Voices S41-S58 need two daily quota windows.
+- **Not started:** S59-S69. Flow references K71-K82 made, waiting for the user's approval.
+- **Rule from the user:** finish each set 100% before starting the next.
+- Render machine: pull the latest commit, delete old `renders/frames_*` for S30+ before rendering.
+
 **Read this first if you are an AI agent (Claude, Gemini or any other) picking up this work.**
 Then read `../CLAUDE.md` (channel rules and the Blender pipeline) and `../_channel-context/*.md`.
 Update this file whenever you finish, start or change a beat. Keep it the single source of truth.
