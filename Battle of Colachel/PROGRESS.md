@@ -1,6 +1,10 @@
 # Battle of Colachel: production tracker
 
-## CURRENT PROGRESS (updated 2026-10-17, evening)
+## CURRENT PROGRESS (updated 2026-10-17, night)
+- **MAP FIX (user, 2026-10-17):** Travancore's red wash and frontier ribbon no longer extend over the sea (S16-S29). Map frames **1554-3534 (S16, S18, S19, S24, S28, S29)** changed
+  look (timing unchanged): delete and re-render those frames in `frames_map_*` (S07-S13 and S39 are unaffected). Code: `build_territory` is called without `sea_test`;
+  `s28_sea_wash_and_border` now only draws the ribbon where the frontier crosses land.
+
 - **Ready to render at 720p (final Algieba voice, polished, committed): S29 to S40.** S29 and S39 are in `Map.blend`; S30-S32, S34, S38 in `Landing.blend`;
   S33, S35-S37 in `Inland.blend`; S40 in `Siege.blend`. S01-S28 were rendered earlier (older voices for S05-S18 and S01-S04 to be re-recorded at the end).
 - **Polish of S29-S40 is finished (2026-10-17 night).** Small differences from the refs that were accepted: Landing sand/sea a little paler than the K37-K41 sunset gold;

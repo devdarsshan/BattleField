@@ -168,45 +168,20 @@ def frontier_xy(T, w):
 
 
 def s28_sea_wash_and_border(coll, bvh, frames, coast_pt, t_min=1500.0, w_sea=-1500.0, tag="S28"):
-    """S28 (K35): Travancore's red wash carried out over the sea with a clean straight-edged
-    outline (not the cell-stepped S16 sea wash), and the red frontier ribbon drawn from the
-    sea up to where the S16 border starts inland."""
-    from mathutils import Vector
-    from mathutils.geometry import delaunay_2d_cdt
+    """S24-S29: the red frontier ribbon where Travancore's frontier meets the land (the red wash is on
+    the land only, never over the sea)."""
     T = TERRITORY[-1][3]
-    w0 = _w(*coast_pt)
-    poly = [coast_pt]
-    n = 12
-    poly += [frontier_xy(T, w0 + (w_sea - w0) * k / n) for k in range(1, n + 1)]
-    t1 = _t(*poly[-1])
-    poly += [(t * _CD[0] + w_sea * _CN[0], t * _CD[1] + w_sea * _CN[1])
-             for t in [T - (T - t_min) * k / 8 for k in range(1, 9)]]
-    coast = [(x, y) for x, y in geo.coast_detailed(45.0) if x < 0 and t_min - 200 < _t(x, y) < T and _w(x, y) > w_sea]
-    coast.sort(key=lambda p: _t(*p))
-    poly += [p for p in coast if _t(*p) < _t(*coast_pt) - 20]
-    out = delaunay_2d_cdt([Vector(p) for p in poly], [], [list(range(len(poly)))], 1, 0.01)
-    bm = bmesh.new()
-    vs = [bm.verts.new((v.x, v.y, 44.0)) for v in out[0]]
-    for f in out[2]:
-        try:
-            bm.faces.new([vs[i] for i in f])
-        except ValueError:
-            pass
-    me = bpy.data.meshes.new(f"Territory_{tag}Sea")
-    bm.to_mesh(me)
-    bm.free()
-    me.materials.append(map_world.territory_material(f"TerritoryMat_{tag}Sea", map_world.TERRITORY_WASH,
-                                                     (frames[0], frames[0] + 1)))
-    ob = bpy.data.objects.new(f"Territory_{tag}Sea", me)
-    ob.visible_shadow = False
-    coll.objects.link(ob)
+    land_poly = geo.land_polygon_detailed(120.0)
+    # Travancore's red lies on the land only (never out over the sea): the frontier ribbon is
+    # drawn along the frontier t = T where it crosses the land, from the coast inland.
     pts = [frontier_xy(T, w_sea + k * 60.0) for k in range(int((1500 - w_sea) / 60) + 1)]
+    pts = [p for p in pts if geo.point_in_poly(p[0], p[1], land_poly)]
     bo = map_world.build_border(coll, bvh, pts, (frames[0], frames[0] + 1), None, name=f"Border_{tag}")
     for v in bo.data.vertices:
         if v.co.z < 20:
             v.co.z = 50.0
-    map_world.show_only([ob, bo], *frames)
-    return ob, bo
+    map_world.show_only([bo], *frames)
+    return None, bo
 
 
 def timed_clips():
@@ -253,8 +228,7 @@ def build(samples=32):
     land_ob = bpy.data.objects["MapLand"]
     land_poly = geo.land_polygon_detailed(120.0)
     sea_band = lambda x, y: x < 1200 and _w(x, y) > -1500 and not geo.point_in_poly(x, y, land_poly)
-    map_world.build_territory(coll, land_ob, bvh, [(n, t, (rt(a), rt(b))) for n, t, (a, b), _ in TERRITORY],
-                              sea_test=sea_band)
+    map_world.build_territory(coll, land_ob, bvh, [(n, t, (rt(a), rt(b))) for n, t, (a, b), _ in TERRITORY])
     # frontier lines: each appears with its stage and goes when the next frontier is drawn
     for i, (n, test, (a, b), T) in enumerate(TERRITORY):
         pts = []
