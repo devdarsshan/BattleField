@@ -74,7 +74,7 @@ images sometimes paint the sea with wave lines; ignore that, the sea is always t
 | S36 | 44-45 | Kalkulam fort, king on the elephant, ~2,400 Nairs | `Inland.blend` · ref **K44** | ✅ BUILT, frames 944-1255 (kit `make_elephant`) |
 | S37 | 46 | Thiruvattar temple at dawn, sword laid down | `Inland.blend` · ref **K46** | ✅ BUILT, frames 1256-1696 (polish later: more pink-gold dawn, richer gopuram carving) |
 | S38 | 47 | Monsoon on the beach | `Landing.blend` · S05 storm | ✅ BUILT, frames 1557-1997 (rain could be heavier) |
-| S39 | 48 | Map: stormy Gulf of Mannar, Dutch ship turns back (built by a helper agent) | `Map.blend` / `map_film.py`, `map_world.py` (`build_s39`) · ref **K48** | ✅ BUILT (device voice), map frames 3535-3886. Camera is only 38 deg off top-down, so the ship reads from above; clouds/rain heavier than K48; ship shadow hard |
+| S39 | 48 | Map: stormy sea, big Dutch ship turns back, grey cloud band over Ceylon (helper agent, reworked against K48) | `Map.blend` / `map_film.py`, `map_world.py` (`build_s39`) · ref **K48** | ✅ DONE (device voice), map frames 3535-3886. Limit: camera is 38 deg off top-down (the user's tilt cap), so it is more overhead than K48 |
 | S40 | 49 | Travancore column drives the Dutch down the track to the stockade | `Siege.blend` / `siege_film.py`, `siege_world.py` · ref **K49** | ✅ BUILT (device voice), frames 1-266 |
 | S41-S42 | 50-51 | Siege ring round the stockade (soldier line, 2 rows of tents, fires), orbit to the fishing village | `Siege.blend` · refs **K50, K51** | ✅ BUILT, frames 267-864 (one shared camera) |
 | S43 | 52 | Fishermen refuse the Dutch officer's bag of coins | `Siege.blend` · ref **K52** (re-made) | ✅ BUILT, frames 865-1343 |
