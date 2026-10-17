@@ -97,8 +97,8 @@ CAMS = {
     "S53": [("S53", 0.0, orbit(su.HC, -28, 14.0, 6.0), (su.HC[0], su.HC[1], 1.5), 30),
             ("S53", 1.0, orbit(su.HC, 38, 14.0, 6.5), (su.HC[0], su.HC[1], 1.5), 30)],
     "S54": [("S54", 0.0, (70.0, -26.0, 26.0), (62.0, 36.0, 0.0), 32),
-            ("S54", 0.5, (78.0, -16.0, 40.0), (62.0, 60.0, 2.0), 32),
-            ("S54", 1.0, (80.0, -12.0, 54.0), (58.0, 96.0, 8.0), 32)],
+            ("S54", 0.5, (72.0, 0.0, 34.0), (62.0, 78.0, 5.0), 32),
+            ("S54", 1.0, (72.0, 26.0, 38.0), (62.0, 112.0, 10.0), 32)],
 }
 MARK_CAM = {"S49": "S49", "S50": "S49", "S51": "S51", "S52": "S52", "S53": "S53", "S54": "S54"}
 KEYFRAMES = {"K59": ("S49", 0.6), "K60": ("S50", 0.25), "K62": ("S51", 0.5), "K64": ("S52", 0.8), "K65": ("S53", 0.5),
@@ -209,6 +209,16 @@ def build(samples=32):
     for clip, beat, f0, f1, _, _ in clips:
         rain_pts += [(f0, RAIN[beat]), (f1, RAIN[beat])]
     world.build_rain(kit.new_collection("Rain"), anchor, rain_pts, end)
+
+    # S54: the storm is gone; clear, cool, pale morning haze (K66), not the warm yellow of the storm-clear key
+    vol = next(n for n in bpy.data.objects["Haze"].data.materials[0].node_tree.nodes if n.bl_idname == "ShaderNodeVolumePrincipled")
+    sc.frame_set(r54[0])
+    for inp, new in ((vol.inputs["Color"], (*kit.srgb_to_linear((0.84, 0.90, 0.86)), 1)), (vol.inputs["Density"], 0.00012)):
+        inp.keyframe_insert("default_value", frame=r54[0])
+        inp.default_value = new
+        for f in (r54[0] + 70, end, end + 200, end + 300):
+            inp.keyframe_insert("default_value", frame=f)
+    sc.frame_set(1)
 
     vs = sc.view_settings
     base = vs.exposure

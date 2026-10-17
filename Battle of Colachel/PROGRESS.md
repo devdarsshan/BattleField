@@ -1,25 +1,33 @@
 # Battle of Colachel: production tracker
 
-## CURRENT PROGRESS (updated 2026-10-17, night)
-- **MAP FIX (user, 2026-10-17):** Travancore's red wash and frontier ribbon no longer extend over the sea (S16-S29). Map frames **1554-3534 (S16, S18, S19, S24, S28, S29)** changed
-  look (timing unchanged): delete and re-render those frames in `frames_map_*` (S07-S13 and S39 are unaffected). Code: `build_territory` is called without `sea_test`;
-  `s28_sea_wash_and_border` now only draws the ribbon where the frontier crosses land.
-
-- **Ready to render at 720p (final Algieba voice, polished, committed): S29 to S40.** S29 and S39 are in `Map.blend` (S29 needs the map re-render above); S30-S32, S34, S38 in `Landing.blend`;
-  S33, S35-S37 in `Inland.blend`; S40 in `Siege.blend`. S01-S28 were rendered earlier (older voices for S05-S18 and S01-S04 to be re-recorded at the end).
-- **Polish of S29-S40 is finished (2026-10-17 night).** Small differences from the refs that were accepted: Landing sand/sea a little paler than the K37-K41 sunset gold;
-  S38 foam reads as thin shards (no curling crests); S33 palace town has more houses than K40; S36 shows a strip of open sand at far left in one frame (crowd = 2,409);
-  S37 tree-line palms greener than K46; S39 camera is capped at 38 deg tilt.
-- **Built but waiting for voices (device voice, lengths will change):** S41-S58 (`Siege.blend`, `Surrender.blend`, `Udayagiri.blend`). Voices S41-S58 need two daily quota windows.
-- **Not started:** S59-S69. Flow references K71-K82 made, waiting for the user's approval.
+## CURRENT PROGRESS (updated 2026-10-17, late night)
+- **ALL 69 BEATS ARE NOW BUILT** (S59-S69 added this session, device voice, checked against K71-K82 with stills). Nothing is left to build; what remains is voices, rendering and review.
+- **Polish done (2026-10-17):** S43 fishermen loosened (7 men, scattered, staggered turns), S47 patched wet-canvas yard tents (`make_patched_tent`), S48 palms cleared in a corridor and a lower oblique camera so the battery shows,
+  S50 fireball brighter and bigger with lighter smoke that starts later, S54 clear pale haze (storm-clear warm yellow removed) and a camera that ends on the hill fort.
+- **Kit merge done:** the generic parts of siege/surrender/Udayagiri worlds now live in `colachel_kit.py` (stone wall, stairs, flagstones, canopy, pavilion, furnace, shed, scaffold, banner, musketeer, court robe, hatless De Lannoy, tricorn, sash, sword, char stake, patched tent...).
+  The world modules import them from the kit. Udayagiri stills rebuilt identical to the committed blend (pixel diff 0). `make_hill_fort` stays in surrender_world (needs port_world flags).
+- **New beats (frame ranges from the device voice; they re-time when the real voice arrives):**
+  - S59, S61, S63 in `Map.blend` (`map_world2.py`, `map_film.py`): S59 frames 3888-4441 (red wash north over Kollam and Kayamkulam, Nedumkotta wall draws across the north, red troop blocks), S61 4442-4809 (Dutch star fort at Kanyakumari, two ships leave with wakes), S63 4810-5211 (all Travancore red, 20 pepper ships streaming in).
+  - S60 `Chapel.blend` (`chapel_world.py`, `chapel_film.py`): frames 1-379, tomb in the Udayagiri chapel, window light and candles.
+  - S62 `Treaty.blend` (`treaty_world.py`, `treaty_film.py`): frames 1-360, the Mavelikkara tent, table, scroll, envoys, guards.
+  - S64 `Temple.blend` (`temple64_world.py`, `temple64_film.py`): frames 1-395, tiered temple tower, lamp steps, the king kneeling with his sword, priests, devotees, guards. (Inland.blend is back to S33-S37 only; its ranges moved with the real voices: S33 1-418, S35 419-1007, S36 1008-1299, S37 1300-1735.)
+  - S65-S69 `Today.blend` (`today_world.py`, `today_film.py`): S65 1-485, S66 486-985, S67 986-1735, S68 1736-1986, S69 1987-2701 (victory pillar daylight, orbit, rise over the sea, sunset over the stump ring, fade to dark under the end screen).
+  - Shared helpers for the small stand-alone dioramas: `mini_dio.py`. Contact sheets: `python sheet.py PREFIX OUT.png f1 f2 ...`.
+- **Second pass 2026-10-17 (all weak points fixed against K71-K82):** S65-S69 turquoise sea, golden light, railed pillar enclosure, beach boats, banded sunset sky with violet sea, sun disc and palms, fade; S60 pointed-arch chapel with candles and window light; S62 gabled marquee with seated envoys, guards, scroll; S64 new temple diorama; S59 visible red troop blocks with banners, bold Nedumkotta; S61 big orange star fort with ships and wakes; S63 stream of pepper ships along the coast.
+- **Still to do:**
+  1. Voices: S41-S69 are on the device voice (about 29 lines = three daily quota windows). After recording, rebuild each film script (lengths change); `renders/frames_*` for changed beats must be deleted.
+  2. Render 720p previews of everything not yet rendered (S29-S69), review, then 1080p finals on the GPU machine.
+  3. Map frames 1554-3534 (S16, S18, S19, S24, S28, S29) need re-render (red wash fix); Map S59-S63 frames are new (3888-5211).
+  4. Re-record S05-S18 and S01-S04 in Algieba at the very end.
+  5. User review of S59-S69 stills (this session did not render video).
 - **Rule from the user:** finish each set 100% before starting the next.
-- Render machine: pull the latest commit, delete old `renders/frames_*` for S30+ before rendering.
+- Render machine: pull the latest commit, delete old `renders/frames_*` for changed beats before rendering.
 
 **Read this first if you are an AI agent (Claude, Gemini or any other) picking up this work.**
 Then read `../CLAUDE.md` (channel rules and the Blender pipeline) and `../_channel-context/*.md`.
 Update this file whenever you finish, start or change a beat. Keep it the single source of truth.
 
-Last updated: 2026-10-17 night (Claude: S29-S40 final voice and polish; S41-S58 built, waiting for voices; map red wash fixed to land only; S59-S69 not started)
+Last updated: 2026-10-17 late night (Claude: S43/S47/S48/S50/S54 polish, kit merge, S59-S69 built on the device voice)
 
 ---
 
@@ -105,7 +113,13 @@ images sometimes paint the sea with wave lines; ignore that, the sea is always t
 | S53 | 65 | Dutch officers, De Lannoy first, hand swords to Travancore commanders (beach east of the stockade) | `Surrender.blend` · ref **K65** | ✅ BUILT, frames 1340-1832 |
 | S54 | 66 | Prisoners marched inland along the track, hill fort ahead | `Surrender.blend` · ref **K66** | ✅ BUILT, frames 1833-2072 (fort barely in frame; haze) |
 | S55-S58 | 67-70 | Udayagiri: the king offers De Lannoy a job, he bows; drill ground; the sash | `Udayagiri.blend` / `udayagiri_film.py`, `udayagiri_world.py` (helper agent) · refs **K67-K70** | ✅ BUILT (device voice), frames 1-1141: S55 1-240, S56 241-480, S57 481-901, S58 902-1141. DONE: king in a court robe (`court_robe`, same kit king underneath), red-coat drilled troops, fuller S57 foreground, softer S56 bow, S58 reframed |
-| S59-S69 | 71-82 | Map north, chapel, Mavelikkara treaty, temple, pillar today, sunset | - | ⬜ Not started (11 beats) |
+| S59 | 71-72 | Map: Travancore takes Kollam and Kayamkulam, goes north; Nedumkotta wall | `Map.blend` / `map_world2.py` · ref **K71** | ✅ BUILT (device voice), map frames 3888-4441 |
+| S60 | 73 | Chapel inside Udayagiri, De Lannoy's tomb | `Chapel.blend` / `chapel_world.py`, `chapel_film.py` · ref **K73** | ✅ BUILT (device voice), frames 1-379 |
+| S61 | 74 | Map: Dutch ships leave Kanyakumari | `Map.blend` · ref **K74** | ✅ BUILT (device voice), map frames 4442-4809 |
+| S62 | 75 | Mavelikkara treaty tent | `Treaty.blend` / `treaty_world.py`, `treaty_film.py` · ref **K75** | ✅ BUILT (device voice), frames 1-360 |
+| S63 | 76 | Map: Travancore biggest, pepper ships | `Map.blend` · ref **K76** | ✅ BUILT (device voice), map frames 4810-5211 |
+| S64 | 77 | King lays his sword at the Padmanabha temple (dusk) | `Temple.blend` / `temple64_world.py`, `temple64_film.py` · ref **K77** | ✅ BUILT (device voice), `Temple.blend` frames 1-395 |
+| S65-S69 | 78-82 | Victory pillar today, orbit, rise over the sea, sunset, fade under the end screen | `Today.blend` / `today_world.py`, `today_film.py` · refs **K78, K80, K82** | ✅ BUILT (device voice), frames 1-2701 (S65 1-485, S66 486-985, S67 986-1735, S68 1736-1986, S69 1987-2701) |
 
 **Complete and approved through S18:** S01–S18 all reviewed and approved.
 **Beats S19–S28 built:** All 5 scene blend files (`Map.blend`, `Study.blend`, `Meeting.blend`, `Battle.blend`, `Varkala.blend`) fully built, visual stills verified against Flow references K25–K35.

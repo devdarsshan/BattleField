@@ -22,7 +22,8 @@ import colachel_kit as kit
 import colachel_world as world
 import kerala_geo as geo
 import map_world
-for m in (kit, geo, world, map_world):
+import map_world2
+for m in (kit, geo, world, map_world, map_world2):
     importlib.reload(m)
 
 sys.argv = sys.argv[:1]      # film.py helpers below are reused without running its build
@@ -45,11 +46,15 @@ DESIGN_CLIPS = [
     ("35", "S28", 2741, 2935),       # after S27 (Varkala cliffs): the frontier near Kollam goes back and forth (K35)
     ("36", "S29", 2936, 3380),       # cut on from S28: the ship from Ceylon at Kochi, the dotted route south (K36)
     ("48", "S39", 3381, 3620),       # cut on from the siege beats: stormy gulf, Ceylon far off, a Dutch ship turns back (K48)
+    ("71-72", "S59", 3621, 3980),    # epilogue: Travancore takes Kollam and Kayamkulam, goes north; the Nedumkotta wall (K71)
+    ("74", "S61", 3981, 4220),       # the Dutch leave Kanyakumari (K74)
+    ("76", "S63", 4221, 4560),       # Travancore the biggest colour on the coast; pepper ships (K76)
 ]
 # S19, S24 and S28 look a little down the map toward the north (as their Flow refs K25, K31,
 # K35 do), so the sails, the war banner and the soldiers read; the earlier map shots are
 # straight top-down. Camera keys for them are given as the ground point aimed at.
-SHOT_TILT = {"MapCameraS19": 10.0, "MapCameraS24": 38.0, "MapCameraS28": 25.0, "MapCameraS29": 30.0, "MapCameraS39": 38.0}
+SHOT_TILT = {"MapCameraS19": 10.0, "MapCameraS24": 38.0, "MapCameraS28": 25.0, "MapCameraS29": 30.0, "MapCameraS39": 38.0,
+              "MapCameraS59": 34.0, "MapCameraS61": 38.0, "MapCameraS63": 30.0}
 # S29 eases from a low look at Kochi up to a high, nearly top-down view of the whole route
 S29_TILT = [(2936, 30.0), (3170, 30.0), (3380, 8.0)]
 
@@ -121,6 +126,17 @@ CAM_KEYS = [
     # S39: (cut in from the siege) glide over the storm sea, Ceylon a strip on the far horizon
     (3381, aim_az(S39_A0, 11000.0, 38.0, S39_AZIMUTH)),
     (3620, aim_az(S39_A1, 10200.0, 34.0, S39_AZIMUTH)),
+    # S59: (cut in from the chapel/Udayagiri) rise over Kollam and glide north along the coast to the Nedumkotta line
+    (3621, aim(-2800.0, 3500.0, 5600.0, 34.0)),
+    (3800, aim(-3700.0, 5700.0, 7600.0, 34.0)),
+    (3980, aim(-4000.0, 8300.0, 10500.0, 34.0)),
+    # S61: the southern tip, the Dutch fort and the ships leaving
+    (3981, aim(900.0, -350.0, 3000.0, 38.0)),
+    (4220, aim(1100.0, -600.0, 2700.0, 38.0)),
+    # S63: pull up to see all of Travancore, the pepper ships coming in
+    (4221, aim(-2500.0, 3000.0, 8200.0, 32.0)),
+    (4390, aim(-2700.0, 3400.0, 9600.0, 28.0)),
+    (4560, aim(-2900.0, 3800.0, 11000.0, 24.0)),
 ]
 # Travancore's growth, S16. Frontiers run across the strip, perpendicular to the coast
 # (t = distance along the coast from Colachel, w = distance inland), with a gentle wobble.
@@ -150,7 +166,8 @@ FORTS_APPEAR = (760, 930)
 CUT_SHOTS = [
     (691, "MapCameraS10"), (1291, "MapCameraS13"), (1531, "MapCameraS16"),
     (1831, "MapCameraS18"), (2071, "MapCameraS19"), (2376, "MapCameraS24"),
-    (2741, "MapCameraS28"), (2936, "MapCameraS29"), (3381, "MapCameraS39")
+    (2741, "MapCameraS28"), (2936, "MapCameraS29"), (3381, "MapCameraS39"),
+    (3621, "MapCameraS59"), (3981, "MapCameraS61"), (4221, "MapCameraS63"),
 ]
 CLOUDS_PART = (1, 78)         # clouds hold for 0.5 s (the dissolve), then part by ~3.2 s
 SHIPS = [(-1200.0, -650.0, 200), (-500.0, -1050.0, 160), (-2100.0, 250.0, 210), (-4700.0, 3900.0, 190),
@@ -292,6 +309,24 @@ def build(samples=32):
     # S39 (K48): a stormy sea, the Dutch ship comes about, Ceylon far off
     s39 = beat["S39"]
     map_world.build_s39(coll, lib_c, s39, end, anchor=S39_A0, azimuth=S39_AZIMUTH, ship_start=(7900.0, -6150.0))
+
+    # ---- epilogue beats S59, S61, S63 (map_world2)
+    lines = F["beat_lines"]()
+
+    def phrase(b, text, extra=0.0):
+        """Frame at which `text` starts being spoken in beat b."""
+        c = next(c for c in clips if c[1] == b)
+        i = lines[b].find(text)
+        assert i >= 0, (b, text)
+        return int(c[2] + (F["NARRATION_LEAD"] + c[5] * i / len(lines[b]) + extra) * FPS)
+
+    map_world.matte_sea_copy(coll, [beat["S59"], beat["S61"], beat["S63"]], name="MapSeaMatteLate", late=True)
+    map_world2.build_s59(coll, lib_c, land_ob, land, bvh, beat["S59"], _t, frontier_xy,
+                         dict(kollam=phrase("S59", "takes Kollam"), north=phrase("S59", "keeps going north"),
+                              wall=phrase("S59", "the Nedumkotta")))
+    map_world2.build_s61(coll, lib_c, land, bvh, beat["S61"], end, phrase("S61", "and then leave"))
+    map_world2.build_s63(coll, lib_c, land_ob, land, bvh, beat["S63"], _t, frontier_xy,
+                         dict(big=phrase("S63", "After Colachel")))
 
     cd = bpy.data.cameras.new("MapCamera")
     cd.lens = LENS

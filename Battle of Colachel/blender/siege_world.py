@@ -19,10 +19,12 @@ Everything else comes from the kit; the only new parts are the fake cannon, cart
 import math
 import random
 
+import bmesh
 import bpy
 from mathutils import Vector
 
 import colachel_kit as kit
+from colachel_kit import make_patched_tent
 import colachel_world as cw
 import landing_world as lw
 import port_world as pw
@@ -365,16 +367,16 @@ def build_s43(c, L, ev):
     turn = ev["refuse"]
     gx, gy = beach(9.5, 3.8)
     ox, oy = gx - TX * 1.0, gy - TY * 1.0                       # the officer
-    offs = ((0.9, 0.5, 0), (2.0, -0.8, 1), (3.1, 0.7, 2), (4.2, -0.6, 3), (5.4, 0.5, 0))
+    offs = ((0.8, 0.4, 0), (1.7, -1.3, 1), (2.4, 1.2, 2), (3.4, -0.4, 3), (4.4, 1.5, 0), (5.1, -1.5, 1), (6.2, 0.2, 2))
     for i, (dt_, dn, k) in enumerate(offs):
         x, y = gx + TX * dt_ + NX * dn, gy + TY * dt_ + NY * dn
         ob = put(L["fisher"][k], f"S43Fisher{i}", c, x, y, face(ox - x, oy - y) + rng.uniform(-0.15, 0.15))
         # they turn their backs: to the sea and away from him
-        away = face((x - ox) * 0.6 - NX * 0.8, (y - oy) * 0.6 - NY * 0.8) + rng.uniform(-0.3, 0.3)
-        kit.animate_idle(ob, rng, f0, turn - 30, amount=0.02)
-        turn_to(ob, turn + 3 * i, away, frames=16)
+        away = face((x - ox) * 0.6 - NX * 0.8, (y - oy) * 0.6 - NY * 0.8) + rng.uniform(-0.7, 0.7)
+        kit.animate_idle(ob, rng, f0, turn - 30 + 5 * i, amount=0.035)
+        turn_to(ob, turn + 7 * i + rng.randint(0, 6), away, frames=rng.randint(14, 26))
         ob.rotation_euler[2] = away
-        kit.animate_idle(ob, rng, turn + 40, end, amount=0.02)
+        kit.animate_idle(ob, rng, turn + 60 + 7 * i, end, amount=0.035)
     off = put(L["officer"], "S43Officer", c, ox, oy, face(TX, TY) - 0.1, s=1.04)
     kit.animate_idle(off, rng, f0, end, amount=0.015)
     bag_pos = Vector((ox, oy, H(ox, oy))) + kit.Rz(off.rotation_euler[2]) @ Vector((-0.36, 0.8, 1.27))
@@ -645,10 +647,17 @@ def build_s48(c, L, ev):
     # gunners, screening palms), one gun fires
     bx0, by0 = cw.BATTERY
     for ob in [o for o in bpy.data.objects if o.name.startswith(("Palm", "GrovePalm", "Tree", "Bush", "GroveBush"))]:
-        if math.hypot(ob.location.x - bx0, ob.location.y - by0) < 17.0:
+        px, py = ob.location.x, ob.location.y
+        # the hillock and a wide corridor from the camera's side (south-west) up to it
+        ax, ay, ex, ey = 74.0, -2.0, bx0, by0
+        t = max(0.0, min(1.0, ((px - ax) * (ex - ax) + (py - ay) * (ey - ay)) / ((ex - ax) ** 2 + (ey - ay) ** 2)))
+        if math.hypot(px - bx0, py - by0) < (34.0 if sum(map(ord, ob.name)) % 4 else 24.0) or math.hypot(px - (ax + t * (ex - ax)), py - (ay + t * (ey - ay))) < 11.0:
             bpy.data.objects.remove(ob, do_unlink=True)
     cw.build_battery(c, bpy.data.collections["Library"], end, shot=ev["shot48"])
     bx, by = cw.BATTERY
+    # the screening palms that stand between the camera and the guns come out (K58 shows an open hilltop)
+    for ob in [o for o in bpy.data.objects if o.name.startswith("BatteryPalm") and o.location.y < by - 5.0]:
+        bpy.data.objects.remove(ob, do_unlink=True)
     # more gunners, a stack of shot and barrels, a flag
     barrel, crate = bpy.data.objects["LibBarrel"], bpy.data.objects["LibCrate"]
     for k, (dx, dy) in enumerate(((-3.2, 2.2), (-2.6, 3.0), (3.5, 2.0), (4.2, 2.6), (0.5, 4.0))):
@@ -683,13 +692,31 @@ def build_low_clouds(c, rng, n=16):
 
 
 def dim_stockade_tents():
-    """The yard tents are grey-brown canvas, wet and dull (K57), not bright white."""
-    kit.PALETTE.setdefault("tent_grey", (0.60, 0.56, 0.48))
-    kit.mat("tent_grey", kit.PALETTE["tent_grey"])
-    for n in ("LibLConeTent0", "LibLConeTent1", "LibLRidgeTent"):
+    """The yard tents are wet, patched, grey-brown canvas (K57), not bright white cones."""
+    for nm, col in (("tent_grey", (0.60, 0.56, 0.48)), ("tent_grey2", (0.48, 0.44, 0.37)), ("tent_dk", (0.27, 0.24, 0.20))):
+        kit.PALETTE.setdefault(nm, col)
+        kit.mat(nm, kit.PALETTE[nm])
+    tmp = bpy.data.collections.get("TentTmp") or kit.new_collection("TentTmp")
+    for i, n in enumerate(("LibLConeTent0", "LibLConeTent1")):
         ob = bpy.data.objects.get(n)
-        if ob:
-            kit.recolor(ob, {"canvas": "tent_grey"})
+        if not ob:
+            continue
+        # rebuild the shared mesh in place so every instance of the tent picks it up
+        r = 1.9 + 0.3 * i
+        new = make_patched_tent(f"TentNew{i}", tmp, r=r, h=3.0 + 0.4 * i, seed=7 + i)
+        old = ob.data
+        old.clear_geometry()
+        old.materials.clear()
+        for m in new.data.materials:
+            old.materials.append(m)
+        bm = bmesh.new()
+        bm.from_mesh(new.data)
+        bm.to_mesh(old)
+        bm.free()
+        bpy.data.objects.remove(new, do_unlink=True)
+    ob = bpy.data.objects.get("LibLRidgeTent")
+    if ob:
+        kit.recolor(ob, {"canvas": "tent_grey"})
 
 
 # ===================================================================== whole set

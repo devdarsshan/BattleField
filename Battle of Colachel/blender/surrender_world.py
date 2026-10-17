@@ -18,6 +18,7 @@ import bpy
 from mathutils import Vector
 
 import colachel_kit as kit
+from colachel_kit import make_char_stake, make_sword
 import colachel_world as cw
 import landing_world as lw
 import port_world as pw
@@ -72,24 +73,6 @@ def flat_site(near, r, span=40.0, step=4.0):
 
 
 # ===================================================================== new parts
-def make_sword(name, c):
-    """A sword lying across two hands: steel blade along +Y from a gold hilt at the origin."""
-    mb = kit.MB(bevel=0.01)
-    mb.box(kit.T(0, 0.42, 0) @ kit.S(0.045, 0.84, 0.012), "steel")
-    mb.box(kit.T(0, -0.02, 0) @ kit.S(0.26, 0.035, 0.03), "gold")
-    mb.seg((0, -0.04, 0), (0, -0.2, 0), 0.025, 0.02, "gold", sides=5)
-    mb.ico(kit.T(0, -0.22, 0), "gold", r=0.035, sub=1)
-    return mb.obj(name, c)
-
-
-def make_char_stake(name, c, h=3.6, r=0.25, seed=0):
-    rng = random.Random(seed)
-    mb = kit.MB()
-    mb.seg((0, 0, 0), (0, 0, h), r, r * 0.9, "char", sides=6, spin=rng.uniform(0, 1))
-    mb.seg((0, 0, h), (0, 0, h + rng.uniform(0.3, 0.7)), r * 0.9, 0.04, "iron", sides=6)
-    return mb.obj(name, c)
-
-
 def make_hill_fort(name, c, ground, cx, cy, r=13.0, seed=0):
     """A small stone hill fort: a 12-sided curtain wall with merlons, four round towers, a gate,
     a keep and a red standard (the Udayagiri of S54). Walls follow the slope."""
@@ -139,7 +122,7 @@ def build_lib2(lib):
     L["dutch_unarmed"] = [kit.make_figure(f"LibSDutchUn{k}", lib, "dutch", seed=40 + k, armed=False) for k in range(3)]
     L["char_stake"] = [make_char_stake(f"LibSChar{k}", lib, h=3.4 + 0.22 * k, r=0.24 + 0.014 * k, seed=k) for k in range(4)]
     L["ruin"] = [kit.make_ruin(f"LibSRuin{k}", lib, w=3.4 + k, d=3.0 + 0.6 * k, seed=k) for k in range(2)]
-    L["puff_big"] = [kit.make_puff(f"LibSBig{k}", lib, seed=90 + k, m=("smoke_dk", "smoke_md", "smoke_dk")[k]) for k in range(3)]
+    L["puff_big"] = [kit.make_puff(f"LibSBig{k}", lib, seed=90 + k, m=("smoke", "smoke_md", "smoke_dk")[k]) for k in range(3)]
     L["shell"] = kit.make_shell("LibSShell", lib, r=0.4)
     L["flames2"] = [kit.make_flames(f"LibSFl2_{k}", lib, seed=30 + k, size=0.75) for k in range(3)]
     L["fireball"] = [kit.make_fireball(f"LibSFB{k}", lib, seed=k + 1, r=2.6 + 0.4 * k) for k in range(4)]
@@ -267,7 +250,7 @@ def build_blast(c, L, ev, yard):
     for k, (off, seed) in enumerate((((0, 0, 2.4), 0), ((1.4, -0.9, 4.2), 1), ((-1.5, 1.0, 3.8), 2), ((0.3, 1.5, 6.0), 3))):
         fb = kit.instance(L["fireball"][seed], f"Blast{k}", c, (px + off[0], py + off[1], gz + off[2]), scale=0.0)
         fb.rotation_euler = (rng.uniform(0, 1), rng.uniform(0, 1), rng.uniform(0, 6))
-        for f, s in ((boom - 1, 0.0), (boom + 2 + k, 0.75), (boom + 7 + k, 1.0), (boom + 26, 1.1), (boom + 44, 0.8),
+        for f, s in ((boom - 1, 0.0), (boom + 2 + k, 1.0), (boom + 7 + k, 1.25), (boom + 26, 1.3), (boom + 44, 1.0),
                      (boom + 76 - 6 * k, 0.0)):
             fb.scale = (s, s, s)
             fb.keyframe_insert("scale", frame=f)
@@ -320,8 +303,8 @@ def build_blast(c, L, ev, yard):
         a = rng.uniform(0, math.tau)
         ob = kit.instance(L["puff_big"][k % 3], f"BlastSmoke{k}", c, (px, py, gz + 3), scale=0.0)
         v = (math.cos(a) * rng.uniform(1.5, 3.5), math.sin(a) * rng.uniform(1.5, 3.5), rng.uniform(2.0, 6.0))
-        kit.animate_puff(ob, boom + 2 + k % 5, boom + 400, (px + math.cos(a), py + math.sin(a), gz + rng.uniform(2.5, 6)), v,
-                         s0=0.7, s1=rng.uniform(1.4, 2.2), grow=20, drag=0.35, fade=(boom + 260, boom + 400))
+        kit.animate_puff(ob, boom + 10 + k % 6, boom + 400, (px + math.cos(a) * 2.0, py + math.sin(a) * 2.0, gz + rng.uniform(2.5, 6)), v,
+                         s0=0.4, s1=rng.uniform(1.2, 1.9), grow=24, drag=0.35, fade=(boom + 260, boom + 400))
     for col, (cx, cy) in enumerate(((px, py), (RICE[0], RICE[1]))):
         f = boom + 6 if col == 0 else ev["rice"]
         k = 0
