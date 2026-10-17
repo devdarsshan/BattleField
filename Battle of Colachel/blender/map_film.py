@@ -55,9 +55,9 @@ S29_TILT = [(2936, 30.0), (3170, 30.0), (3380, 8.0)]
 
 
 # S39 looks east-north-east across the Gulf of Mannar toward Ceylon (not north like the other tilted shots)
-S39_AZIMUTH = 15.0
+S39_AZIMUTH = 0.0
 S39_TILT = [(3381, 38.0), (3620, 34.0)]
-S39_A0, S39_A1 = (8199.0, -3532.0), (8972.0, -3325.0)     # ground point at the centre of frame, start / end
+S39_A0, S39_A1 = (9500.0, -6200.0), (10100.0, -6200.0)     # ground point at the centre of frame, start / end
 
 
 def aim_az(a, h, tilt, azimuth):
@@ -119,8 +119,8 @@ CAM_KEYS = [
     (3170, aim(-5560.0, 9520.0, 3800.0, 30.0)),
     (3380, aim(-3300.0, 4250.0, 16500.0, 8.0)),
     # S39: (cut in from the siege) glide over the storm sea, Ceylon a strip on the far horizon
-    (3381, aim_az(S39_A0, 14000.0, 38.0, S39_AZIMUTH)),
-    (3620, aim_az(S39_A1, 13200.0, 34.0, S39_AZIMUTH)),
+    (3381, aim_az(S39_A0, 11000.0, 38.0, S39_AZIMUTH)),
+    (3620, aim_az(S39_A1, 10200.0, 34.0, S39_AZIMUTH)),
 ]
 # Travancore's growth, S16. Frontiers run across the strip, perpendicular to the coast
 # (t = distance along the coast from Colachel, w = distance inland), with a gentle wobble.
@@ -317,7 +317,7 @@ def build(samples=32):
 
     # S39 (K48): a stormy sea, the Dutch ship comes about, Ceylon far off
     s39 = beat["S39"]
-    map_world.build_s39(coll, lib_c, s39, end, anchor=S39_A0, azimuth=S39_AZIMUTH, ship_start=(5800.0, -4200.0))
+    map_world.build_s39(coll, lib_c, s39, end, anchor=S39_A0, azimuth=S39_AZIMUTH, ship_start=(7900.0, -6150.0))
 
     cd = bpy.data.cameras.new("MapCamera")
     cd.lens = LENS

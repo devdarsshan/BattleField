@@ -89,7 +89,7 @@ images sometimes paint the sea with wave lines; ignore that, the sea is always t
 | S52 | 64 | Dutch hoist a white flag over the smoking stockade | `Surrender.blend` · ref **K64** | ✅ BUILT, frames 874-1339 |
 | S53 | 65 | Dutch officers, De Lannoy first, hand swords to Travancore commanders (beach east of the stockade) | `Surrender.blend` · ref **K65** | ✅ BUILT, frames 1340-1832 |
 | S54 | 66 | Prisoners marched inland along the track, hill fort ahead | `Surrender.blend` · ref **K66** | ✅ BUILT, frames 1833-2072 (fort barely in frame; haze) |
-| S55-S58 | 67-70 | Udayagiri: the king offers De Lannoy a job, he bows; drill ground; the sash | `Udayagiri.blend` / `udayagiri_film.py`, `udayagiri_world.py` (helper agent) · refs **K67-K70** | ✅ BUILT (device voice), frames 1-1141: S55 1-240, S56 241-480, S57 481-901, S58 902-1141. Weak: kit king is bare-chested (no red-gold robe), Nair has no red coat (K69 has red-coat muskets), S57 foreground empty, S56 bow stiff |
+| S55-S58 | 67-70 | Udayagiri: the king offers De Lannoy a job, he bows; drill ground; the sash | `Udayagiri.blend` / `udayagiri_film.py`, `udayagiri_world.py` (helper agent) · refs **K67-K70** | ✅ BUILT (device voice), frames 1-1141: S55 1-240, S56 241-480, S57 481-901, S58 902-1141. DONE: king in a court robe (`court_robe`, same kit king underneath), red-coat drilled troops, fuller S57 foreground, softer S56 bow, S58 reframed |
 | S59-S69 | 71-82 | Map north, chapel, Mavelikkara treaty, temple, pillar today, sunset | - | ⬜ Not started (11 beats) |
 
 **Complete and approved through S18:** S01–S18 all reviewed and approved.
@@ -260,10 +260,14 @@ the same `.blend` at the same time; claim a beat by marking it ⏳ with your age
 ## Surrender beats S49-S54 (2026-10-17)
 - `surrender_world.py` (new parts: `make_sword`, `make_char_stake`, `make_hill_fort`; ball path `ball_pos`), `surrender_film.py`. Build: `blender -b -P surrender_film.py`
   -> `Surrender.blend`, `renders/timing_surrender.json`. Same pattern as the siege file (events by word, cameras as fractions; S49+S50 share a camera).
-- Device-voice placeholders exist for S49-S58. Test stills only. Weak spots: S54 hill fort hard to see in the haze; S53 stockade out of frame.
+- Device-voice placeholders exist for S49-S58. Test stills only. All six beats finished against K59-K66 (S53 orbits the east side so the burnt stockade shows behind).
 
 ## Udayagiri beats S55-S58 (helper agent, 2026-10-17)
 - `udayagiri_world.py`, `udayagiri_film.py` (-> `Udayagiri.blend`, `renders/timing_udayagiri.json`), `compare_uday.py`. Parts defined there (to merge into the kit later):
   make_stone_wall, make_stairs, make_flagstones, make_canopy_open, make_pavilion, make_gate_doors, make_ball_pile, make_furnace, make_shed, make_scaffold,
   make_block_stack, make_gravel, make_banner, make_musketeer, make_delannoy_hatless, make_tricorn, make_sash.
-- To do in the kit: a king figure in the red-gold robe (K68/K70) and a Nair with a red coat for drilled troops (K69).
+- Done 2026-10-17: king court robe (`court_robe`) and red-coat musketeers (`_redcoat`) live in udayagiri_world.py; merge into the kit when a later beat needs them.
+
+## Finish-each-set rule (user, 2026-10-17)
+Finish a set 100% (every known weak point fixed, checked against its refs) before starting the next one. S40-S58 are finished; S39 is being finished by the map helper.
+Also added: low cloud band over the sea (`siege_world.build_low_clouds`) and dull grey yard tents (`dim_stockade_tents`).

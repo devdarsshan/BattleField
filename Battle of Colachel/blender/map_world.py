@@ -2108,13 +2108,16 @@ def storm_weather(frames, strength=(0.55, 1.0), full_at=0.35):
     bg = next(n for n in bpy.context.scene.world.node_tree.nodes if n.bl_idname == "ShaderNodeBackground")
     calm = dict(energy=sun.energy, color=tuple(sun.color), sky=tuple(bg.inputs["Color"].default_value)[:3],
                 sky_e=bg.inputs["Strength"].default_value)
-    storm = dict(energy=2.3, color=(0.80, 0.86, 0.96), sky=tuple(kit.srgb_to_linear((0.50, 0.55, 0.62))), sky_e=0.42)
+    storm = dict(energy=1.9, color=(0.84, 0.88, 0.95), sky=tuple(kit.srgb_to_linear((0.58, 0.60, 0.63))), sky_e=0.5)
+    calm["angle"], storm["angle"] = sun.angle, math.radians(16)
 
     def put(f, w):
         sun.energy = calm["energy"] + (storm["energy"] - calm["energy"]) * w
         sun.color = tuple(a + (b - a) * w for a, b in zip(calm["color"], storm["color"]))
         bg.inputs["Color"].default_value = (*[a + (b - a) * w for a, b in zip(calm["sky"], storm["sky"])], 1.0)
         bg.inputs["Strength"].default_value = calm["sky_e"] + (storm["sky_e"] - calm["sky_e"]) * w
+        sun.angle = calm["angle"] + (storm["angle"] - calm["angle"]) * w
+        sun.keyframe_insert("angle", frame=f)
         sun.keyframe_insert("energy", frame=f)
         sun.keyframe_insert("color", frame=f)
         bg.inputs["Color"].keyframe_insert("default_value", frame=f)
@@ -2134,7 +2137,11 @@ def build_storm_clouds(coll, lib_c, frames, anchor, fw, groups, seed=39):
     rng = random.Random(seed)
     right = (fw[1], -fw[0])
     srcs = [kit.make_cloud(f"S39CloudSrc{i}", lib_c, seed=30 + i, size=1.0 + 0.1 * i) for i in range(4)]
-    for ob in srcs:
+    kit.mat("m_scloud_a", (0.56, 0.56, 0.57))
+    kit.mat("m_scloud_b", (0.36, 0.36, 0.37))
+    for i, ob in enumerate(srcs):
+        ob.data.materials.clear()
+        ob.data.materials.append(bpy.data.materials["m_scloud_a" if i % 2 == 0 else "m_scloud_b"])
         kit.hide_source(ob)
     obs = []
     n = 0
@@ -2154,14 +2161,14 @@ def build_storm_clouds(coll, lib_c, frames, anchor, fw, groups, seed=39):
     return obs
 
 
-def build_map_rain(coll, frames, anchor, fw, spots, seed=39, period=1050.0, streak=720.0, per_spot=330, speed=95.0):
+def build_map_rain(coll, frames, anchor, fw, spots, seed=39, period=1050.0, streak=720.0, per_spot=170, speed=95.0):
     """Rain streaks falling under the cloud spots (forward m, sideways m, radius m): thin long
     boxes in two stacked layers, scrolled down one layer per loop so it never shows a seam
     (the beach rain, scaled up for map height)."""
     f0, f1 = frames
     rng = random.Random(seed)
     right = (fw[1], -fw[0])
-    kit.mat("m_rain", kit.PALETTE["rain"])
+    kit.mat("m_rain", (0.88, 0.90, 0.93))
     mb = kit.MB()
     pts = []
     for gf, gs, rad in spots:
@@ -2172,7 +2179,7 @@ def build_map_rain(coll, frames, anchor, fw, spots, seed=39, period=1050.0, stre
                         rng.uniform(0, period)))
     for stack in (0.0, period):
         for x, y, z in pts:
-            mb.box(kit.T(x, y, z + stack) @ kit.Rx(0.14) @ kit.S(14.0, 14.0, streak), "m_rain")
+            mb.box(kit.T(x, y, z + stack) @ kit.Rx(0.14) @ kit.S(7.0, 7.0, streak), "m_rain")
     rain = mb.obj("S39Rain", coll)
     rain.visible_shadow = False
     prefs = bpy.context.preferences.edit
@@ -2215,7 +2222,7 @@ def build_whitecaps(coll, frames, region, count, seed=39, boost=1.7, size=(70.0,
     return ob
 
 
-def build_s39(coll, lib_c, frames, end, anchor, azimuth, ship_start, boost=2.8):
+def build_s39(coll, lib_c, frames, end, anchor, azimuth, ship_start, boost=1.7):
     """S39 (K48): wide over a stormy sea. Ceylon (the S19 island, always in the scene) is a low
     green strip far off; a Dutch East Indiaman in the foreground pitches in the rough swell and
     comes about as the storm hits, her heading reversing from the way she was sailing to the
@@ -2227,12 +2234,13 @@ def build_s39(coll, lib_c, frames, end, anchor, azimuth, ship_start, boost=2.8):
     fw = (math.cos(az), math.sin(az))
     storm_weather(frames)
     sea = build_s19_sea(coll, cey, frames, late=True, step=380.0, name="S39", swells=("MapSwellA", "MapSwellB"),
-                        boost=boost, dark=0.80, desat=0.18)
+                        boost=boost, dark=0.86, desat=0.35,
+                        region=(-14000.0, 33000.0, -24000.0, 10000.0))
     hide_during([o for o in bpy.data.objects if o.name.startswith(("Territory_", "Border_"))], f0, f1)
     obs = []
     # the ship: a broad turn, 190 deg (west, away from Ceylon) round through north to 10 deg
     ship, parts, _ = dutch_ship("S39Ship", coll, seed=23)
-    scale = 115.0
+    scale = 90.0
     ship.scale = (scale, scale, scale)
     carrier = bpy.data.objects.new("S39ShipPath", None)
     coll.objects.link(carrier)
@@ -2280,25 +2288,25 @@ def build_s39(coll, lib_c, frames, end, anchor, azimuth, ship_start, boost=2.8):
     rng = random.Random(48)
     kit.mat("m_cap", (0.95, 0.97, 0.98))
     mb = kit.MB()
-    for k in range(34):
+    for k in range(46):
         side = rng.choice((-1, 1))
         yy = rng.uniform(-0.55, 0.5) * 38.0
-        r = rng.uniform(0.9, 2.2)
-        mb.ico(kit.T(side * rng.uniform(5.5, 8.5), yy, rng.uniform(-0.2, 0.8)) @ kit.Rz(rng.uniform(0, 3)) @ kit.S(1.2, 1.0, 0.5),
+        r = rng.uniform(1.6, 3.8)
+        mb.ico(kit.T(side * rng.uniform(5.0, 9.0), yy, rng.uniform(-0.2, 0.8)) @ kit.Rz(rng.uniform(0, 3)) @ kit.S(1.2, 1.0, 0.5),
                "m_cap", r=r, sub=0, jitter=0.25, rng=rng)
-    for k in range(10):
+    for k in range(16):
         mb.ico(kit.T(rng.uniform(-3, 3), 0.55 * 38.0 + rng.uniform(-1, 3), rng.uniform(-0.2, 1.0)) @ kit.Rz(rng.uniform(0, 3)),
-               "m_cap", r=rng.uniform(1.0, 2.4), sub=0, jitter=0.25, rng=rng)
+               "m_cap", r=rng.uniform(1.8, 4.2), sub=0, jitter=0.25, rng=rng)
     spray = mb.obj("S39HullFoam", coll)
     spray.parent = ship
     spray.visible_shadow = False
     obs += parts + [spray]
     # the sea state: white crests, clouds with rain, all in the beat only
     obs.append(build_whitecaps(coll, frames, (anchor[0] - 9500, anchor[0] + 12000, anchor[1] - 8000, anchor[1] + 9000),
-                               count=120, boost=boost, size=(90.0, 180.0)))
+                               count=40, boost=boost, size=(130.0, 260.0)))
     clouds = build_storm_clouds(coll, lib_c, frames, anchor, fw,
-                                [(3600, -6500, 2500, 100.0), (4000, 7000, 2700, 110.0), (6500, 500, 2400, 42.0)])
-    build_map_rain(coll, frames, anchor, fw, [(3600, -6500, 4200), (4000, 7000, 4500), (6500, 500, 2200)])
+                                [(4400, -3400, 1500, 78.0), (5000, 2900, 1600, 72.0), (5400, -300, 1400, 40.0)])
+    build_map_rain(coll, frames, anchor, fw, [(4600, -3600, 2200), (5200, 2800, 2000)])
     show_only(obs + clouds, f0, f1)
     print("S39 built; sea", len(sea.data.vertices), "verts")
     return ship

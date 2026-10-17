@@ -595,6 +595,8 @@ def build_world(ev):
     sets = {}
     sets["Stockade"] = kit.new_collection("Stockade")
     lw.build_stockade(sets["Stockade"], lib_c, dict(ev, build=(-300, -250)), full=True)
+    sw.dim_stockade_tents()
+    sw.build_low_clouds(kit.new_collection("LowClouds"), random.Random(12))
     sets["Ring"] = kit.new_collection("Ring")
     sw.build_ring(sets["Ring"], lib_c, L, dict(ev, r41=(ev["r49"][0], end)))
     sets["Yard"] = kit.new_collection("Yard_S49")

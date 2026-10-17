@@ -670,6 +670,28 @@ def build_s48(c, L, ev):
                          grow=14.0, drag=1.0, step=4, fade=(t + 30, t + 80))
 
 
+def build_low_clouds(c, rng, n=16):
+    """A low band of storm cloud out over the sea, so the horizon shots (S45, S46, ...) have a sky to show."""
+    srcs = [kit.make_cloud(f"LibLowCloud{i}", c, seed=40 + i, size=0.8 + 0.1 * i) for i in range(4)]
+    for s in srcs:
+        kit.hide_source(s)
+    for i in range(n):
+        x = rng.uniform(-80, 170)
+        px, py = cy(x, -rng.uniform(140, 330))
+        ob = kit.instance(srcs[i % 4], f"LowCloud{i}", c, (px, py, rng.uniform(38, 72)), rot_z=rng.uniform(0, 6.28), scale=rng.uniform(0.9, 1.4))
+    return srcs
+
+
+def dim_stockade_tents():
+    """The yard tents are grey-brown canvas, wet and dull (K57), not bright white."""
+    kit.PALETTE.setdefault("tent_grey", (0.60, 0.56, 0.48))
+    kit.mat("tent_grey", kit.PALETTE["tent_grey"])
+    for n in ("LibLConeTent0", "LibLConeTent1", "LibLRidgeTent"):
+        ob = bpy.data.objects.get(n)
+        if ob:
+            kit.recolor(ob, {"canvas": "tent_grey"})
+
+
 # ===================================================================== whole set
 def build_world(ev):
     end = ev["end"]
@@ -701,6 +723,9 @@ def build_world(ev):
     sets = {}
     sets["Stockade"] = kit.new_collection("Stockade_S40-S48")
     lw.build_stockade(sets["Stockade"], lib_c, dict(ev, build=(-300, -250)), full=True)
+    dim_stockade_tents()
+    low_c = kit.new_collection("LowClouds")
+    build_low_clouds(low_c, random.Random(12))
     build_garrison(sets["Stockade"], L, ev)
     sets["Ring"] = kit.new_collection("Ring_S41-S48")
     build_ring(sets["Ring"], lib_c, L, ev)
