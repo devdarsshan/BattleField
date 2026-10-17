@@ -2510,3 +2510,103 @@ def animate_elephant(root, parts, legs, ground, stride_frames=30, swing=0.26, ph
             parts[key].keyframe_insert("rotation_euler", frame=f + (5 if sx < 0 else 0))
         f += rng.randint(22, 34)
         k += 1
+
+
+# ================================================================ siege props (S41-S46)
+def make_log_cannon(name, collection, seed=0):
+    """A fake cannon (S44-S45): a palm trunk cut to length, ringed and blackened like a gun barrel,
+    lashed on a plain two-wheeled cart. Barrel points +Y. Returns (root, wheels): the wheels are
+    separate objects whose origin is on the axle, spin them about X (see animate_cart)."""
+    rng = random.Random(seed)
+    root = bpy.data.objects.new(name, None)
+    root.empty_display_size = 0.4
+    collection.objects.link(root)
+    mb = MB(bevel=0.02)
+    mb.box(T(0, -0.1, 0.52) @ S(0.8, 2.3, 0.1), "plank")                    # cart bed
+    for sx in (-1, 1):
+        mb.box(T(sx * 0.36, 0.0, 0.62) @ S(0.07, 2.2, 0.14), "post")       # side rails
+    mb.box(T(0, -1.45, 0.42) @ Rx(0.35) @ S(0.16, 0.9, 0.12), "post")      # drag pole
+    mb.box(T(0, 0.0, 0.46) @ S(1.1, 0.14, 0.14), "post")                   # axle
+    mb.seg((0, -0.95, 0.98), (0, 1.75, 1.04), 0.30, 0.25, "iron", sides=7)  # the trunk, painted black
+    mb.seg((0, 1.7, 1.04), (0, 1.84, 1.045), 0.25, 0.25, "log_end", sides=7)  # sawn end, pale ring
+    for k, y in enumerate((-0.7, -0.1, 0.9, 1.6)):                           # painted "iron" bands
+        r = 0.32 - 0.02 * k
+        mb.seg((0, y, 0.98 + 0.026 * (y + 0.95)), (0, y + 0.16, 0.98 + 0.026 * (y + 1.11)), r, r, "post", sides=7)
+    for k in range(3):                                                       # rope lashings over the trunk
+        y = -0.45 + 0.75 * k
+        mb.box(T(0, y, 1.0 + 0.026 * (y + 0.95)) @ S(0.74, 0.07, 0.7), "sand")
+        mb.box(T(0, y, 0.74) @ S(0.74, 0.06, 0.1), "sand")
+    mb.ico(T(0.12, -0.8 + 0.2 * rng.random(), 1.27), "frond_dk", r=0.07, sub=1)   # a stub of frond
+    mb.obj(f"{name}_body", collection, parent=root)
+    wheels = []
+    for sx in (-1, 1):
+        wm = MB(bevel=0.015)
+        wm.cone(T(0, 0, 0) @ Ry(math.pi / 2), "post", segments=10, r1=0.5, r2=0.5, depth=0.1)
+        wm.cone(T(sx * 0.0, 0, 0) @ Ry(math.pi / 2), "plank", segments=10, r1=0.34, r2=0.34, depth=0.14)
+        wm.cone(T(0, 0, 0) @ Ry(math.pi / 2), "iron", segments=6, r1=0.1, r2=0.1, depth=0.2)
+        for a in range(4):
+            wm.box(Rx(a * math.pi / 4) @ S(0.12, 0.08, 1.0), "post")
+        ob = wm.obj(f"{name}_wheel{sx}", collection, parent=root)
+        ob.location = (sx * 0.52, 0.0, 0.5)
+        wheels.append(ob)
+    return root, wheels
+
+
+def animate_cart(root, wheels, f0, f1, p0, p1, ground, heading=None):
+    """Roll a cart (make_log_cannon, or any root with wheels) from p0 to p1 over f0..f1, riding the
+    ground and spinning the wheels to match."""
+    p0v, p1v = Vector((p0[0], p0[1], 0)), Vector((p1[0], p1[1], 0))
+    d = p1v - p0v
+    head = math.atan2(d.y, d.x) - math.pi / 2 if heading is None else heading
+    prefs = bpy.context.preferences.edit
+    old = prefs.keyframe_new_interpolation_type
+    prefs.keyframe_new_interpolation_type = "LINEAR"
+    try:
+        n = max(1, int((f1 - f0) / 4))
+        for i in range(n + 1):
+            t = i / n
+            x, y = p0v.x + d.x * t, p0v.y + d.y * t
+            root.location = (x, y, ground(x, y))
+            root.rotation_euler = (0, 0, head)
+            root.keyframe_insert("location", frame=int(f0 + (f1 - f0) * t))
+            root.keyframe_insert("rotation_euler", frame=int(f0 + (f1 - f0) * t))
+        for w in wheels:
+            w.rotation_euler = (0, 0, 0)
+            w.keyframe_insert("rotation_euler", frame=f0)
+            w.rotation_euler = (-d.length / 0.5, 0, 0)
+            w.keyframe_insert("rotation_euler", frame=f1)
+    finally:
+        prefs.keyframe_new_interpolation_type = old
+
+
+def make_coin_bag(name, collection):
+    """A small drawstring bag of coins, origin at its base."""
+    mb = MB(bevel=0.01)
+    mb.ico(T(0, 0, 0.1) @ S(1.0, 1.0, 1.1), "cloth_t", r=0.1, sub=1)
+    mb.cone(T(0, 0, 0.22), "cloth_t", segments=6, r1=0.05, r2=0.03, depth=0.07)
+    mb.cone(T(0, 0, 0.26), "red", segments=6, r1=0.04, r2=0.04, depth=0.025)
+    mb.ico(T(0.07, 0.03, 0.03), "gold", r=0.025, sub=0)
+    mb.ico(T(-0.05, 0.07, 0.025), "gold", r=0.025, sub=0)
+    return mb.obj(name, collection)
+
+
+def make_fishing_net(name, collection, length=3.2, height=1.5, seed=0):
+    """A net hung to dry between two poles (a sagging grid of thin cord). Origin at one pole, runs along +X."""
+    rng = random.Random(seed)
+    mb = MB(bevel=0.01)
+    for x in (0.0, length):
+        mb.seg((x, 0, 0), (x, 0, height + 0.25), 0.07, 0.05, "post", sides=5)
+    mb.seg((0, 0, height + 0.15), (length, 0, height + 0.15), 0.035, 0.035, "post", sides=4)
+    nx, nz = 9, 5
+    for i in range(nx + 1):
+        x = length * i / nx
+        sag = 0.18 * math.sin(math.pi * i / nx)
+        mb.seg((x, 0, height + 0.15), (x + rng.uniform(-0.03, 0.03), 0, 0.35 - sag * 0.3), 0.012, 0.012, "sand", sides=3)
+    for j in range(1, nz + 1):
+        z = height + 0.15 - (height - 0.2) * j / nz
+        for i in range(nx):
+            x0, x1 = length * i / nx, length * (i + 1) / nx
+            s0 = 0.18 * math.sin(math.pi * i / nx) * j / nz
+            s1 = 0.18 * math.sin(math.pi * (i + 1) / nx) * j / nz
+            mb.seg((x0, 0, z - s0), (x1, 0, z - s1), 0.012, 0.012, "sand", sides=3)
+    return mb.obj(name, collection)

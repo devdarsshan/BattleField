@@ -44,13 +44,26 @@ DESIGN_CLIPS = [
     ("31", "S24", 2376, 2740),       # after S23 (the meeting): war banner over Kochi, column marches south (K31)
     ("35", "S28", 2741, 2935),       # after S27 (Varkala cliffs): the frontier near Kollam goes back and forth (K35)
     ("36", "S29", 2936, 3380),       # cut on from S28: the ship from Ceylon at Kochi, the dotted route south (K36)
+    ("48", "S39", 3381, 3620),       # cut on from the siege beats: stormy gulf, Ceylon far off, a Dutch ship turns back (K48)
 ]
 # S19, S24 and S28 look a little down the map toward the north (as their Flow refs K25, K31,
 # K35 do), so the sails, the war banner and the soldiers read; the earlier map shots are
 # straight top-down. Camera keys for them are given as the ground point aimed at.
-SHOT_TILT = {"MapCameraS19": 10.0, "MapCameraS24": 38.0, "MapCameraS28": 25.0, "MapCameraS29": 30.0}
+SHOT_TILT = {"MapCameraS19": 10.0, "MapCameraS24": 38.0, "MapCameraS28": 25.0, "MapCameraS29": 30.0, "MapCameraS39": 38.0}
 # S29 eases from a low look at Kochi up to a high, nearly top-down view of the whole route
 S29_TILT = [(2936, 30.0), (3170, 30.0), (3380, 8.0)]
+
+
+# S39 looks east-north-east across the Gulf of Mannar toward Ceylon (not north like the other tilted shots)
+S39_AZIMUTH = 15.0
+S39_TILT = [(3381, 38.0), (3620, 34.0)]
+S39_A0, S39_A1 = (8199.0, -3532.0), (8972.0, -3325.0)     # ground point at the centre of frame, start / end
+
+
+def aim_az(a, h, tilt, azimuth):
+    """Camera position h metres up, tilted `tilt` degrees toward azimuth (degrees from +x), centred on ground a."""
+    d = h * math.tan(math.radians(tilt))
+    return (a[0] - d * math.cos(math.radians(azimuth)), a[1] - d * math.sin(math.radians(azimuth)), h)
 
 
 def aim(x, y, h, tilt):
@@ -105,6 +118,9 @@ CAM_KEYS = [
     (2936, aim(-5700.0, 9250.0, 3600.0, 30.0)),
     (3170, aim(-5560.0, 9520.0, 3800.0, 30.0)),
     (3380, aim(-3300.0, 4250.0, 16500.0, 8.0)),
+    # S39: (cut in from the siege) glide over the storm sea, Ceylon a strip on the far horizon
+    (3381, aim_az(S39_A0, 14000.0, 38.0, S39_AZIMUTH)),
+    (3620, aim_az(S39_A1, 13200.0, 34.0, S39_AZIMUTH)),
 ]
 # Travancore's growth, S16. Frontiers run across the strip, perpendicular to the coast
 # (t = distance along the coast from Colachel, w = distance inland), with a gentle wobble.
@@ -134,7 +150,7 @@ FORTS_APPEAR = (760, 930)
 CUT_SHOTS = [
     (691, "MapCameraS10"), (1291, "MapCameraS13"), (1531, "MapCameraS16"),
     (1831, "MapCameraS18"), (2071, "MapCameraS19"), (2376, "MapCameraS24"),
-    (2741, "MapCameraS28"), (2936, "MapCameraS29")
+    (2741, "MapCameraS28"), (2936, "MapCameraS29"), (3381, "MapCameraS39")
 ]
 CLOUDS_PART = (1, 78)         # clouds hold for 0.5 s (the dissolve), then part by ~3.2 s
 SHIPS = [(-1200.0, -650.0, 200), (-500.0, -1050.0, 160), (-2100.0, 250.0, 210), (-4700.0, 3900.0, 190),
@@ -299,6 +315,10 @@ def build(samples=32):
     map_world.hide_during([o for o in bpy.data.objects if o.name.startswith("Territory_")
                            and not o.name.startswith(("Territory_S28", "Territory_S29"))], *s29)
 
+    # S39 (K48): a stormy sea, the Dutch ship comes about, Ceylon far off
+    s39 = beat["S39"]
+    map_world.build_s39(coll, lib_c, s39, end, anchor=S39_A0, azimuth=S39_AZIMUTH, ship_start=(5800.0, -4200.0))
+
     cd = bpy.data.cameras.new("MapCamera")
     cd.lens = LENS
     cd.clip_start = 10.0
@@ -321,6 +341,10 @@ def build(samples=32):
     for f, tilt in S29_TILT:
         s29cam.rotation_euler = (math.radians(tilt), 0, 0)
         s29cam.keyframe_insert("rotation_euler", frame=rt(f))
+    s39cam = [c for s0, c in shots if c.name == "MapCameraS39"][0]
+    for f, tilt in S39_TILT:
+        s39cam.rotation_euler = (math.radians(tilt), 0, math.radians(S39_AZIMUTH - 90.0))
+        s39cam.keyframe_insert("rotation_euler", frame=rt(f))
     for s0, c in shots:
         m = sc.timeline_markers.new(c.name, frame=rt(s0))
         m.camera = c

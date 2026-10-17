@@ -4,7 +4,7 @@
 Then read `../CLAUDE.md` (channel rules and the Blender pipeline) and `../_channel-context/*.md`.
 Update this file whenever you finish, start or change a beat. Keep it the single source of truth.
 
-Last updated: 2026-10-17 (Claude: S29 voice, lines S39-S48; S30-S38 voices blocked by quota)
+Last updated: 2026-10-17 (Claude: S29 voice, lines S39-S48, Flow refs K48-K58, S39-S48 built in Blender)
 
 ---
 
@@ -74,7 +74,16 @@ images sometimes paint the sea with wave lines; ignore that, the sea is always t
 | S36 | 44-45 | Kalkulam fort, king on the elephant, ~2,400 Nairs | `Inland.blend` · ref **K44** | ✅ BUILT, frames 944-1255 (kit `make_elephant`) |
 | S37 | 46 | Thiruvattar temple at dawn, sword laid down | `Inland.blend` · ref **K46** | ✅ BUILT, frames 1256-1696 (polish later: more pink-gold dawn, richer gopuram carving) |
 | S38 | 47 | Monsoon on the beach | `Landing.blend` · S05 storm | ✅ BUILT, frames 1557-1997 (rain could be heavier) |
-| S39-S69 | 48-82 | Siege, fake cannons, the powder-store shot, surrender, De Lannoy's service, aftermath | — | ⬜ Not started (31 beats) |
+| S39 | 48 | Map: stormy Gulf of Mannar, Dutch ship turns back (built by a helper agent) | `Map.blend` / `map_film.py`, `map_world.py` (`build_s39`) · ref **K48** | ✅ BUILT (device voice), map frames 3535-3886. Camera is only 38 deg off top-down, so the ship reads from above; clouds/rain heavier than K48; ship shadow hard |
+| S40 | 49 | Travancore column drives the Dutch down the track to the stockade | `Siege.blend` / `siege_film.py`, `siege_world.py` · ref **K49** | ✅ BUILT (device voice), frames 1-266 |
+| S41-S42 | 50-51 | Siege ring round the stockade (soldier line, 2 rows of tents, fires), orbit to the fishing village | `Siege.blend` · refs **K50, K51** | ✅ BUILT, frames 267-864 (one shared camera) |
+| S43 | 52 | Fishermen refuse the Dutch officer's bag of coins | `Siege.blend` · ref **K52** (re-made) | ✅ BUILT, frames 865-1343 |
+| S44 | 53 | Fishermen push palm-trunk "cannons" on carts west along the beach | `Siege.blend` · ref **K53** | ✅ BUILT, frames 1344-1715 |
+| S45 | 54 | Row of fake guns on the western dunes, two Dutch ships far out | `Siege.blend` · ref **K54** (re-made) | ✅ BUILT, frames 1716-1955 |
+| S46 | 55-56 | Two ships come in, shore guns fire (x 84-100, east of the stockade), ships turn away | `Siege.blend` · refs **K55, K56** | ✅ BUILT, frames 1956-2208 |
+| S47 | 57 | Inside the stockade in heavy rain, the last rice sacks counted | `Siege.blend` · ref **K57** | ✅ BUILT, frames 2209-2448 |
+| S48 | 58 | Hillside battery fires at the stockade | `Siege.blend` · ref **K58** | ✅ BUILT, frames 2449-2701 (palms still crowd the foreground) |
+| S49-S69 | 59-82 | Powder-store shot, surrender, De Lannoy's service, aftermath | - | ⬜ Not started (21 beats) |
 
 **Complete and approved through S18:** S01–S18 all reviewed and approved.
 **Beats S19–S28 built:** All 5 scene blend files (`Map.blend`, `Study.blend`, `Meeting.blend`, `Battle.blend`, `Varkala.blend`) fully built, visual stills verified against Flow references K25–K35.
@@ -228,3 +237,13 @@ The Blender MCP and Flow MCP tools were set up for Claude Code. Without them you
 terminal: Blender runs headless with the commands above; Flow reference images can be made by hand in Flow
 (flow.google.com, Nano Banana 2, free) and saved into `frames/flow_refs/`. Do not run two agents on the same beat or
 the same `.blend` at the same time; claim a beat by marking it ⏳ with your agent name in the table first.
+
+## Siege beats S39-S48 (2026-10-17)
+- New kit parts (`colachel_kit.py`, end of file): `make_log_cannon` + `animate_cart` (fake palm-trunk cannon on a cart), `make_coin_bag`, `make_fishing_net`.
+- `landing_world.build_stockade(..., full=True)` gives the finished wall; `clear_around` also clears `BatteryPalm`.
+- New: `siege_world.py`, `siege_film.py` (build: `blender -b -P siege_film.py`, writes `Siege.blend`, `renders/timing_siege.json`).
+  Camera keys and events are fractions of each beat, so a later re-recorded voice re-times everything. S41+S42 share one camera.
+- `compare_siege.py TAG f133:K49 ...` makes side-by-side stills against the Flow refs in `renders/compare/`.
+- Device-voice placeholders made for S39-S48. Not rendered as video yet (only 960x540 test stills). Known polish: S40/S48 palms in foreground,
+  S43 framing, S46 first seconds, S47 tents oversized, no low-poly clouds in beach beats.
+- S30-S38 are still the device voice (quota); S29 is Algieba.

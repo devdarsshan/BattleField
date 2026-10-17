@@ -43,3 +43,13 @@ At the end, every beat must be FINAL (Algieba); re-record and re-time the rest.
 | S36 | DEVICE (Windows, temporary) |
 | S37 | DEVICE (Windows, temporary) |
 | S38 | DEVICE (Windows, temporary) |
+| S39 | DEVICE (Windows, temporary) |
+| S40 | DEVICE (Windows, temporary) |
+| S41 | DEVICE (Windows, temporary) |
+| S42 | DEVICE (Windows, temporary) |
+| S43 | DEVICE (Windows, temporary) |
+| S44 | DEVICE (Windows, temporary) |
+| S45 | DEVICE (Windows, temporary) |
+| S46 | DEVICE (Windows, temporary) |
+| S47 | DEVICE (Windows, temporary) |
+| S48 | DEVICE (Windows, temporary) |

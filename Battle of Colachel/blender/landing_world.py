@@ -116,7 +116,7 @@ def _face(dx, dy):
 # ===================================================================== shared land
 def clear_around(cam_points, r=8.0, clearance=15.0):
     """Remove palms, trees and bushes a camera would fly through or brush past."""
-    kinds = ("Palm", "GrovePalm", "Tree", "Bush", "GroveBush", "S32Palm")
+    kinds = ("Palm", "GrovePalm", "Tree", "Bush", "GroveBush", "S32Palm", "BatteryPalm")
     for ob in [o for o in bpy.data.objects if o.name.startswith(kinds)]:
         x, y = ob.location.x, ob.location.y
         top = H(x, y) + clearance
@@ -588,13 +588,16 @@ def build_s32(c, lib, ev):
 
 
 # ===================================================================== S34
-def build_stockade(c, lib, ev):
-    """The stockade wall goes up post by post (S34) and stands half-built (S38)."""
+def build_stockade(c, lib, ev, full=False):
+    """The stockade wall goes up post by post (S34) and stands half-built (S38); full=True: the
+    finished wall, standing from frame 1 (the siege, S40 on)."""
     t0, t1 = ev["build"]
     pre = (0.42, 0.3, 0.22, 0.34)                  # built when S34 opens: seaward, east, inland, west walls
     done = (0.92, 0.72, 0.55, 0.78)                # built when S34 ends (S38 shows this)
 
     def plant(side, s, L):
+        if full:
+            return -200
         q = s / L
         if side == 3:
             q = 1 - q                              # the west wall is built from the seaward corner
