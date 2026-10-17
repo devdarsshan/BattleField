@@ -89,7 +89,7 @@ images sometimes paint the sea with wave lines; ignore that, the sea is always t
 | S52 | 64 | Dutch hoist a white flag over the smoking stockade | `Surrender.blend` · ref **K64** | ✅ BUILT, frames 874-1339 |
 | S53 | 65 | Dutch officers, De Lannoy first, hand swords to Travancore commanders (beach east of the stockade) | `Surrender.blend` · ref **K65** | ✅ BUILT, frames 1340-1832 |
 | S54 | 66 | Prisoners marched inland along the track, hill fort ahead | `Surrender.blend` · ref **K66** | ✅ BUILT, frames 1833-2072 (fort barely in frame; haze) |
-| S55-S58 | 67-70 | Udayagiri: the king offers De Lannoy a job, he bows; drill ground; the sash | `Udayagiri.blend` / `udayagiri_film.py`, `udayagiri_world.py` (helper agent) · refs **K67-K70** | ⏳ in progress |
+| S55-S58 | 67-70 | Udayagiri: the king offers De Lannoy a job, he bows; drill ground; the sash | `Udayagiri.blend` / `udayagiri_film.py`, `udayagiri_world.py` (helper agent) · refs **K67-K70** | ✅ BUILT (device voice), frames 1-1141: S55 1-240, S56 241-480, S57 481-901, S58 902-1141. Weak: kit king is bare-chested (no red-gold robe), Nair has no red coat (K69 has red-coat muskets), S57 foreground empty, S56 bow stiff |
 | S59-S69 | 71-82 | Map north, chapel, Mavelikkara treaty, temple, pillar today, sunset | - | ⬜ Not started (11 beats) |
 
 **Complete and approved through S18:** S01–S18 all reviewed and approved.
@@ -104,10 +104,10 @@ images sometimes paint the sea with wave lines; ignore that, the sea is always t
 **Voices:** S29 recorded in Algieba today (`audio/S29.wav`). The Gemini free quota then said "10 per day, retry in ~18 h",
 so S30-S38 are still device voice. `audio/lines.txt` is now filled to S48. Next quota window: record S30-S38 (9 lines),
 then S39-S40.
-**Flow references:** K48-K58 (S39-S48) used for the built beats. K59-K70 made 2026-10-17 for S49-S58 (`frames/flow_refs/`): K59 S49 ball into the
-powder barrel, K60 S50 explosion, K62 S51 smoke over the stockade, K64 S52 white flag, K65 S53 swords handed over, K66 S54 prisoners marched to Udayagiri,
-K67 S55 king faces De Lannoy, K68 S56 De Lannoy bows, K69 S57 drill ground, K70 S58 gold sash. Awaiting the user's approval. (K61/K63 are the second halves
-of S50/S51: same set, no separate ref.) Next refs: K71+ (S59 onward).
+**Flow references:** K48-K70 used for the built beats (S39-S58). K71-K82 made 2026-10-17 for S59-S68, awaiting approval: K71 S59 map north + Nedumkotta
+wall, K73 S60 chapel and tomb, K74 S61 Dutch ships leave Kanyakumari, K75 S62 Mavelikkara treaty tent, K76 S63 map, Travancore biggest, pepper ships,
+K77 S64 king lays down his sword at the temple, K78 S65 victory pillar today (also the set for S66), K80 S67 rise from the pillar over the sea,
+K82 S68 sunset over the empty beach. S66/S69 (title/outro cards) need no ref.
 **Render note:** S29's real voice changes its length, so the map beat S29 (frames 3095-3540) re-times; rebuild `Map.blend`
 and delete map frames >= 3095 before rendering. Any other device must pull the latest commit first (audio wavs are tracked,
 `renders/` is not).
@@ -261,3 +261,9 @@ the same `.blend` at the same time; claim a beat by marking it ⏳ with your age
 - `surrender_world.py` (new parts: `make_sword`, `make_char_stake`, `make_hill_fort`; ball path `ball_pos`), `surrender_film.py`. Build: `blender -b -P surrender_film.py`
   -> `Surrender.blend`, `renders/timing_surrender.json`. Same pattern as the siege file (events by word, cameras as fractions; S49+S50 share a camera).
 - Device-voice placeholders exist for S49-S58. Test stills only. Weak spots: S54 hill fort hard to see in the haze; S53 stockade out of frame.
+
+## Udayagiri beats S55-S58 (helper agent, 2026-10-17)
+- `udayagiri_world.py`, `udayagiri_film.py` (-> `Udayagiri.blend`, `renders/timing_udayagiri.json`), `compare_uday.py`. Parts defined there (to merge into the kit later):
+  make_stone_wall, make_stairs, make_flagstones, make_canopy_open, make_pavilion, make_gate_doors, make_ball_pile, make_furnace, make_shed, make_scaffold,
+  make_block_stack, make_gravel, make_banner, make_musketeer, make_delannoy_hatless, make_tricorn, make_sash.
+- To do in the kit: a king figure in the red-gold robe (K68/K70) and a Nair with a red coat for drilled troops (K69).
