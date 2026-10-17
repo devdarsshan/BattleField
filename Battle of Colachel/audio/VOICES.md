@@ -34,17 +34,17 @@ At the end, every beat must be FINAL (Algieba); re-record and re-time the rest.
 | S27 | FINAL (Algieba) |
 | S28 | FINAL (Algieba) |
 | S29 | FINAL (Algieba) |
-| S30 | DEVICE (Windows, temporary) |
-| S31 | DEVICE (Windows, temporary) |
-| S32 | DEVICE (Windows, temporary) |
-| S33 | DEVICE (Windows, temporary) |
-| S34 | DEVICE (Windows, temporary) |
-| S35 | DEVICE (Windows, temporary) |
-| S36 | DEVICE (Windows, temporary) |
-| S37 | DEVICE (Windows, temporary) |
-| S38 | DEVICE (Windows, temporary) |
-| S39 | DEVICE (Windows, temporary) |
-| S40 | DEVICE (Windows, temporary) |
+| S30 | FINAL (Algieba) |
+| S31 | FINAL (Algieba) |
+| S32 | FINAL (Algieba) |
+| S33 | FINAL (Algieba) |
+| S34 | FINAL (Algieba) |
+| S35 | FINAL (Algieba) |
+| S36 | FINAL (Algieba) |
+| S37 | FINAL (Algieba) |
+| S38 | FINAL (Algieba) |
+| S39 | FINAL (Algieba) |
+| S40 | FINAL (Algieba) |
 | S41 | DEVICE (Windows, temporary) |
 | S42 | DEVICE (Windows, temporary) |
 | S43 | DEVICE (Windows, temporary) |

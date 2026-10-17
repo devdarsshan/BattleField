@@ -101,9 +101,8 @@ images sometimes paint the sea with wave lines; ignore that, the sea is always t
 - Thermal Guard actively regulating hardware in `render_cli.py` & `pipeline_s19_to_s28.ps1` (250ms frame breather, active 76°C GPU throttle & 68°C cooldown, 20s inter-clip break). Zero crashes.
 
 **Status 2026-10-17:** S01-S38 are all built (S29-S38 committed). S19-S28 render pipeline ran on the E-drive machine.
-**Voices:** S29 recorded in Algieba today (`audio/S29.wav`). The Gemini free quota then said "10 per day, retry in ~18 h",
-so S30-S38 are still device voice. `audio/lines.txt` is now filled to S48. Next quota window: record S30-S38 (9 lines),
-then S39-S40.
+**Voices (updated 2026-10-17 later):** Algieba recorded for S29-S40 (`audio/S29.wav` ... `S40.wav`); S41-S58 are still the device voice (quota hit at S41).
+`audio/lines.txt` is filled to S58. Next windows: S41-S50, then S51-S58, then S59-S69, then re-record S05-S18 and S01-S04.
 **Flow references:** K48-K70 used for the built beats (S39-S58). K71-K82 made 2026-10-17 for S59-S68, awaiting approval: K71 S59 map north + Nedumkotta
 wall, K73 S60 chapel and tomb, K74 S61 Dutch ships leave Kanyakumari, K75 S62 Mavelikkara treaty tent, K76 S63 map, Travancore biggest, pepper ships,
 K77 S64 king lays down his sword at the temple, K78 S65 victory pillar today (also the set for S66), K80 S67 rise from the pillar over the sea,
@@ -271,3 +270,10 @@ the same `.blend` at the same time; claim a beat by marking it ⏳ with your age
 ## Finish-each-set rule (user, 2026-10-17)
 Finish a set 100% (every known weak point fixed, checked against its refs) before starting the next one. S40-S58 are finished; S39 is being finished by the map helper.
 Also added: low cloud band over the sea (`siege_world.build_low_clouds`) and dull grey yard tents (`dim_stockade_tents`).
+
+## Audit of S38-S58 (2026-10-17)
+- Rebuilt every film script after the new voices: Landing, Inland, Map, Siege, (Surrender, Udayagiri unchanged); all run clean. Frame ranges now: S38 1636-2111 (Landing), S39 3535-3887 (Map),
+  S40-S48 Siege 1-2697, S49-S54 Surrender 1-2072, S55-S58 Udayagiri 1-1141. Delete any old frames_* before rendering.
+- Left to do for this range: (1) voices S41-S58 (18 lines, two quota windows) then rebuild each film script; (2) polish: S38 rain heavier and crisper sea, S39 oblique look (tilt cap 38 deg),
+  S43 fishermen stiff line-up, S54 yellow haze, S50 flat fireball shading; (3) render 720p previews per beat, review, then 1080p finals (GPU machine); (4) merge the new parts
+  (udayagiri/surrender/siege) into colachel_kit.py when convenient; (5) the user approves K71-K82 before S59+.
