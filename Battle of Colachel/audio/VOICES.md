@@ -33,7 +33,7 @@ At the end, every beat must be FINAL (Algieba); re-record and re-time the rest.
 | S26 | FINAL (Algieba) |
 | S27 | FINAL (Algieba) |
 | S28 | FINAL (Algieba) |
-| S29 | DEVICE (Windows, temporary) |
+| S29 | FINAL (Algieba) |
 | S30 | DEVICE (Windows, temporary) |
 | S31 | DEVICE (Windows, temporary) |
 | S32 | DEVICE (Windows, temporary) |
