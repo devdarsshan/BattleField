@@ -139,9 +139,22 @@ class Spacer:
 
 
 # ================================================================= library
+IN_PALETTE = {
+    "in_grass1": (0.34, 0.52, 0.15), "in_grass2": (0.28, 0.46, 0.13), "in_grass3": (0.40, 0.55, 0.18),
+    "in_road": (0.80, 0.58, 0.36),
+    "in_pad1": (0.30, 0.50, 0.14), "in_pad2": (0.38, 0.57, 0.18), "in_pad3": (0.25, 0.42, 0.12),
+    "in_bund": (0.44, 0.35, 0.20),
+    "in_hill1": (0.44, 0.58, 0.20), "in_hill2": (0.30, 0.48, 0.14), "in_hill3": (0.22, 0.38, 0.11),
+    "in_hill4": (0.52, 0.62, 0.26),
+}
+
+
 def build_library(lib_c):
     palw.register_palette()
     pepw.register_palette()
+    for n, c in IN_PALETTE.items():
+        kit.PALETTE[n] = c
+        kit.mat(n, c)
     lib = {}
     lib["palms"] = [kit.make_palm(f"LibIPalm{i}", lib_c, seed=10 + i, height=7.5 + 0.6 * i) for i in range(6)]
     lib["trees"] = [kit.make_tree(f"LibITree{i}", lib_c, seed=i, height=6.5 + i) for i in range(4)]
@@ -240,8 +253,8 @@ def hills_h(x, y):
     if m <= 0:
         return 0.0
     ridge = (1.0 - abs(_n(x, y, 170.0, 7.7))) ** 2
-    h = m * (22.0 + 85.0 * ridge + 22.0 * _n(x, y, 70.0, 3.3))
-    h += _smooth(HILL_D0 + 200.0, HILL_D0 + 650.0, d) * 170.0 * (1.0 - abs(_n(x, y, 300.0, 1.9))) ** 2
+    h = m * (30.0 + 125.0 * ridge + 26.0 * _n(x, y, 70.0, 3.3))
+    h += _smooth(HILL_D0 + 200.0, HILL_D0 + 650.0, d) * 230.0 * (1.0 - abs(_n(x, y, 300.0, 1.9))) ** 2
     return max(0.0, h)
 
 
@@ -354,13 +367,20 @@ def se_road_x(ly):
     return pts[-1][0] if ly < pts[-1][1] else pts[0][0]
 
 
+def _hill_mat(x, y, rng):
+    """Big patches of lit yellow-green and dark green on the hills (K40): slow noise, a little
+    per-facet variation, never per-facet speckle."""
+    k = 0.5 + 0.55 * _n(x, y, 55.0, 9.1) + 0.12 * (rng.random() - 0.5)
+    return "in_hill3" if k < 0.3 else ("in_hill2" if k < 0.52 else ("in_hill1" if k < 0.75 else "in_hill4"))
+
+
 def _terrain_a(coll):
     xs = _axis([(-1200, -700, 25), (-700, -350, 6), (-350, PAL[0] - 125, 3), (PAL[0] - 125, PAL[0] + 125, 1.5),
-                (PAL[0] + 125, 450, 3), (450, 800, 4), (800, 1200, 25)])
+                (PAL[0] + 125, 450, 3.5), (450, 800, 8), (800, 1200, 25)])
     ys = _axis([(-500, -150, 20), (-150, -40, 5), (-40, PAL[1] - 125, 3), (PAL[1] - 125, PAL[1] + 125, 1.5),
-                (PAL[1] + 125, 600, 2.5)])
-    mats = ["sand", "sand_wet", "grass", "grass_lt", "court", "road", "hill_lt", "ghat_lo", "ghat_hi", "granite_dk",
-            "paddy_bund"]
+                (PAL[1] + 125, 535, 3.5)])
+    mats = ["sand", "sand_wet", "in_grass1", "in_grass2", "court", "in_road", "in_hill1", "in_hill2", "in_hill3",
+            "granite_dk", "in_bund", "in_hill4", "in_grass3"]
     x0, x1, y0, y1 = palw.WALL
 
     def mat_fn(x, y, z, nz, rng):
@@ -376,20 +396,20 @@ def _terrain_a(coll):
             if x0 < lx < x1 and y0 < ly < y1:
                 return "court"
         if z > PZ + 6.0 and d > HILL_D0 - 60:
-            k = rng.random() + 0.25 * _n(x, y, 120.0, 9.1)
-            return "ghat_hi" if k > 0.72 else ("ghat_lo" if k > 0.35 else ("grass" if k > 0.1 else "hill_lt"))
+            return _hill_mat(x, y, rng)
         if road_dist(x, y) < 0.35 * _n(x, y, 3.0, 4.2):
-            return "road"
+            return "in_road"
         for c in _CELL_HASH.get((int(x // 40), int(y // 40)), ()):
             if _cell_edge_dist(c, x, y) < 0.6:
-                return "paddy_bund"
-        return "grass_lt" if _n(x, y, 18.0, 5.5) > 0.12 else "grass"
+                return "in_bund"
+        k = _n(x, y, 18.0, 5.5)
+        return "in_grass3" if k > 0.25 else ("in_grass1" if k > -0.05 else "in_grass2")
     ob = _heightfield(coll, "TerrainA", xs, ys, ground_a, mat_fn, mats, seed=3)
     # the hills behind: their own even, coarse grid (big facets, no slivers), tucked 1 m under the
     # plain where the two overlap
-    hx = _axis([(-1300, 1300, 18)])
-    hy = _axis([(560, 1800, 18)])
-    _heightfield(coll, "TerrainHills", hx, hy, lambda x, y: ground_a(x, y) - (1.0 - _smooth(592.0, 606.0, y)),
+    hx = _axis([(-1300, 1300, 26)])
+    hy = _axis([(520, 1800, 26)])
+    _heightfield(coll, "TerrainHills", hx, hy, lambda x, y: ground_a(x, y) - (1.0 - _smooth(524.0, 536.0, y)),
                  mat_fn, mats, seed=4)
     return ob
 
@@ -461,9 +481,28 @@ def in_paddy(x, y, pad=0.0):
     return False
 
 
+def _paddy_cell(name, coll, w, d, seed, bund=0.5, bund_h=0.3):
+    """One rice paddy as in K40/K42: a smooth slab of young rice in one of three rich greens with a
+    few soft darker/lighter patches, inside a low earth bund."""
+    rng = random.Random(seed)
+    mb = kit.MB(bevel=0.04)
+    base = ("in_pad1", "in_pad2", "in_pad3", "in_pad1", "in_pad2")[seed % 5]
+    iw_, id_ = w - 2 * bund, d - 2 * bund
+    mb.box(T(0, 0, 0.06) @ S(iw_, id_, 0.12), base)
+    for _ in range(rng.randint(2, 4)):
+        pw, pd = rng.uniform(0.2, 0.5) * iw_, rng.uniform(0.2, 0.5) * id_
+        mb.box(T(rng.uniform(-0.5, 0.5) * (iw_ - pw), rng.uniform(-0.5, 0.5) * (id_ - pd), 0.125 + rng.uniform(0, 0.01))
+               @ S(pw, pd, 0.02), rng.choice(("in_pad1", "in_pad2", "in_pad3")))
+    for sy in (-1, 1):
+        mb.box(T(0, sy * (d / 2 - bund / 2), bund_h / 2) @ S(w, bund, bund_h), "in_bund")
+    for sx in (-1, 1):
+        mb.box(T(sx * (w / 2 - bund / 2), 0, bund_h / 2) @ S(bund, d - 2 * bund + 0.02, bund_h), "in_bund")
+    return mb.obj(name, coll)
+
+
 def _build_paddies(coll):
     for k, (cx, cy, rot, w, d, z) in enumerate(_CELLS):
-        ob = kit.make_paddy_cell(f"Paddy{k}", coll, w=w, d=d, seed=k, bund=0.5, bund_h=0.3)
+        ob = _paddy_cell(f"Paddy{k}", coll, w, d, k)
         ob.location = (cx, cy, z - 0.04)
         ob.rotation_euler[2] = rot
 
@@ -484,10 +523,14 @@ def _build_palace(colls, lib, frames):
                 ob.parent = root
     # S35: the houses between the south road and the south-east road give way to paddies
     houses = []
+    thin = random.Random(5)
     for ob in list(colls["town"].objects):
         if not ob.name.startswith("House"):
             continue
         lx, ly = ob.location.x, ob.location.y
+        if math.hypot(lx, ly) > 44.0 and thin.random() < 0.5:        # K40: a sparse town round the palace
+            bpy.data.objects.remove(ob, do_unlink=True)
+            continue
         if ly < -56 and -19.0 < lx < se_road_x(ly) - 3.0:
             bpy.data.objects.remove(ob, do_unlink=True)
             continue
@@ -738,10 +781,18 @@ def build_column(coll, lib, ev):
     files = (-1.25, 0.0, 1.25)
     ranks = [[("flag", 0.0)], [("officer", 0.0)]] + [[("dutch", f) for f in files]] * 8 +             [[("ally", f) for f in files]] * 9 + [[("dutch", f) for f in files]] * 5
     roster = [(r, kind, lat) for r, rk in enumerate(ranks) for kind, lat in rk]
+    # a loose file (K42): uneven gaps between ranks, men wandering off their line, a few stragglers
+    rank_s = [0.0]
+    for _ in range(len(ranks)):
+        rank_s.append(rank_s[-1] + rng.uniform(1.5, 2.9))
+    drop = {i for i, (r, k, l) in enumerate(roster) if k not in ("flag", "officer") and rng.random() < 0.12}
+    roster = [x for i, x in enumerate(roster) if i not in drop]
+    roster += [(len(ranks) + 1 + j, "dutch" if j % 2 else "ally", rng.uniform(-1.6, 1.6)) for j in range(6)]
     roots = []
     for i, (rank, kind, lat) in enumerate(roster):
-        s0 = s_front0 - rank * 1.45 - rng.uniform(0, 0.3)
-        lat += rng.uniform(-0.15, 0.15)
+        back = rank_s[min(rank, len(rank_s) - 1)] + (rng.uniform(3.0, 11.0) if rank > len(ranks) else 0.0)
+        s0 = s_front0 - back - rng.uniform(0, 0.8)
+        lat += rng.uniform(-0.5, 0.5) if kind not in ("flag", "officer") else rng.uniform(-0.1, 0.1)
         if kind == "flag":
             tmpl = lib["w_ally"][0]
         elif kind == "officer":
@@ -793,6 +844,11 @@ def build_set_a(colls, lib, ev):
     cw.make_faceted_sea(colls["world"], colls["rig"], frames + 20, (-1500.0, 1500.0, -1000.0, 560.0),
                         lambda x, y: cw.shore_y(x) - y, step=3.0, far_step=15.0,
                         detail_box=(-520.0, 820.0, -330.0, 240.0), name="SeaA")
+    sea_m = bpy.data.materials.get("Sea")
+    if sea_m:                                                   # matte blue (K40), not a pale sky mirror
+        b = sea_m.node_tree.nodes["Principled BSDF"]
+        b.inputs["Roughness"].default_value = 0.8
+        b.inputs["Specular IOR Level"].default_value = 0.08
     _build_village(colls, frames)
     hamlet = _build_s35_hamlet(colls["hamlet"], lib, frames, rng)
     cam_keep = [(x + PAL[0], y + PAL[1], 7.0) for x, y in S35_CAM]
@@ -803,7 +859,7 @@ def build_set_a(colls, lib, ev):
     _build_farmers(colls["people"], lib, frames, rng)
     n = build_column(colls["column"], lib, ev)
     # distant mist over the hills (palace_world's mist boxes), the town and beach stay crisp
-    for i, (ctr, size, dens) in enumerate([((60, 1250, 200), (2600, 600, 500), 0.00015)]):
+    for i, (ctr, size, dens) in enumerate([((60, 1250, 200), (2600, 600, 500), 0.00005)]):
         palw.add_mist_box(colls["world"], f"HillMist{i}", ctr, size, dens)
     print(f"Set A: {len(_CELLS)} paddies, column {n}")
     return pal_root
@@ -1085,6 +1141,9 @@ def gn_crowd(name, coll, ng, pts):
     return ob
 
 
+CO_W, CO_LX, CO_D, CO_LY = 22.0, 1.4, 14.0, 1.4           # company width/lane, depth/lane (tight blocks with lanes)
+
+
 def build_crowd_b(coll, lib_c, ev, rng):
     """About two thousand Nairs gathered before the gate in loose companies facing the gate
     and the king, a lane kept for the elephant, columns standing on the road behind."""
@@ -1099,14 +1158,14 @@ def build_crowd_b(coll, lib_c, ev, rng):
     bpy.context.view_layer.layer_collection.children[cl.name].exclude = True
     ng = crowd_node_group("CrowdB", cl, ev["raise"])
     pts = []
-    gx, gy = 1.22, 1.5
+    gx, gy = 1.12, 1.4
 
     def lane_d(x, y):
         return _seg_dist(x, y, LANE[0], LANE[1])
-    y = -66.0
+    y = -58.0
     while y < -6.0:
-        x = -80.0
-        while x < 30.0:
+        x = -68.0
+        while x < 28.0:
             px, py = x + rng.uniform(-0.32, 0.32), y + rng.uniform(-0.32, 0.32)
             x += gx
             if _open_b(px, py) > 0 or road_b(px, py) < 1.0 and py > -10:
@@ -1114,11 +1173,11 @@ def build_crowd_b(coll, lib_c, ev, rng):
             if lane_d(px, py) < 4.2 or math.hypot(px - STOP[0], py - STOP[1]) < 7.5 or \
                     (abs(px) < 7.5 and py > -9.0):
                 continue
-            if (px + 80) % 31.0 < 1.7 or (py + 66) % 24.0 < 1.6:           # lanes between the companies
+            if (px + 68) % CO_W > CO_W - CO_LX or (py + 58) % CO_D > CO_D - CO_LY:           # lanes between the companies
                 continue
             if any(math.hypot(px - tx, py - ty) < 5.5 for tx, ty, _, _ in FIELD_TENTS):
                 continue
-            if py < -62 + 6 * _n(px, 0, 25.0, 1.0) or px < -76 + 5 * _n(0, py, 20.0, 2.0) or rng.random() < 0.08:
+            if py < -56 + 2 * _n(px, 0, 25.0, 1.0) or px < -66 + 2 * _n(0, py, 20.0, 2.0) or rng.random() < 0.04:
                 continue
             tx, ty = STOP[0] + 2.0, STOP[1] + 1.0
             rz = _face(tx - px, ty - py) + rng.uniform(-0.3, 0.3)
@@ -1142,6 +1201,7 @@ def build_crowd_b(coll, lib_c, ev, rng):
             s += 1.3
         acc += L
     gn_crowd("CrowdB", coll, ng, pts)
+    print('crowd B', len(pts))
     return len(pts)
 
 
@@ -1216,7 +1276,7 @@ def build_surround_b(coll, lib, rng):
             continue
         h = hB(x, y)
         strip = -48.0 < x < FORT_X[0] - 3 and -6.0 < y < FORT_Y[1] + 10       # between the road and the west wall
-        if strip and rng.random() < 0.45:
+        if strip and rng.random() < 0.2:
             continue
         far = max(0.0, abs(x - 20) - 140) + max(0.0, y - 160) + max(0.0, -150 - y)
         if far > 0 and rng.random() < 0.55:
@@ -1234,14 +1294,14 @@ def build_surround_b(coll, lib, rng):
         if k > 3200:
             break
     j = 0
-    for i in range(12000):
-        x, y = rng.uniform(-140, 120), rng.uniform(-150, 140)
+    for i in range(16000):
+        x, y = rng.uniform(-120, 90), rng.uniform(-120, 110)
         if _open_b(x, y) < 1.0 or road_b(x, y) < 0.5 or (FORT_X[0] - 3 < x < FORT_X[1] + 3 and FORT_Y[0] - 3 < y < FORT_Y[1] + 3):
             continue
         _put_b(rng.choice(lib["bushes"] + lib["bigleaf"] + lib["bigleaf"]), f"BUnder{j}", coll, x, y,
                rng.uniform(0, TAU), rng.uniform(0.8, 1.6))
         j += 1
-        if j > 1600:
+        if j > 2600:
             break
     for i in range(20):
         x, y = rng.uniform(-95, 55), rng.uniform(-110, -2)
@@ -1262,7 +1322,9 @@ def build_elephant_b(coll, lib, ev, rng):
     b = STOP
     legs = [(f0, arrive, (a[0] + FO[0], a[1] + FO[1]), (b[0] + FO[0], b[1] + FO[1])),
             (arrive + 14, arrive + 60, (b[0] + FO[0], b[1] + FO[1]), (b[0] + FO[0] - 0.6, b[1] + FO[1] - 0.25))]
+    king.scale = (1.4, 1.4, 1.4)                                   # the king reads clearly in the howdah
     kit.animate_elephant(root, parts, legs, gB, stride_frames=26, swing=0.26, end=ev["s36"][1])
+    root.scale = (1.2, 1.2, 1.2)
     _show_only([root], f0, ev["s36"][1])
     # guards flanking the stop, attendants at the gate
     for i, (x, y) in enumerate([(-9.5, -7.0), (-9.0, -15.5), (1.5, -6.8), (2.5, -15.8), (-2.0, -4.5), (3.6, -4.2)]):
@@ -1334,13 +1396,15 @@ def _stone_blocks(mb, rng, x0, x1, z0, z1, y, out, course=0.55, mats=("temple_st
 
 def _clay_lamp(lib_c):
     """Small clay oil lamp (vilakku) with a glowing flame."""
-    kit.mat_emit("diya_flame", (1.0, 0.58, 0.16), strength=5.0)
+    fm = kit.mat_emit("diya_flame", (1.0, 0.36, 0.02), strength=2.4)
+    fb = fm.node_tree.nodes.get("Principled BSDF")
+    fb.inputs["Base Color"].default_value = (0.06, 0.02, 0.0, 1)          # glow only: no pale cream from the sun
     mb = kit.MB()
     mb.cone(T(0, 0, 0.035), "clay", segments=7, r1=0.07, r2=0.1, depth=0.07)
     mb.cone(T(0.085, 0, 0.07) @ Ry(math.pi / 2), "clay", segments=4, r1=0.025, r2=0.01, depth=0.05)
-    mb.cone(T(0.09, 0, 0.13), "diya_flame", segments=5, r1=0.028, r2=0.0, depth=0.1)
+    mb.cone(T(0.09, 0, 0.12), "diya_flame", segments=5, r1=0.034, r2=0.0, depth=0.085)
     ob = mb.obj("LibClayLamp", lib_c)
-    ob.data.transform(S(1.25, 1.25, 1.25))
+    ob.data.transform(S(1.55, 1.55, 1.55))
     return ob
 
 
@@ -1414,57 +1478,99 @@ def make_shrine(coll, rng):
     return ob
 
 
+def _statue(mb, x, y, z, sy, s=1.0):
+    """Tiny seated deity relief-figure for a gopuram niche: plinth, body, head, crown, raised arms."""
+    mb.box(T(x, y, z + 0.04 * s) @ S(0.5 * s, 0.22 * s, 0.08 * s), "temple_st_dk")
+    mb.box(T(x, y, z + 0.28 * s) @ S(0.3 * s, 0.16 * s, 0.4 * s), "temple_st_lt")
+    mb.box(T(x, y, z + 0.52 * s) @ S(0.18 * s, 0.16 * s, 0.14 * s), "temple_st_lt")
+    mb.cone(T(x, y, z + 0.68 * s), "gold", segments=5, r1=0.09 * s, r2=0.02 * s, depth=0.2 * s)
+    for ax in (-1, 1):
+        mb.box(T(x + ax * 0.2 * s, y + sy * 0.03, z + 0.36 * s) @ S(0.07 * s, 0.07 * s, 0.34 * s), "temple_st_lt")
+
+
 def make_gopuram(coll, rng):
-    """Gateway tower: a granite base storey with a dark doorway, four receding tiers with
-    cornices, niches and corner pavilions, a barrel-vaulted crown and a row of finials."""
+    """Gateway tower (K46): a granite base storey with a dark doorway between sculpture niches,
+    five receding tiers each with its own sloping tiled eave, carved relief bands, pilasters,
+    niches holding figures, corner pavilions and finials, a barrel-vaulted crown with a gold row."""
     gx, gy = GOPURAM
     W, D = 10.5, 6.8
     mb = kit.MB(bevel=0.02)
     mb.box(T(gx, gy, 0.4) @ S(W + 1.0, D + 1.0, 0.8), "temple_st_dk")
-    h0 = 4.6
-    mb.box(T(gx, gy, 0.8 + h0 / 2) @ S(W, D, h0), "temple_st")
+    mb.box(T(gx, gy, 0.95) @ S(W + 0.5, D + 0.5, 0.3), "temple_st_lt")
+    h0 = 3.8
+    z0 = 1.1
+    mb.box(T(gx, gy, z0 + h0 / 2) @ S(W, D, h0), "temple_st")
     for out in (-1, 1):
         sub = kit.MB()
-        _stone_blocks(sub, rng, -W / 2, W / 2, 0.8, 0.8 + h0, D / 2, 1)
+        _stone_blocks(sub, rng, -W / 2, W / 2, z0, z0 + h0, D / 2, 1)
         for k in range(7):
-            sub.box(T(-W / 2 + 0.3 + k * (W - 0.6) / 6, D / 2 + 0.12, 0.8 + h0 / 2) @ S(0.4, 0.16, h0), "temple_st_lt")
+            sub.box(T(-W / 2 + 0.3 + k * (W - 0.6) / 6, D / 2 + 0.12, z0 + h0 / 2) @ S(0.4, 0.16, h0), "temple_st_lt")
         sub.bm.transform(T(gx, gy, 0) @ Rz(0 if out > 0 else math.pi))
         sub.obj(f"GopuramBase{out}", coll)
     for out in (-1, 1):
-        mb.box(T(gx, gy + out * (D / 2 + 0.01), 0.8 + 2.2) @ S(2.6, 0.12, 4.4), "dark")
-        mb.box(T(gx, gy + out * (D / 2 + 0.1), 0.8 + 4.6) @ S(3.4, 0.3, 0.35), "temple_st_lt")
-    z = 0.8 + h0
+        yy = gy + out * (D / 2 + 0.01)
+        mb.box(T(gx, yy, z0 + 1.9) @ S(2.4, 0.12, 3.8), "dark")                                    # doorway
+        for sx in (-1, 1):
+            mb.box(T(gx + sx * 1.4, yy + out * 0.1, z0 + 1.9) @ S(0.35, 0.22, 3.9), "temple_st_lt")
+        mb.box(T(gx, yy + out * 0.1, z0 + 3.9) @ S(3.5, 0.3, 0.35), "temple_st_lt")
+        mb.box(T(gx, yy + out * 0.2, z0 + 4.2) @ S(2.2, 0.24, 0.3), "temple_st")
+        for sx in (-1, 1):                                       # sculpture niches flanking the door
+            for nx in (2.4, 3.9):
+                mb.box(T(gx + sx * nx, yy + out * 0.05, z0 + 1.7) @ S(0.9, 0.1, 1.9), "temple_st_dk")
+                mb.box(T(gx + sx * nx, yy + out * 0.08, z0 + 2.75) @ S(1.05, 0.14, 0.14), "temple_st_lt")
+                _statue(mb, gx + sx * nx, yy + out * 0.16, z0 + 0.82, out, 1.5)
+        for k in range(16):                                      # carved relief band under the first cornice
+            px = gx - W / 2 + 0.35 + k * (W - 0.7) / 15
+            mb.box(T(px, yy + out * 0.08, z0 + h0 - 0.42) @ S(0.4, 0.1, 0.28), "temple_st_dk" if k % 2 else "temple_st_lt")
+    z = z0 + h0
     w, d = W, D
-    for tier in range(3):
-        mb.box(T(gx, gy, z + 0.15) @ S(w + 0.8, d + 0.8, 0.3), "temple_st_lt")                     # cornice
-        mb.box(T(gx, gy, z + 0.4) @ S(w + 0.4, d + 0.4, 0.2), "temple_st_dk")
-        w, d = w * 0.87, d * 0.85
-        th = 2.0 - 0.15 * tier
-        mb.box(T(gx, gy, z + 0.5 + th / 2) @ S(w, d, th), "temple_st")
+    for tier in range(5):
+        mb.box(T(gx, gy, z + 0.12) @ S(w + 1.0, d + 1.0, 0.24), "temple_st_lt")                      # cornice slab
+        mb.cone(T(gx, gy, z + 0.24 + 0.24) @ S((w + 0.9) / 2, (d + 0.9) / 2, 1.0) @ Rz(math.pi / 4), "temple_tile",
+                segments=4, r1=1.4142, r2=1.4142 * 0.8, depth=0.5)                                  # sloping tiled eave
+        for k in range(int(w / 0.7)):                                                                 # tile ribs
+            xx = gx - w / 2 + 0.45 + k * 0.7
+            for sy in (-1, 1):
+                mb.box(T(xx, gy + sy * (d / 2 + 0.38), z + 0.36) @ Rx(-sy * 0.5) @ S(0.07, 0.1, 0.5), "temple_st_dk")
+        z += 0.62
+        w, d = w * 0.86, d * 0.855
+        th = 1.55 - 0.1 * tier
+        mb.box(T(gx, gy, z + th / 2) @ S(w, d, th), "temple_st")
         for sy in (-1, 1):
+            yy = gy + sy * (d / 2)
             for k in range(7):                                    # pilasters with recesses between
                 px = gx - w / 2 + 0.2 + k * (w - 0.4) / 6
-                mb.box(T(px, gy + sy * (d / 2 + 0.08), z + 0.5 + th / 2) @ S(0.3, 0.18, th), "temple_st_lt")
+                mb.box(T(px, yy + sy * 0.08, z + th / 2) @ S(0.28, 0.18, th), "temple_st_lt")
                 if k < 6:
-                    mb.box(T(px + (w - 0.4) / 12, gy + sy * (d / 2 + 0.01), z + 0.5 + th * 0.5) @
-                           S(0.5, 0.06, th * 0.55), "temple_st_dk")
-            mb.box(T(gx, gy + sy * (d / 2 + 0.12), z + 0.5 + th * 0.45) @ S(0.9, 0.1, th * 0.62), "dark")
-            mb.box(T(gx, gy + sy * (d / 2 + 0.16), z + 0.5 + th * 0.8) @ S(1.3, 0.2, 0.22), "temple_st_lt")
-            for k in range(9):                                    # row of small kudu arches on the cornice
+                    mb.box(T(px + (w - 0.4) / 12, yy + sy * 0.01, z + th * 0.45) @ S(0.55, 0.06, th * 0.6), "temple_st_dk")
+            mb.box(T(gx, yy + sy * 0.1, z + th * 0.45) @ S(1.0, 0.12, th * 0.66), "dark")           # central niche
+            mb.box(T(gx, yy + sy * 0.18, z + th * 0.85) @ S(1.4, 0.2, 0.2), "temple_st_lt")
+            _statue(mb, gx, yy + sy * 0.16, z + 0.12, sy, 1.05)
+            for nx in (-1, 1):                                    # side niches with figures
+                px = gx + nx * w * 0.3
+                mb.box(T(px, yy + sy * 0.1, z + th * 0.45) @ S(0.6, 0.1, th * 0.56), "dark")
+                _statue(mb, px, yy + sy * 0.15, z + 0.14, sy, 0.8)
+            for k in range(13):                                   # carved relief band at the top of the tier
+                px = gx - w / 2 + 0.3 + k * (w - 0.6) / 12
+                mb.box(T(px, yy + sy * 0.09, z + th - 0.1) @ S(0.3, 0.1, 0.18), "temple_st_dk" if k % 2 else "temple_st_lt")
+            for k in range(9):                                    # row of small kudu arches under the eave
                 px = gx - w / 2 + 0.5 + k * (w - 1.0) / 8
-                mb.cone(T(px, gy + sy * (d / 2 + 0.25), z + 0.42) @ Rx(math.pi / 2), "temple_st_lt", segments=6,
-                        r1=0.2, r2=0.2, depth=0.12)
-            for sx in (-1, 1):                                    # corner pavilions (kuta)
-                cx_, cy_ = gx + sx * (w / 2 - 0.3), gy + sy * (d / 2 - 0.3)
-                mb.box(T(cx_, cy_, z + 0.5 + th + 0.25) @ S(0.8, 0.8, 0.5), "temple_st_lt")
-                mb.cone(T(cx_, cy_, z + 0.5 + th + 0.7) @ Rz(math.pi / 4), "temple_st", segments=4, r1=0.55,
-                        r2=0.05, depth=0.5)
-            for k in (-1, 1):                                     # side pavilions with barrel tops
-                mb.box(T(gx + k * w * 0.22, gy + sy * (d / 2 - 0.2), z + 0.5 + th + 0.25) @ S(1.1, 0.6, 0.5),
-                       "temple_st_lt")
-        z += 0.5 + th
+                mb.cone(T(px, yy + sy * 0.2, z + th + 0.03) @ Rx(math.pi / 2), "temple_st_lt", segments=6,
+                        r1=0.17, r2=0.17, depth=0.1)
+            for sx in (-1, 1):                                    # corner pavilions with finials
+                cx_, cy_ = gx + sx * (w / 2 - 0.25), gy + sy * (d / 2 - 0.25)
+                mb.box(T(cx_, cy_, z + th + 0.2) @ S(0.7, 0.7, 0.4), "temple_st_lt")
+                mb.cone(T(cx_, cy_, z + th + 0.62) @ Rz(math.pi / 4), "temple_st", segments=4, r1=0.5, r2=0.05, depth=0.5)
+                mb.cone(T(cx_, cy_, z + th + 1.0), "gold", segments=5, r1=0.05, r2=0.0, depth=0.3)
+            for k in (-1, 1):                                     # side pavilions
+                mb.box(T(gx + k * w * 0.22, gy + sy * (d / 2 - 0.2), z + th + 0.22) @ S(1.0, 0.6, 0.44), "temple_st_lt")
+                mb.cone(T(gx + k * w * 0.22, gy + sy * (d / 2 - 0.2), z + th + 0.6) @ Ry(math.pi / 2) @ S(0.8, 1.0, 1.0),
+                        "temple_tile", segments=6, r1=0.3, r2=0.3, depth=0.9)
+        for sx in (-1, 1):                                        # the ends: a niche each
+            mb.box(T(gx + sx * (w / 2 + 0.02), gy, z + th * 0.45) @ S(0.1, 1.3, th * 0.6), "temple_st_dk")
+        z += th
     # crown: barrel vault along X with horseshoe gables and finials
-    mb.box(T(gx, gy, z + 0.2) @ S(w + 0.6, d + 0.6, 0.4), "temple_st_lt")
+    mb.box(T(gx, gy, z + 0.2) @ S(w + 0.8, d + 0.8, 0.4), "temple_st_lt")
     L = w * 0.92
     mb.cone(T(gx, gy, z + 0.4 + 0.9) @ Ry(math.pi / 2) @ S(1.0, 1.25, 1.0), "temple_tile", segments=10, r1=d * 0.42,
             r2=d * 0.42, depth=L)
@@ -1476,9 +1582,9 @@ def make_gopuram(coll, rng):
                 depth=0.3)
         mb.cone(T(gx, gy + sy * (d * 0.5 + 0.08), z + 1.6) @ Rx(math.pi / 2), "dark", segments=8, r1=0.6, r2=0.6,
                 depth=0.25)
-    for k in range(7):
-        fx = gx - L / 2 + 0.5 + k * (L - 1.0) / 6
-        zt = z + 0.4 + 0.9 + d * 0.42 * 1.25
+    zt = z + 0.4 + 0.9 + d * 0.42 * 1.25
+    for k in range(9):
+        fx = gx - L / 2 + 0.4 + k * (L - 0.8) / 8
         mb.cone(T(fx, gy, zt + 0.2), "gold", segments=8, r1=0.16, r2=0.1, depth=0.3)
         mb.ico(T(fx, gy, zt + 0.48) @ S(1, 1, 1.3), "gold", r=0.16, sub=1)
         mb.cone(T(fx, gy, zt + 0.78), "gold", segments=6, r1=0.06, r2=0.0, depth=0.3)
@@ -1649,12 +1755,12 @@ def pose_king(root, parts, held, floor, ev, step_z):
     up = {"armL": (1.25, 0.0, 0.25), "armR": (1.25, 0.0, -0.25), "waist": (0.0, 0, 0), "head": (-0.08, 0, 0)}
     kp(parts, f0, up)
     kp(parts, lay - 70, up)
-    bow = {"armL": (0.8, 0.0, 0.25), "armR": (0.8, 0.0, -0.25), "waist": (-0.62, 0, 0), "head": (-0.25, 0, 0)}
+    bow = {"armL": (0.8, 0.0, 0.25), "armR": (0.8, 0.0, -0.25), "waist": (-0.36, 0, 0), "head": (-0.12, 0, 0)}
     kp(parts, lay - 8, bow)
     kp(parts, lay + 6, bow)
-    pray = {"armL": (1.0, 0.0, 0.55), "armR": (1.0, 0.0, -0.55), "waist": (-0.42, 0, 0), "head": (-0.3, 0, 0)}
+    pray = {"armL": (1.0, 0.0, 0.55), "armR": (1.0, 0.0, -0.55), "waist": (-0.26, 0, 0), "head": (-0.14, 0, 0)}
     kp(parts, lay + 46, pray)
-    kp(parts, f1, {"armL": (1.0, 0.0, 0.55), "armR": (1.0, 0.0, -0.55), "waist": (-0.3, 0, 0), "head": (-0.22, 0, 0)})
+    kp(parts, f1, {"armL": (1.0, 0.0, 0.55), "armR": (1.0, 0.0, -0.55), "waist": (-0.2, 0, 0), "head": (-0.12, 0, 0)})
     sc = bpy.context.scene
     sc.frame_set(lay)
     M = held.matrix_world.copy()
@@ -1705,6 +1811,11 @@ def build_set_c(colls, lib, ev):
     _heightfield(colls["world"], "TerrainC", xs, ys, gC,
                  lambda x, y, z, nz, r: "grass" if r.random() > 0.3 else ("leaf" if r.random() > 0.5 else "grass_lt"),
                  ["grass", "grass_lt", "leaf"], seed=7)
+    for name, rgb in (("temple_st", (0.50, 0.44, 0.41)), ("temple_st_dk", (0.38, 0.33, 0.33)),
+                      ("temple_st_lt", (0.60, 0.54, 0.51)), ("temple_tile", (0.45, 0.39, 0.37))):
+        kit.PALETTE[name] = rgb                                  # grey-brown granite (K46), violet in shadow
+        m_ = kit.mat(name, rgb)
+        m_.node_tree.nodes["Principled BSDF"].inputs["Base Color"].default_value = (*kit.srgb_to_linear(rgb), 1)
     tc = kit.new_collection("TempleBuild")
     make_court(tc, rng)
     make_shrine(tc, rng)
@@ -1727,7 +1838,12 @@ def build_set_c(colls, lib, ev):
             ((CORR[0] + 0.3, CORR[2] + 0.12), (CORR[1] - 0.3, CORR[2] + 0.12), 0.9, 0.55),
             ((-17.4, -24.0), (-17.4, 32.0), 0.7, 0.62),
             ((-18.3, -14.4), (-9.7, -14.4), 0.71, 0.36), ((-9.7, -14.4), (-9.7, -9.7), 0.71, 0.36),
-            ((GOPURAM[0] - 6.0, GOPURAM[1] - 4.2), (GOPURAM[0] + 6.0, GOPURAM[1] - 4.2), 0.8, 0.5)]
+            ((GOPURAM[0] - 6.0, GOPURAM[1] - 4.2), (GOPURAM[0] + 6.0, GOPURAM[1] - 4.2), 0.8, 0.5),
+            ((-17.0, 32.6), (-3.0, 32.6), 0.05, 0.8), ((8.0, 32.6), (36.0, 32.6), 0.05, 0.8),
+            ((37.2, -22.0), (37.2, 0.5), 0.05, 0.8),
+            ((-17.2, -26.0), (-10.0, -26.0), 0.05, 0.6),
+            ((-14.2, -8.6), (-9.8, -5.4), 0.0, 0.5), ((-13.2, -9.4), (-8.9, -6.2), 0.0, 0.5),
+            ((CORR[0] - 0.4, CORR[2] - 0.9), (CORR[1] - 0.4, CORR[2] - 0.9), 0.5, 0.7)]
     for i, (p0, p1, z, step) in enumerate(rows):
         _lamp_row(c, lamp, p0, p1, z, step, rng, f"Lamp{i}_", flicker=fl)
     mx, my = MAST
@@ -1736,6 +1852,38 @@ def build_set_c(colls, lib, ev):
         for (p0, p1) in (((mx - q, my - q), (mx + q, my - q)), ((mx + q, my - q), (mx + q, my + q)),
                          ((mx + q, my + q), (mx - q, my + q)), ((mx - q, my + q), (mx - q, my - q))):
             _lamp_row(c, lamp, p0, p1, z, 0.4, rng, f"MastLamp{i}_", flicker=fl)
+    # left wall: lamp niches, planters of tulsi along its foot, platform steps, grass between flagstones
+    dm = kit.MB(bevel=0.02)
+    for k in range(14):
+        yy = -22.0 + k * 4.3
+        dm.box(T(-18.18, yy, 1.45) @ S(0.12, 0.7, 0.95), "dark")
+        dm.box(T(-18.1, yy, 2.0) @ S(0.18, 0.95, 0.12), "temple_st_lt")
+        dm.box(T(-18.1, yy, 0.95) @ S(0.2, 0.95, 0.1), "temple_st_lt")
+    for k in range(30):
+        yy = -24.0 + k * 1.9
+        dm.box(T(-18.15, yy, 2.85) @ S(0.1, 0.7, 0.3), "temple_st_dk" if k % 2 else "temple_st_lt")      # carved band
+    for k in range(3):                                           # steps up to the foreground platform
+        hh = 0.6 - 0.18 * k
+        dm.box(T(-14.0, -14.9 - 0.4 * k, hh / 2) @ S(4.0, 0.42, hh), "temple_st_lt" if k % 2 else "temple_st")
+    for sxx in (-1, 1):
+        dm.box(T(-14.0 + sxx * 2.15, -15.4, 0.3) @ S(0.3, 1.4, 0.6), "temple_st_dk")
+    for k in range(5):
+        dm.box(T(-14.0 + (k - 2) * 1.7, -9.7, 0.78) @ S(0.5, 0.5, 0.35), "temple_st_dk")           # plinths on the platform
+        dm.box(T(-14.0 + (k - 2) * 1.7, -9.7, 0.98) @ S(0.62, 0.62, 0.1), "temple_st_lt")
+    det = dm.obj("LeftWallDetail", c)
+    det.location.x += TO[0]
+    det.location.y += TO[1]
+    for k in range(9):
+        yy = -21.0 + k * 6.2
+        kit.instance(lib["pot"], f"TulsiPot{k}", c, (TO[0] - 16.6, TO[1] + yy, 0.0), rot_z=rng.uniform(0, TAU), scale=1.5)
+        kit.instance(lib["bushes"][k % 3], f"TulsiBush{k}", c, (TO[0] - 16.6, TO[1] + yy, 0.45), rot_z=rng.uniform(0, TAU),
+                     scale=0.45)
+    for k in range(60):                                          # tufts pushing up between the flagstones
+        x, y = rng.uniform(-19.5, 37), rng.uniform(-25.5, 33)
+        if rng.random() < 0.6:
+            x = rng.choice((-19.2, 37.6)) + rng.uniform(-0.3, 0.3)
+        kit.instance(rng.choice(lib["bushes"]), f"Tuft{k}", c, (TO[0] + x, TO[1] + y, -0.05), rot_z=rng.uniform(0, TAU),
+                     scale=rng.uniform(0.18, 0.3))
     # trees behind the walls: palms and broad crowns in the mist
     sp = Spacer(5.0)
     k = 0
@@ -1753,6 +1901,15 @@ def build_set_c(colls, lib, ev):
         k += 1
         if k > 700:
             break
+    for i in range(34):                          # tall palms standing up behind the walls, left, right and back
+        side = i % 3
+        x, y = ((rng.uniform(-46, -24), rng.uniform(-22, 40)), (rng.uniform(41, 66), rng.uniform(-12, 40)),
+                (rng.uniform(-20, 40), rng.uniform(38, 58)))[side]
+        if not sp.free(x, y, 3.0):
+            continue
+        sp.add(x, y, 3.0)
+        kit.instance(lib["palms"][i % 6], f"CTallPalm{i}", c, (x + TO[0], y + TO[1], hC(x, y) - 0.2),
+                     rot_z=rng.uniform(0, TAU), scale=rng.uniform(1.5, 2.1))
     for i in range(160):
         x, y = rng.uniform(-60, 80), rng.uniform(-40, 90)
         if -21.0 < x < 39.0 and -27.0 < y < 35.5:
@@ -1763,7 +1920,7 @@ def build_set_c(colls, lib, ev):
     root, parts, held, floor = make_kneeling_king(c, ev["end"], ev, rng)
     kx, ky = sx - 1.95, sy - SHR_W / 2 - 2.55
     root.location = (kx + TO[0], ky + TO[1], 0.0)
-    root.rotation_euler[2] = _face(1.0, 0.25)
+    root.rotation_euler[2] = _face(1.0, -0.55)
     pose_king(root, parts, held, floor, ev, step_z=0.0)
     kit.animate_rig_idle(parts, rng, ev["s37"][0], ev["s37"][1], body=0.006, head=0.04, skip=("waist", "armL", "armR", "head"))
     proot, pparts = make_priest(c, ev, rng)
@@ -1776,11 +1933,46 @@ def build_set_c(colls, lib, ev):
     # dawn mist among the trees, and the set's haze
     palw.add_mist_box(colls["world"], "DawnMist", (TO[0] + 10.0, TO[1] + 95.0, 9.0), (320.0, 110.0, 22.0), 0.022,
                       color=(0.98, 0.84, 0.82))
-    palw.add_mist_box(colls["world"], "DawnMistSide", (TO[0] - 70.0, TO[1] + 10.0, 8.0), (90.0, 200.0, 20.0), 0.02,
+    palw.add_mist_box(colls["world"], "DawnMistSide", (TO[0] - 70.0, TO[1] + 10.0, 8.0), (90.0, 200.0, 20.0), 0.045,
                       color=(0.98, 0.84, 0.82))
-    haze = cw.add_haze(colls["rig"], density=0.0012, color=(0.98, 0.86, 0.84))
+    palw.add_mist_box(colls["world"], "DawnMistBack", (TO[0] + 5.0, TO[1] + 62.0, 9.0), (240.0, 50.0, 22.0), 0.016,
+                      color=(0.95, 0.80, 0.82))
+    haze = cw.add_haze(colls["rig"], density=0.0018, color=(0.96, 0.80, 0.80))
     haze.location = (TO[0] + 100.0, TO[1] - 100.0, -80.0)
     return root
+
+
+# ================================================================= sky
+def sky_setup(sc):
+    """Day sky for the plain and the fort (cream horizon, pale blue above), plus a DawnMix node
+    (factor keyed per beat by inland_film) that swaps in the pink-gold dawn gradient of S37."""
+    nt = sc.world.node_tree
+    ramp = next(n for n in nt.nodes if n.bl_idname == "ShaderNodeValToRGB")
+    mr = next(n for n in nt.nodes if n.bl_idname == "ShaderNodeMapRange")
+    bg = next(n for n in nt.nodes if n.bl_idname == "ShaderNodeBackground")
+    storm = nt.nodes["StormMix"]
+    cr = ramp.color_ramp
+    for e, c in zip(cr.elements, ((1.0, 0.93, 0.82), (0.94, 0.91, 0.87), (0.78, 0.85, 0.93))):
+        e.color = (*kit.srgb_to_linear(c), 1)
+    cr.elements[1].position = 0.3
+    dr = nt.nodes.new("ShaderNodeValToRGB")
+    dr.name = "DawnRamp"
+    nt.links.new(mr.outputs["Result"], dr.inputs["Fac"])
+    d = dr.color_ramp
+    d.elements[0].position = 0.0
+    d.elements[0].color = (*kit.srgb_to_linear((1.0, 0.76, 0.62)), 1)
+    m = d.elements.new(0.22)
+    m.color = (*kit.srgb_to_linear((0.93, 0.68, 0.68)), 1)
+    d.elements[-1].position = 0.85
+    d.elements[-1].color = (*kit.srgb_to_linear((0.62, 0.55, 0.78)), 1)
+    mix = nt.nodes.new("ShaderNodeMix")
+    mix.name = "DawnMix"
+    mix.data_type = "RGBA"
+    nt.links.new(dr.outputs["Color"], cw._sock(mix.inputs, "B_Color"))
+    nt.links.new(cw._sock(storm.outputs, "Result_Color"), cw._sock(mix.inputs, "A_Color"))
+    nt.links.new(cw._sock(mix.outputs, "Result_Color"), bg.inputs["Color"])
+    mix.inputs["Factor"].default_value = 0.0
+    return mix
 
 
 # ================================================================= assembly
@@ -1794,6 +1986,7 @@ def build_world(ev, sets="ABC"):
     colls["townpeople"] = colls["townpeople"]
     colls["plantsB"] = colls["plantsb"]
     sun = cw.scene_base(colls["rig"], sun_dir=(0.75, -0.35, -0.5), sun_energy=8.0, haze_density=0.00005)
+    sky_setup(bpy.context.scene)
     lib = build_library(colls["lib"])
     if "A" in sets:
         build_set_a(colls, lib, ev)

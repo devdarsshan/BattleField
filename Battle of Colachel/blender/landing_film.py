@@ -65,13 +65,15 @@ DESIGN_CLIPS = [
 
 # Story events in design frames (clip time = 0.8 s lead + the word's share of the estimated line).
 EVENTS = dict(
-    volleys=[[205, 298], [214, 309], [223, 320]],   # S30 8.5 s "They fire on the shore", again at "blockade"
-    wade=(640, 790),                                # S31 "Soldiers wade ashore on the sand" (from 10.1 s)
-    point=1100,                                     # S32 12.4 s "His speciality is building forts."
-    build=(1200, 1430),                             # S34 posts go in through "...driven into the sand"
-    falls=[1440, 1474, 1508],                       # S34 "Village after village falls, all the way to Kottar"
-    storm=[(1590, 0.0), (1695, 1.0)],               # S38 "the south-west monsoon arrives"
-    rain=[(1612, 0.0), (1660, 1.0)],
+    # design frames; each lands on its words in the real Algieba takes (checked against the pauses in audio/Sxx.wav)
+    volleys=[[218, 341], [227, 350], [236, 359]],   # S30 "They fire on the shore" (8.0 s), again at "blockade" (13.2 s)
+    wade=(692, 799),                                # S31 "Soldiers wade ashore" (10.2 s)
+    point=1115,                                     # S32 "His speciality is building forts." (11.1 s)
+    build=(1200, 1430),                             # S34 posts go in through "...driven into the sand" (to 7.9 s)
+    march=1393,                                     # S34 "Then they march inland." (9.0 s): the column steps off
+    falls=[1445, 1464, 1483],                       # S34 "Village after village falls" (12.1 s)
+    storm=[(1565, 0.0), (1780, 1.0)],               # S38 the monsoon builds across the beat
+    rain=[(1590, 0.0), (1740, 1.0)],
 )
 
 SW = world.stockade_world
@@ -85,19 +87,19 @@ CAMS = {
     "S30": [(1,   (162.0, -72.0, 26.0), (40.0, -70.0, 4.0), 30),
             (220, (153.0, -67.0, 18.0), (34.0, -66.0, 5.0), 30),
             (456, (140.0, -60.0, 7.0), (24.0, -60.0, 8.0), 30)],
-    "S31": [(457, (180.0, -92.0, 52.0), (58.0, -52.0, 0.0), 30),
-            (640, (170.0, -83.0, 45.0), (54.0, -45.0, 0.0), 30),
-            (799, (160.0, -74.0, 38.0), (50.0, -38.0, 0.0), 30)],
-    "S32": [(800, (DLX + NX * 8.0 + TX * 1.6, DLY + NY * 8.0 + TY * 1.6, 2.2), (DLX, DLY, 1.1), 35),
-            (1100, (DLX + NX * 4.3 + TX * 0.8, DLY + NY * 4.3 + TY * 0.8, 1.55), (DLX - TX * 0.4, DLY - TY * 0.4, 1.05), 35),
-            (1192, (DLX + NX * 3.8 + TX * 0.6, DLY + NY * 3.8 + TY * 0.6, 1.4), (DLX - TX * 0.6, DLY - TY * 0.6, 0.9), 35)],
-    "S34": [(1193, (102.0, -42.0, 48.0), (58.0, -1.0, 0.0), 30),
-            (1400, (86.0, -26.0, 30.0), (57.0, 0.0, 0.0), 30),
-            (1480, (92.0, -22.0, 50.0), (62.0, 50.0, 2.0), 30),
-            (1556, (82.0, -14.0, 64.0), (60.0, 118.0, 0.0), 30)],
+    "S31": [(457, (152.0, -78.0, 38.0), (72.0, -62.0, 0.0), 26),
+            (640, (142.0, -68.0, 33.0), (68.0, -48.0, 0.0), 26),
+            (799, (130.0, -58.0, 29.0), (62.0, -38.0, 0.0), 27)],
+    "S32": [(800, (DLX + NX * 6.5 + TX * 1.4, DLY + NY * 6.5 + TY * 1.4, 2.0), (DLX + TX * 1.1, DLY + TY * 1.1, 1.25), 35),
+            (1100, (DLX + NX * 4.5 + TX * 0.9, DLY + NY * 4.5 + TY * 0.9, 1.6), (DLX + TX * 0.6, DLY + TY * 0.6, 1.05), 35),
+            (1192, (DLX + NX * 3.9 + TX * 0.6, DLY + NY * 3.9 + TY * 0.6, 1.4), (DLX - TX * 0.2, DLY - TY * 0.2, 0.9), 35)],
+    "S34": [(1193, (92.0, -34.0, 40.0), (57.0, -3.0, 0.0), 30),
+            (1400, (84.0, -24.0, 30.0), (57.0, 0.0, 0.0), 30),
+            (1480, (86.0, -22.0, 38.0), (62.0, 40.0, 2.0), 30),
+            (1556, (80.0, -24.0, 36.0), (60.0, 60.0, 0.0), 30)],
     "S38": [(1557, (*SW(9.0, 32.0), 5.0), (*SW(0.0, -4.0), 1.5), 30),
             (1700, (*SW(4.0, 16.0), 6.5), (*SW(-1.0, -12.0), 1.0), 30),
-            (1840, (*SW(1.0, 0.0), 10.0), (*SW(-6.0, -40.0), 0.0), 30),
+            (1880, (*SW(1.0, 0.0), 10.0), (*SW(-6.0, -40.0), 0.0), 30),
             (1997, (*SW(-2.0, -8.0), 11.0), (30.0, -245.0, 6.0), 30)],
 }
 KEYFRAMES = {"K37": 260, "K38": 700, "K39": 1150, "K41": 1380}
@@ -155,6 +157,7 @@ def build(samples=32):
     rt = lambda f: retime(f, clips)
     rng = {c[1]: (c[2], c[3]) for c in clips}
 
+    lw.install_height()
     kit.reset_scene()
     sc = world.setup_render(samples=samples)
     sc.frame_start, sc.frame_end = 1, end
@@ -166,11 +169,12 @@ def build(samples=32):
         point=rt(EVENTS["point"]),
         build=tuple(rt(f) for f in EVENTS["build"]),
         falls=[rt(f) for f in EVENTS["falls"]],
+        march=rt(EVENTS["march"]),
         # build, hold, and (past the end) clear: colachel_world's storm/cloud timeline format
         storm=[(rt(f), v) for f, v in EVENTS["storm"]] + [(end + 200, 1.0), (end + 300, 0.0)],
     )
     rig, sun, dl = lw.build_world(ev)
-    lw.sea_light(sun, ev["r31"][1])                  # S30-S31: light from behind the camera, clear water
+    lw.sea_light(sun, ev["r31"][1], sky_last=ev["r32"][1])                  # S30-S31: light from behind the camera, clear water
     # keep every camera out of the palms and trees it flies past
     path = []
     for keys in CAMS.values():
@@ -186,14 +190,14 @@ def build(samples=32):
         mk = sc.timeline_markers.new(f"{clip} {beat}", frame=f0)
         mk.camera = cams[beat]
     sc.camera = cams["S30"]
-    world.build_rain(kit.new_collection("Rain"), cams["S38"],
-                     [(rt(f), v) for f, v in EVENTS["rain"]] + [(end, 1.0)], end)
+    lw.heavy_rain(kit.new_collection("Rain"), cams["S38"],
+                  [(rt(f), v) for f, v in EVENTS["rain"]] + [(end, 1.0)], end)
 
     # the storm light is lifted a little, as in the S05 monsoon
     vs = sc.view_settings
     base = vs.exposure
     for f, w in ev["storm"][:2]:
-        vs.exposure = base + 0.4 * w
+        vs.exposure = base + 0.35 * w
         vs.keyframe_insert("exposure", frame=f)
     for name, f in KEYFRAMES.items():
         sc.timeline_markers.new(name, frame=rt(f))

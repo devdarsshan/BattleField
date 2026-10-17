@@ -22,7 +22,35 @@ import colachel_kit as kit
 import colachel_world as cw
 import port_world as pw
 
-H = cw.height
+_BASE_HEIGHT = cw.height
+
+
+def _landing_height(x, y):
+    """colachel_world.height without the S06 battery hillock and with the inland hills lowered to
+    a third, so the palm-lined coast reads flat as in K37/K38 (nothing here is on those hills)."""
+    h = _BASE_HEIGHT(x, y)
+    bx, by = cw.BATTERY
+    h -= 12.0 * math.exp(-((x - bx) ** 2 + (y - by) ** 2) / 16.0 ** 2)
+    d = y - cw.shore_y(x)
+    if h > 4.0:
+        h = 4.0 + (h - 4.0) * (1.0 - 0.82 * cw._smooth(35, 90, d))
+    return h
+
+
+def install_height():
+    """Make colachel_world.height the lowered-hills version (call after film.py has run its reloads)."""
+    global H
+    cw.height = _landing_height
+    H = _landing_height
+    base_grass = cw.grass_line
+    if not getattr(base_grass, "_landing", False):
+        def grass_line(x, y):
+            return base_grass(x, y) + 110.0       # sand and palms right back to the villages (K41)
+        grass_line._landing = True
+        cw.grass_line = grass_line
+
+
+H = _BASE_HEIGHT
 SY = cw.shore_y
 SW = cw.stockade_world
 COAST_RZ = math.atan2(1.0, 0.3)          # rot_z that points a kit ship's bow WNW along the coast
@@ -31,6 +59,8 @@ COAST_RZ = math.atan2(1.0, 0.3)          # rot_z that points a kit ship's bow WN
 PATH = [(61.4, 9.8), (62.0, 20.0), (60.5, 34.0), (58.0, 48.0), (57.5, 62.0), (60.0, 76.0), (64.0, 90.0),
         (66.0, 105.0), (64.0, 120.0), (62.0, 136.0), (63.0, 152.0)]
 HAMLET_AT = [(3, 13.0), (6, -14.0), (8, 13.0)]            # (path point, metres to the side)
+NX, NY = 0.287, 0.958                                     # inland, across the coast
+TX, TY = 0.958, -0.287                                    # along the coast (ESE)
 DL_POS = (50.0, SY(50.0) + 7.0)                          # De Lannoy marks out the stockade (S32)
 
 
@@ -132,7 +162,7 @@ def tidy_trees():
     hams = hamlet_centres()
     for ob in [o for o in bpy.data.objects if o.name.startswith("Tree")]:
         x, y = ob.location.x, ob.location.y
-        if near_path(x, y, 5.5) or any(math.hypot(x - a, y - b) < 15 for a, b in hams):
+        if near_path(x, y, 5.5) or any(math.hypot(x - a, y - b) < 15 for a, b in hams) or                 (-115 < x < 210 and y - SY(x) < 150):
             bpy.data.objects.remove(ob, do_unlink=True)
 
 
@@ -141,20 +171,23 @@ def build_groves(c, rng):
     palms = [bpy.data.objects[f"LibPalm{i}"] for i in range(6)]
     bushes = [bpy.data.objects[f"LibBush{i}"] for i in range(3)]
     hams = hamlet_centres()
-    spots = []
+    spots = [(o.location.x, o.location.y) for o in bpy.data.objects if o.name.startswith("Palm")]
+    huts = [(o.location.x, o.location.y) for o in bpy.data.objects if o.name.startswith(("Hut", "Fence", "Rock"))]
 
     def ok(px, py, r=3.0):
-        if cw.in_stockade(px, py, 4.5) or near_path(px, py, 4.0) or any(math.hypot(px - a, py - b) < 10
+        if cw.in_stockade(px, py, 4.5) or near_path(px, py, 7.0) or any(math.hypot(px - a, py - b) < 13
                                                                          for a, b in hams):
+            return False
+        if px < 40 and any(math.hypot(px - a, py - b) < 8.0 for a, b in huts):
             return False
         return all((px - a) ** 2 + (py - b) ** 2 > r * r for a, b in spots)
 
     k = 0
-    x = 34.0
-    while x < 200:
-        for row in range(12):
-            d = 10 + row * 3.7 + rng.uniform(-1.5, 1.5)
-            if x < 118 and d < 18:
+    x = -115.0
+    while x < 205:
+        for row in range(15):
+            d = 9 + row * 3.4 + rng.uniform(-1.5, 1.5)
+            if 34 < x < 118 and d < 18:
                 continue
             px = x + rng.uniform(-1.8, 1.8)
             py = SY(px) + d
@@ -168,7 +201,7 @@ def build_groves(c, rng):
     # palms along the path and round the villages inland
     for i, (px, py) in enumerate(PATH_D[6::3]):
         for side in (-1, 1):
-            qx, qy = px + side * rng.uniform(5.0, 8.0), py + rng.uniform(-2, 2)
+            qx, qy = px + side * rng.uniform(8.0, 12.0), py + rng.uniform(-2, 2)
             if ok(qx, qy, 3.5):
                 spots.append((qx, qy))
                 kit.instance(palms[k % 6], f"GrovePalm{k}", c, (qx, qy, H(qx, qy) - 0.1),
@@ -180,6 +213,14 @@ def build_groves(c, rng):
         if not cw.in_stockade(px, py, 2.0):
             kit.instance(palms[k % 6], f"GrovePalm{k}", c, (px, py, H(px, py) - 0.1), rot_z=rng.uniform(0, 6.28),
                          scale=rng.uniform(0.95, 1.15))
+            k += 1
+    for i in range(300):                     # more palms round the track and villages inland
+        px = rng.uniform(25, 115)
+        py = SY(px) + rng.uniform(42, 150)
+        if ok(px, py, 3.4):
+            spots.append((px, py))
+            kit.instance(palms[k % 6], f"GrovePalm{k}", c, (px, py, H(px, py) - 0.1), rot_z=rng.uniform(0, 6.28),
+                         scale=rng.uniform(0.9, 1.25))
             k += 1
     for i in range(90):
         x = rng.uniform(34, 190)
@@ -304,7 +345,19 @@ def build_s30(c, lib, ev):
             ship.location = (*course(vf), -0.4)
             ship.rotation_euler = (0, 0, COAST_RZ)
             kit.ship_broadside(ship, c, [vf], end, side=1, length=L, beam=9.5 + 0.12 * (L - 36), seed=100 * i + vf,
-                               ripple=3, puffs=2, flash=3.4, smoke=(2.8, 4.4), drift=(0.6, 0.9), linger=170)
+                               ripple=3, puffs=2, flash=5.2, smoke=(2.8, 4.4), drift=(0.6, 0.9), linger=170)
+            # a short orange light pulse at the guns, so the flash glows on sails, hull and water
+            ld = bpy.data.lights.new(f"S30Glow{i}_{vf}", "POINT")
+            ld.color = (1.0, 0.55, 0.15)
+            ld.energy = 0.0
+            ld.shadow_soft_size = 1.5
+            glow = bpy.data.objects.new(f"S30Glow{i}_{vf}", ld)
+            c.objects.link(glow)
+            glow.parent = ship
+            glow.location = (6.0 / ship.scale.x, 0.0, 4.5 / ship.scale.x)
+            for df, e in ((-2, 0.0), (1, 9000.0), (6, 7000.0), (14, 0.0)):
+                ld.energy = e
+                ld.keyframe_insert("energy", frame=vf + df)
             # the shot lands: plumes in the shallows, sand thrown up on the beach below the village
             for k in range(6):
                 x = rng.uniform(-28, 52)
@@ -389,20 +442,28 @@ def build_s31(c, lib, ev, fleet):
             kit.instance(cannon, f"S31Gun{pi}", c, (x, y, H(x, y) - 0.03), rot_z=_face(0.287, 0.958) + 0.3)
     # longboats: a stream from the ships to the beach
     boats = []
-    for i in range(22):
+    for i in range(32):
         ship = fleet[(i * 3) % len(fleet)]
         sx, sy = ship.location.x, ship.location.y
-        bx = rng.uniform(46, 112)
+        if i < 16:      # the boats that ground: one every ~5.5 m, in a shuffled order
+            bx = 42 + 84.0 * ((i * 7) % 16) / 15.0 + rng.uniform(-0.6, 0.6)
+        else:           # the rest are still out in the bay
+            bx = 44 + 80.0 * ((i * 11) % 32) / 31.0 + rng.uniform(-1.5, 1.5)
         p1 = cy(bx, -2.2)
         side = rng.choice((-1, 1))
         p0 = (sx + side * rng.uniform(6, 12), sy + rng.uniform(6, 14))
         dist = math.hypot(p1[0] - p0[0], p1[1] - p0[1])
         dur = int(dist / 1.9 * kit.FPS)
-        # a few already ashore, some grounding while the men wade in, the rest still pulling for the beach
-        arrive = (f0 - 220 + i * 38, wade[0] - 30 + (i - 5) * 22, f1 + 30 + (i - 10) * 30)[0 if i < 5 else 1 if i < 10 else 2]
+        # a few already ashore, some grounding while the men wade in, the rest still pulling across the bay
+        if i < 5:
+            arrive = f0 - 220 + i * 38
+        elif i < 11:
+            arrive = wade[0] - 30 + (i - 5) * 22
+        else:
+            arrive = f0 + 150 + (i - 11) * 40
         arrive += rng.randint(-10, 10)
         start = arrive - dur
-        boat, oars = kit.make_troop_boat(f"S31Boat{i}", c, seed=i, rows=4, standing=1 + (i % 2))
+        boat, oars = kit.make_troop_boat(f"S31Boat{i}", c, seed=i, rows=3, standing=1 + (i % 2))
         kit.animate_boat_path(boat, start, arrive, p0, p1, end, z=-0.3, seed=i, beach_z=-0.42)
         kit.animate_oars(oars, max(1, start), arrive, period=34 + i % 5, phase=i % 7)
         boats.append((boat, p0, p1, arrive))
@@ -417,8 +478,9 @@ def build_s31(c, lib, ev, fleet):
             if not slots:
                 break
             sx, sy = slots.pop(rng.randrange(len(slots)))
-            a = (p1[0] + dx / L * 2.4 + rng.uniform(-0.8, 0.8), p1[1] + dy / L * 2.4 + rng.uniform(-0.6, 0.6))
-            t0 = max(arrive + 8, wade[0]) + k * 14 + rng.randint(0, 8)
+            sx, sy = sx + rng.uniform(-1.2, 1.2), sy + rng.uniform(-1.0, 1.0)
+            a = (p1[0] + dx / L * 3.0 + rng.uniform(-1.6, 1.6), p1[1] + dy / L * 3.0 + rng.uniform(-1.2, 1.2))
+            t0 = max(arrive + 8, wade[0]) + k * 26 + rng.randint(0, 30)
             dist = math.hypot(sx - a[0], sy - a[1])
             t1 = t0 + int(dist / 1.05 * kit.FPS)
             root, parts = kit.clone_walker(walker_tpl[w % 3], f"S31Wader{w}", c)
@@ -486,10 +548,10 @@ def build_beach_camp(c, lib, ev):
         pile.location = (x, y, H(x, y) - 0.05)
         pile.rotation_euler[2] = math.radians(ST_AXIS) + rz
         piles.append((x, y))
-    # piles near De Lannoy (S32 foreground, K39)
-    for i, (xx, dd, rz) in enumerate(((53.4, 7.2, 0.15), (46.4, 6.1, -0.2))):
-        x, y = cy(xx, dd)
-        pile = make_log_pile(f"DLPile{i}", c, rng, n=8)
+    # piles beside De Lannoy (S32 foreground, K39): low and to the sides, so the camera sees over them
+    for i, (a, b, rz) in enumerate(((4.6, 1.2, 0.15), (-6.0, 0.4, -0.2))):
+        x, y = DL_POS[0] + TX * a + NX * b, DL_POS[1] + TY * a + NY * b
+        pile = make_log_pile(f"DLPile{i}", c, rng, n=6)
         pile.location = (x, y, H(x, y) - 0.05)
         pile.rotation_euler[2] = math.radians(ST_AXIS) + rz
     # crate stacks, barrels and sacks
@@ -516,7 +578,45 @@ ST_AXIS = cw.STOCKADE["axis_deg"]
 S32_PALMS = ((52.4, 3.2), (40.0, 6.0))
 
 
+def make_plank_stack(name, lib):
+    """A few sawn planks lying together (K39 foreground)."""
+    mb = kit.MB()
+    for k in range(4):
+        mb.box(kit.T(0.0, (k - 1.5) * 0.32, 0.08 + 0.02 * (k % 2)) @ kit.S(2.6, 0.28, 0.1), "plank")
+    mb.box(kit.T(0.2, 0.0, 0.28) @ kit.S(2.4, 0.3, 0.1), "plank")
+    return mb.obj(name, lib)
+
+
+def make_rope_coil(name, lib):
+    """A coiled rope on the sand: two rings of short segments."""
+    mb = kit.MB()
+    for r, z in ((0.5, 0.06), (0.4, 0.15)):
+        n = 12
+        for k in range(n):
+            a0, a1 = math.tau * k / n, math.tau * (k + 1) / n
+            mb.seg((r * math.cos(a0), r * math.sin(a0), z), (r * math.cos(a1), r * math.sin(a1), z), 0.07, 0.07, "cloth_t",
+                   sides=5)
+    return mb.obj(name, lib)
+
+
+def make_tuft(name, lib):
+    """A little tuft of beach grass: a few thin faceted blades."""
+    mb = kit.MB()
+    rng = random.Random(5)
+    for k in range(7):
+        a = k * math.tau / 7 + rng.uniform(-0.3, 0.3)
+        h = rng.uniform(0.35, 0.6)
+        mb.seg((0.05 * math.cos(a), 0.05 * math.sin(a), 0.0), (0.22 * math.cos(a), 0.22 * math.sin(a), h), 0.035, 0.005,
+               "frond", sides=3)
+    return mb.obj(name, lib)
+
+
 # ===================================================================== S32
+def sq(x):
+    """Squeeze the S32 crowd toward De Lannoy: the camera only sees a few metres either side of him."""
+    return DL_POS[0] + (x - DL_POS[0]) * 0.8
+
+
 def build_s32(c, lib, ev):
     """De Lannoy on the beach, pointing out the line of the stockade (K39)."""
     rng = random.Random(132)
@@ -543,7 +643,7 @@ def build_s32(c, lib, ev):
             (61.5, -0.5, 62.0, 8.5, "post", -200), (38.5, -0.6, 40.0, 7.0, "crate", -90),
             (47.5, -0.5, 45.5, 5.0, "sack", 0), (63.5, -0.3, 64.0, 7.0, "sack", 100))):
         root_c, parts_c = kit.make_carrier(f"S32Carrier{i}", c, load=load, seed=200 + i)
-        a, b = cy(xa, da), cy(xb, db)
+        a, b = cy(sq(xa), da), cy(sq(xb), db)
         t0 = f0 + t
         dur = int(math.hypot(b[0] - a[0], b[1] - a[1]) / 0.95 * kit.FPS)
         kit.animate_route(root_c, parts_c, [(t0, t0 + dur, a, b)], H, stride_frames=16, swing=0.35)
@@ -552,15 +652,15 @@ def build_s32(c, lib, ev):
     for i, (xa, xb, dd, load, t) in enumerate(((43.0, 57.0, 3.2, "post", -40), (58.0, 45.0, 2.4, "crate", 30),
                                                (41.0, 55.0, 1.6, "post", 150), (60.0, 47.0, 3.8, "sack", 220))):
         root_c, parts_c = kit.make_carrier(f"S32Crosser{i}", c, load=load, seed=230 + i)
-        a, b = cy(xa, dd), cy(xb, dd)
+        a, b = cy(sq(xa), dd), cy(sq(xb), dd)
         t0 = f0 + t
-        kit.animate_route(root_c, parts_c, [(t0, t0 + int(abs(xb - xa) / 0.9 * kit.FPS), a, b)], H, stride_frames=16,
+        kit.animate_route(root_c, parts_c, [(t0, t0 + int(abs(sq(xb) - sq(xa)) / 0.9 * kit.FPS), a, b)], H, stride_frames=16,
                           swing=0.35)
         kit.fix_carry_arms(parts_c, load)
     dutch = [bpy.data.objects[f"LibLDutch{k}"] for k in range(3)]
-    for i, (xx, dd, look) in enumerate(((45.5, 4.0, 1.0), (56.8, 4.5, 2.6), (60.5, 3.0, 3.0), (42.5, 3.5, 0.5),
-                                        (64.0, 5.0, 2.2), (39.0, 5.5, 3.4))):
-        px, py = cy(xx, dd)
+    for i, (f, l, look) in enumerate(((3.0, -3.4, 1.0), (4.2, 2.8, 2.6), (7.0, -1.2, 3.0), (5.6, 5.2, 0.5),
+                                      (8.5, 3.2, 2.2), (6.6, -5.2, 3.4), (10.0, -3.0, 1.4))):
+        px, py = DL_POS[0] - NX * f + TX * l, DL_POS[1] - NY * f + TY * l
         ob = kit.instance(dutch[i % 3], f"S32Soldier{i}", c, (px, py, H(px, py) - 0.02), rot_z=look)
         kit.animate_idle(ob, rng, 1, end, amount=0.03)
     # palms still standing on the stockade site (cut for posts by S34: stumps there later)
@@ -569,6 +669,46 @@ def build_s32(c, lib, ev):
         px, py = cy(xx, dd)
         kit.instance(palms[(i + 2) % 6], f"S32Palm{i}", c, (px, py, H(px, py) - 0.1), rot_z=rng.uniform(0, 6.28),
                      scale=rng.uniform(0.95, 1.1))
+    # a big leaning palm at the left of the frame and others behind him (K39), clear of the camera path
+    x0, y0 = DL_POS
+    for i, (a, b, sc) in enumerate(((16.0, -9.0, 1.15), (-17.0, -12.0, 1.05), (-24.0, -18.0, 1.1), (24.0, -16.0, 1.0))):
+        px, py = x0 + TX * a + NX * b, y0 + TY * a + NY * b
+        kit.instance(palms[(i + 4) % 6], f"DLPalm{i}", c, (px, py, H(px, py) - 0.1), rot_z=rng.uniform(0, 6.28),
+                     scale=sc)
+    # a young palm leaning in from the left with its leaves in frame, and K39's foreground clutter
+    from mathutils import Matrix
+    px, py = x0 + TX * 5.0 - NX * 5.5, y0 + TY * 5.0 - NY * 5.5
+    palm = kit.instance(palms[2], "DLPalmLean", c, (px, py, H(px, py) - 0.1), rot_z=0.0, scale=0.62)
+    dx, dy = x0 - px, y0 - py
+    ln = math.hypot(dx, dy)
+    palm.rotation_euler = Matrix.Rotation(0.45, 4, (-dy / ln, dx / ln, 0.0)).to_euler()
+    plank = bpy.data.objects.get("LibPlankStack") or make_plank_stack("LibPlankStack", lib)
+    rope = bpy.data.objects.get("LibRope") or make_rope_coil("LibRope", lib)
+    tuft = bpy.data.objects.get("LibTuft") or make_tuft("LibTuft", lib)
+    sack_s = bpy.data.objects.get("LibSack") or kit.make_sack("LibSack", lib)
+    for ob in (plank, rope, tuft, sack_s):
+        kit.hide_source(ob)
+    crate_s, barrel_s = bpy.data.objects["LibCrate"], bpy.data.objects["LibBarrel"]
+    for i, (a, b, kind, rz) in enumerate((
+            (2.5, -1.4, "crate", 0.3), (3.2, -1.1, "crate", 0.9), (2.8, -1.3, "crate_top", 0.5), (3.7, -0.3, "barrel", 0.0),
+            (2.0, -0.2, "sack", 0.4), (1.5, 0.7, "rope", 0.0), (-2.4, -1.6, "crate", 0.2), (-3.0, -1.2, "barrel", 0.0),
+            (-1.8, -0.7, "rope", 1.0), (-2.2, 0.8, "sack", 1.2), (3.3, 3.0, "plank", 0.2), (-1.5, 3.4, "tuft", 0.0),
+            (1.9, 3.8, "tuft", 1.0), (-5.0, 3.0, "tuft", 2.0), (4.6, 3.6, "tuft", 0.5), (0.8, 2.2, "tuft", 1.6),
+            (-2.2, 1.6, "tuft", 2.6), (2.9, 1.2, "tuft", 0.7), (-0.6, 1.2, "tuft", 0.3), (1.2, -0.8, "tuft", 1.9))):
+        sx, sy = x0 + TX * a + NX * b, y0 + TY * a + NY * b
+        src = {"crate": crate_s, "crate_top": crate_s, "barrel": barrel_s, "sack": sack_s, "rope": rope,
+               "plank": plank, "tuft": tuft}[kind]
+        z = H(sx, sy) - 0.02 + (0.76 if kind == "crate_top" else 0.0)
+        kit.instance(src, f"S32Fg{i}", c, (sx, sy, z), rot_z=rz)
+    # the ships are far out on the horizon in K39: three small ones instead of the anchored fleet
+    for i, (a, b, rot, L) in enumerate(((10.0, -300.0, 236.0, 40.0), (95.0, -365.0, 70.0, 38.0),
+                                        (150.0, -420.0, 250.0, 41.0))):
+        ship = make_sailing_ship(f"S32Ship{i}", c, L, 9.5 + 0.12 * (L - 36), {0: (1,), 1: (1, 2), 2: (1,)}, 0.8, 60 + i)
+        sx, sy = x0 + TX * a + NX * b, y0 + TY * a + NY * b
+        ship.location = (sx, sy, -0.4)
+        rz = math.radians(rot)
+        ship.rotation_euler = (0, 0, rz)
+        pw.rock(ship, end, (0, 0, rz), -0.4, amp=(0.5, 0.8), bob=0.1, seed=60 + i)
     crate = bpy.data.objects["LibCrate"]
     for i, (xx, dd) in enumerate(((46.6, 8.6), (47.2, 9.2), (46.9, 8.9), (55.0, 5.0), (55.6, 4.6))):
         px, py = cy(xx, dd)
@@ -680,8 +820,9 @@ def build_s34(c, lib, ev):
         for p in parts.values():
             p.hide_render = True
         tpl.append(parts)
-    speed = 1.35
+    speed = 1.7
     n = 0
+    t_go = ev["march"]                      # "Then they march inland.": they stand at the gate until then
 
     def march(name, s_start, t_start, ranks, files=3, spacing=1.45):
         nonlocal n
@@ -702,11 +843,11 @@ def build_s34(c, lib, ev):
                 kit.animate_walk(root, parts, wps, H, start=t_start + (r * 3 + fl) % 5, end=f1 + 6,
                                  stride_frames=14, swing=0.42)
                 n += 1
-    march("S34March", 4.0, f0 - 60, 9)
-    march("S34Vanguard", 60.0, f0 - 60, 4)
+    march("S34March", 4.0, t_go, 9)
+    march("S34Vanguard", 60.0, t_go - 100, 4)
     # one village after another falls: fire in the huts, smoke rolling up and away inland
     flames_src = [kit.make_flames(f"LibLFlames{k}", lib, seed=k, size=1.1) for k in range(2)]
-    puffs = [kit.make_puff(f"LibLSmoke{k}", lib, seed=50 + k, m=("smoke_dk", "smoke_md", "smoke_dk")[k])
+    puffs = [kit.make_puff(f"LibLSmoke{k}", lib, seed=50 + k, m=("smoke_md", "smoke_md", "smoke_dk")[k])
              for k in range(3)]
     for ob in flames_src + puffs:
         kit.hide_source(ob)
@@ -728,7 +869,7 @@ def build_s34(c, lib, ev):
                 kit.animate_puff(ob, born, f1, (bx + rng.uniform(-0.5, 0.5), by + rng.uniform(-0.5, 0.5),
                                                 H(bx, by) + 2.5),
                                  (1.2 + rng.uniform(-0.3, 0.3), 0.8 + rng.uniform(-0.3, 0.3), 5.2 + rng.uniform(-0.6, 0.8)),
-                                 s0=0.6, s1=rng.uniform(2.2, 3.4), grow=50.0, step=6)
+                                 s0=0.5, s1=rng.uniform(1.4, 2.1), grow=50.0, step=6)
 
 
 # ===================================================================== S38
@@ -738,30 +879,51 @@ def build_s38(c, lib, ev):
     end = ev["end"]
     f0, f1 = ev["r38"]
     full = ev["storm"][1][0]
-    # breakers: rows of surf rolling in along the beach in front of the stockade, again and again
-    src = [kit.make_breaker(f"LibBreaker{k}", lib, length=18.0 + 4 * k, seed=k, h=1.1 + 0.2 * k) for k in range(3)]
+    # breakers: rows of surf rolling in along the beach in front of the stockade, again and again,
+    # growing as the storm arrives
+    src = [kit.make_breaker(f"LibBreaker{k}", lib, length=13.0 + 3 * k, seed=k, h=0.9 + 0.2 * k) for k in range(3)]
     for ob in src:
         kit.hide_source(ob)
+
+    def grow(f):
+        return min(1.0, max(0.0, (f - f0) / max(1, full - f0)))
     k = 0
-    for lane, x in enumerate(range(14, 112, 9)):
-        f = f0 + rng.randint(-30, 30)
+    for lane, x in enumerate(range(4, 132, 10)):
+        f = f0 + rng.randint(-30, 20)
+        while f < f1 + 20:
+            x0 = x + rng.uniform(-2, 2)
+            p_from, p_to = cy(x0, -16.0), cy(x0, 3.0)
+            sz = 0.7 + 0.6 * grow(f + 35)
+            ob = kit.instance(src[k % 3], f"S38Surf{k}", c, (*p_from, 0.0), scale=0.0)
+            kit.animate_surge(ob, f, f + 62, p_from, p_to, z_from=0.0, z_to=H(*p_to) + 0.05, size=sz * rng.uniform(0.9, 1.2),
+                              heading=math.radians(ST_AXIS))
+            f += rng.randint(32, 46)
+            k += 1
+    # whitecaps rolling in over the open water, a long way out: short, chunky crests
+    capsrc = [make_crest(f"LibCap{j}", lib, seed=20 + j) for j in range(4)]
+    for ob in capsrc:
+        kit.hide_source(ob)
+    for lane, x in enumerate(range(-30, 170, 6)):
+        f = f0 + rng.randint(-20, 60)
         while f < f1 + 20:
             x0 = x + rng.uniform(-3, 3)
-            p_from, p_to = cy(x0, -14.0), cy(x0, 2.5)
-            sz = 0.5 + 0.8 * min(1.0, max(0.0, (f - f0) / max(1, full - f0)))
-            ob = kit.instance(src[k % 3], f"S38Surf{k}", c, (*p_from, 0.0), scale=0.0)
-            kit.animate_surge(ob, f, f + 70, p_from, p_to, z_from=0.0, z_to=H(*p_to) + 0.05, size=sz * rng.uniform(0.85, 1.15),
-                              heading=math.radians(ST_AXIS))
-            f += rng.randint(48, 66)
+            p_from, p_to = cy(x0, -92.0 + rng.uniform(-8, 8)), cy(x0, -28.0)
+            sz = (0.8 + 0.9 * grow(f + 50)) * rng.uniform(0.9, 1.3)
+            ob = kit.instance(capsrc[k % 4], f"S38Cap{k}", c, (*p_from, 0.0), scale=0.0)
+            kit.animate_surge(ob, f, f + 120, p_from, p_to, z_from=0.35, z_to=0.2, size=sz * 0.8,
+                              heading=math.radians(ST_AXIS) + rng.uniform(-0.35, 0.35))
+            f += rng.randint(75, 120)
             k += 1
-    # spray thrown up where the surf breaks
-    spl = [bpy.data.objects[f"LibSplash{i}"] for i in range(3)]
-    for i in range(40):
+    # spray thrown up where the surf breaks: small round foam bursts, kept well away from the lens
+    spl = [kit.make_puff(f"LibSpray{i}", lib, seed=70 + i, m="foam") for i in range(3)]
+    for ob in spl:
+        kit.hide_source(ob)
+    for i in range(110):
         t = rng.randint(f0 + 40, f1 - 20)
-        x = rng.uniform(16, 110)
-        px, py = cy(x, -rng.uniform(1.5, 5.0))
-        sp = kit.instance(spl[i % 3], f"S38Spray{i}", c, (px, py, 0.0), rot_z=rng.uniform(0, 6.28), scale=0.0)
-        kit.animate_splash(sp, t, size=rng.uniform(0.35, 0.6), rise=6, hold=4, fall=18)
+        x = rng.uniform(10, 130)
+        px, py = cy(x, -rng.uniform(8.0, 22.0))
+        sp = kit.instance(spl[i % 3], f"S38Spray{i}", c, (px, py, 0.2), rot_z=rng.uniform(0, 6.28), scale=0.0)
+        kit.animate_splash(sp, t, size=rng.uniform(0.5, 1.0) * (0.6 + 0.7 * grow(t)), rise=6, hold=4, fall=18)
     # one ship far out, pitching hard, unable to come in
     ship = make_sailing_ship("S38Ship", c, 40.0, 10.0, {}, 0.6, 77)
     x, y = 30.0, SY(30.0) - 240.0
@@ -785,7 +947,7 @@ def build_s38(c, lib, ev):
         kit.animate_idle(ob, rng, 1, end, amount=0.03)
 
 
-def sway_palms(f0, f1, near, radius, rng, amount=0.07):
+def sway_palms(f0, f1, near, radius, rng, amount=0.17):
     """Palms bend and whip in the monsoon wind (S38): keys only inside f0..f1."""
     for ob in bpy.data.objects:
         if not (ob.name.startswith("Palm") or ob.name.startswith("GrovePalm")):
@@ -797,7 +959,7 @@ def sway_palms(f0, f1, near, radius, rng, amount=0.07):
         f = f0 + 30
         ph = rng.uniform(0, 6)
         while f <= f1:
-            k = min(1.0, (f - f0) / 90.0)
+            k = min(1.0, (f - f0) / 170.0)
             ob.rotation_euler = (base.x + amount * k * (0.6 + 0.4 * math.sin(f / 7.0 + ph)),
                                  base.y - amount * 0.7 * k * (0.6 + 0.4 * math.sin(f / 9.0 + ph)), base.z)
             ob.keyframe_insert("rotation_euler", frame=f)
@@ -805,7 +967,7 @@ def sway_palms(f0, f1, near, radius, rng, amount=0.07):
 
 
 # ===================================================================== clear light at sea (S30-S31)
-def sea_light(sun, f_last, sun_dir=(-0.72, 0.45, -0.32), haze=0.00028, spec=0.2, rough=0.45, sat=1.45):
+def sea_light(sun, f_last, sun_dir=(-0.72, 0.45, -0.32), haze=0.00028, spec=0.2, rough=0.45, sat=1.45, sky_last=None):
     """The two open-sea beats look west along the coast, straight into the default low sun, so
     haze and sun glare wash the water out. Up to f_last only: the sun comes from behind the
     camera's left, the haze is thinner and the sea is less glossy, so the facets read
@@ -843,16 +1005,41 @@ def sea_light(sun, f_last, sun_dir=(-0.72, 0.45, -0.32), haze=0.00028, spec=0.2,
     sat_in.default_value = 1.0
     sat_in.keyframe_insert("default_value", frame=f_last + 1)
     # muzzle flashes (S30 only): a saturated orange glow instead of a pale, washed-out pink
-    for name, rgb, k in (("muzzle_core", (1.0, 0.62, 0.06), 1.8), ("muzzle_fire", (1.0, 0.30, 0.0), 1.6)):
+    for name, rgb, k in (("muzzle_core", (1.0, 0.62, 0.02), 1.5), ("muzzle_fire", (1.0, 0.26, 0.0), 1.3)):
         m = bpy.data.materials.get(name)
         if m:
             b = m.node_tree.nodes.get("Principled BSDF")
             b.inputs["Emission Color"].default_value = (*kit.srgb_to_linear(rgb), 1)
             b.inputs["Emission Strength"].default_value = k
-            b.inputs["Base Color"].default_value = (*kit.srgb_to_linear(rgb), 1)
-    for owner in (sun, nt, bpy.data.objects["Haze"].data.materials[0].node_tree):
+            b.inputs["Base Color"].default_value = (0.0, 0.0, 0.0, 1)
+    # a bluer sky above a warm cream horizon (K37, K38), at sea only
+    wnt = bpy.context.scene.world.node_tree
+    sky_last = sky_last or f_last
+    ramp = next(n for n in wnt.nodes if n.bl_idname == "ShaderNodeValToRGB").color_ramp
+    bg = next(n for n in wnt.nodes if n.bl_idname == "ShaderNodeBackground").inputs["Strength"]
+    for el, rgb, pos in zip(ramp.elements, ((1.0, 0.92, 0.78), (0.97, 0.91, 0.82), (0.55, 0.74, 0.95)),
+                            (0.0, 0.18, 0.7)):
+        keep, kpos = tuple(el.color), el.position
+        el.color = (*kit.srgb_to_linear(rgb), 1)
+        el.position = pos
+        for f in (1, sky_last):
+            el.keyframe_insert("color", frame=f)
+            el.keyframe_insert("position", frame=f)
+        el.color = keep
+        el.position = kpos
+        el.keyframe_insert("color", frame=sky_last + 1)
+        el.keyframe_insert("position", frame=sky_last + 1)
+    keep = bg.default_value
+    bg.default_value = 1.4
+    bg.keyframe_insert("default_value", frame=1)
+    bg.keyframe_insert("default_value", frame=sky_last)
+    bg.default_value = keep
+    bg.keyframe_insert("default_value", frame=sky_last + 1)
+    for owner in (sun, nt, bpy.data.objects["Haze"].data.materials[0].node_tree, wnt):
         ad = owner.animation_data
         _constant_cut(ad, f_last)
+        if owner is wnt:
+            _constant_cut(ad, sky_last)
 
 
 def _constant_cut(ad, f_last):
@@ -874,6 +1061,209 @@ def _constant_cut(ad, f_last):
                 kp.interpolation = "CONSTANT"
 
 
+def make_crest(name, lib, seed=0):
+    """A small whitecap: a thin, tilted, faceted ridge of foam made of a few flattened blobs of
+    different sizes (long along X, origin at its middle on the water)."""
+    rng = random.Random(seed)
+    mb = kit.MB()
+    n = rng.randint(4, 6)
+    for i in range(n):
+        u = (i / (n - 1) - 0.5)
+        r = rng.uniform(0.35, 0.8) * (1.0 - 0.8 * abs(u))
+        mb.ico(kit.T(u * 5.5 + rng.uniform(-0.3, 0.3), rng.uniform(-0.2, 0.2), r * 0.8) @ kit.Rx(rng.uniform(-0.8, 0.8))
+               @ kit.Ry(rng.uniform(-0.6, 0.6)) @ kit.S(1.3, 0.5, 1.4), "foam", r=r + 0.15, sub=1, jitter=0.25, rng=rng)
+    return mb.obj(name, lib)
+
+
+def heavy_rain(coll, cam, rain_points, frames, half=38.0, count=6200, speed=0.5):
+    """The S38 monsoon rain: a much denser field than colachel_world.build_rain (about 5x the
+    streaks, thicker and slanted by the wind), following the camera across the ground."""
+    rng = random.Random(38)
+    kit.mat("rain_heavy", (0.78, 0.84, 0.92))
+    bsdf = bpy.data.materials["rain_heavy"].node_tree.nodes["Principled BSDF"]
+    bsdf.inputs["Emission Color"].default_value = (*kit.srgb_to_linear((0.80, 0.86, 0.94)), 1)
+    bsdf.inputs["Emission Strength"].default_value = 0.45
+    pts = []
+    while len(pts) < count:
+        x, y = rng.uniform(-half, half), rng.uniform(-half, half)
+        if math.hypot(x, y) > 4.5:
+            pts.append((x, y, rng.uniform(0, kit.RAIN_PERIOD)))
+    # three tiers switched on one after another (drizzle, then downpour, then the full wall of
+    # rain), so it thickens without ever shrinking the field round the lens
+    f_a = rain_points[0][0]
+    f_full = next(f for f, v in rain_points if v >= 1.0)
+    cuts = (0, int(count * 0.25), int(count * 0.6), count)
+    starts = (f_a, f_a + int(0.4 * (f_full - f_a)), f_a + int(0.75 * (f_full - f_a)))
+    tiers = []
+    for ti in range(3):
+        mb = kit.MB()
+        for stack in (0.0, kit.RAIN_PERIOD):
+            for x, y, z in pts[cuts[ti]:cuts[ti + 1]]:
+                mb.box(kit.T(x, y, z + stack) @ kit.Rx(0.2) @ kit.S(0.022, 0.022, rng.uniform(1.3, 1.9)), "rain_heavy")
+        rain = mb.obj(f"RainHeavy{ti}", coll)
+        c = rain.constraints.new("COPY_LOCATION")
+        c.target = cam
+        c.use_z = False
+        rain.hide_render = rain.hide_viewport = True
+        rain.keyframe_insert("hide_render", frame=1)
+        rain.keyframe_insert("hide_viewport", frame=1)
+        rain.hide_render = rain.hide_viewport = False
+        rain.keyframe_insert("hide_render", frame=starts[ti])
+        rain.keyframe_insert("hide_viewport", frame=starts[ti])
+        tiers.append(rain)
+    prefs = bpy.context.preferences.edit
+    old = prefs.keyframe_new_interpolation_type
+    prefs.keyframe_new_interpolation_type = "CONSTANT"
+    try:
+        for f in range(f_a, rain_points[-1][0] + 1):
+            z = -((f * speed * kit.RAIN_PERIOD / 25.0) % kit.RAIN_PERIOD)
+            for rain in tiers:
+                rain.location.z = z
+                rain.keyframe_insert("location", index=2, frame=f)
+    finally:
+        prefs.keyframe_new_interpolation_type = old
+    return tiers
+
+
+def storm_look(sun, storm, soak_names=()):
+    """Push the S38 monsoon grey and gloomy: darker slate sky and sea, weak cold sun, thick grey
+    haze, and wet, dark ground, timber and canvas as the storm arrives. Keys sit on the storm
+    points (0 before S38, full at storm[1])."""
+    lin = kit.srgb_to_linear
+    wnt = bpy.context.scene.world.node_tree
+    mix = wnt.nodes["StormMix"]
+    cw._sock(mix.inputs, "B_Color").default_value = (*lin((0.42, 0.45, 0.50)), 1)
+    cw.key_storm(mix.inputs["Factor"], "default_value", storm, 0.0, 0.9)
+    bg = next(n for n in wnt.nodes if n.bl_idname == "ShaderNodeBackground")
+    cw.key_storm(bg.inputs["Strength"], "default_value", storm, 0.95, 0.85)
+    cw.key_storm(sun.data, "energy", storm, 9.5, 2.4)
+    cw.key_storm(sun.data, "color", storm, (1.0, 0.72, 0.42), (0.66, 0.74, 0.86))
+    snt = bpy.data.materials["Sea"].node_tree
+    cw._sock(snt.nodes["StormMix"].inputs, "B_Color").default_value = (*lin((0.30, 0.42, 0.48)), 1)
+    cw.key_storm(snt.nodes["StormMix"].inputs["Factor"], "default_value", storm, 0.0, 0.82)
+    vol = next(n for n in bpy.data.objects["Haze"].data.materials[0].node_tree.nodes
+               if n.bl_idname == "ShaderNodeVolumePrincipled")
+    cw.key_storm(vol.inputs["Color"], "default_value", storm, (*lin((1.0, 0.82, 0.58)), 1), (*lin((0.60, 0.64, 0.70)), 1))
+    cw.key_storm(vol.inputs["Density"], "default_value", storm, 0.0008, 0.0026)
+    f_a, f_b = storm[0][0], storm[1][0]
+    for name in soak_names:
+        m = bpy.data.materials.get(name)
+        if not m or not m.node_tree:
+            continue
+        b = m.node_tree.nodes.get("Principled BSDF")
+        if not b:
+            continue
+        col, rough = tuple(b.inputs["Base Color"].default_value), b.inputs["Roughness"].default_value
+        for f, k, rg in ((f_a, 1.0, rough), (f_b, 0.52, 0.3)):
+            b.inputs["Base Color"].default_value = (col[0] * k * (0.92 if k < 1 else 1), col[1] * k * 0.97,
+                                                    col[2] * k * (1.08 if k < 1 else 1), 1.0)
+            b.inputs["Roughness"].default_value = rg
+            b.inputs["Base Color"].keyframe_insert("default_value", frame=f)
+            b.inputs["Roughness"].keyframe_insert("default_value", frame=f)
+        b.inputs["Base Color"].default_value = col
+        b.inputs["Roughness"].default_value = rough
+
+
+def neutral_haze(f_a, f_b, rgb=(0.78, 0.84, 0.90)):
+    """Over S34 only the distant haze is a neutral grey-blue (not warm), so the far inland reads as
+    cool air over the hills rather than wet olive green. Golden again from f_b + 1."""
+    lin = kit.srgb_to_linear
+    vol = next(n for n in bpy.data.objects["Haze"].data.materials[0].node_tree.nodes
+               if n.bl_idname == "ShaderNodeVolumePrincipled")
+    col = vol.inputs["Color"]
+    gold = (*lin((1.0, 0.82, 0.58)), 1)
+    for f, c in ((f_a - 1, gold), (f_a, (*lin(rgb), 1)), (f_b, (*lin(rgb), 1)), (f_b + 1, gold)):
+        col.default_value = c
+        col.keyframe_insert("default_value", frame=f)
+    dens = vol.inputs["Density"]
+    for f, d in ((f_a - 1, 0.0008), (f_a, 0.0011), (f_b, 0.0011), (f_b + 1, 0.0008)):
+        dens.default_value = d
+        dens.keyframe_insert("default_value", frame=f)
+    ad = vol.id_data.animation_data
+    act = ad.action
+    curves = []
+    try:
+        curves = list(act.fcurves)
+    except AttributeError:
+        for layer in act.layers:
+            for strip in layer.strips:
+                for bag in strip.channelbags:
+                    curves += list(bag.fcurves)
+    for fc in curves:
+        for kp in fc.keyframe_points:
+            if kp.co.x <= f_b + 1.5 and kp.co.x >= 1:
+                kp.interpolation = "CONSTANT"
+
+
+def low_clouds(coll, storm, rng):
+    """Dark clouds banking up low over the sea, ahead of the rain (K10): they grow from nothing as
+    the storm builds, so the sky visibly darkens behind the stockade."""
+    srcs = [bpy.data.objects[f"LibCloud{i}"] for i in range(4)]
+    f_a, f_b = storm[0][0], storm[1][0]
+    for i in range(20):
+        x = rng.uniform(-100, 220)
+        y = SY(60.0) + rng.uniform(-330, -150)
+        z = rng.uniform(50, 95)
+        ob = kit.instance(srcs[i % 4], f"LowCloud{i}", coll, (x, y, z), rot_z=rng.uniform(0, 6.28), scale=0.0)
+        sz = rng.uniform(1.3, 2.1)
+        for f, loc, sc in ((f_a, (x - 30, y - 30, z), 0.0), (f_b, (x, y, z), sz), (storm[2][0], (x + 25, y + 15, z), sz)):
+            ob.location = loc
+            ob.scale = (sc, sc, sc * 0.9)
+            ob.keyframe_insert("location", frame=f)
+            ob.keyframe_insert("scale", frame=f)
+
+
+SOAK = ("sand", "sand_wet", "grass", "log", "log_end", "post", "thatch", "thatch_dk", "canvas", "crate",
+        "crate_edge", "plank", "hull", "hull_in", "trunk", "frond", "frond_dk", "leaf", "leaf_dk", "wall", "beam", "rock",
+        "laterite_rd", "field_dirt_dk", "coconut")
+SEA_RAMP = [(0.0, (0.40, 0.80, 0.80)), (0.22, (0.30, 0.70, 0.78)), (0.55, (0.28, 0.52, 0.76)),
+            (1.0, (0.22, 0.40, 0.68))]            # turquoise shallows to deep blue, by depth/60 m
+
+
+def _sea_ramp(t):
+    t = max(0.0, min(1.0, t))
+    for (t0, c0), (t1, c1) in zip(SEA_RAMP, SEA_RAMP[1:]):
+        if t <= t1:
+            u = (t - t0) / (t1 - t0)
+            u = u * u * (3 - 2 * u)
+            return tuple(a + (b - a) * u for a, b in zip(c0, c1))
+    return SEA_RAMP[-1][1]
+
+
+def crisp_sea(sea, seed=5, bright=0.2, tilt=0.06):
+    """Per-facet colour on the sea (K37/K38: every triangle a slightly different turquoise or blue),
+    with a wider turquoise shallow band than the base sea. The foam line at the waterline is kept."""
+    me = sea.data
+    rng = random.Random(seed)
+    old = me.attributes["Col"]
+    n = len(me.vertices)
+    flat = [0.0] * (n * 4)
+    old.data.foreach_get("color", flat)
+    vals = []
+    for p in me.polygons:
+        r = g = b = 0.0
+        px = py = 0.0
+        for vi in p.vertices:
+            r += flat[vi * 4]
+            g += flat[vi * 4 + 1]
+            b += flat[vi * 4 + 2]
+            px += me.vertices[vi].co.x
+            py += me.vertices[vi].co.y
+        k = len(p.vertices)
+        r, g, b = r / k, g / k, b / k
+        depth = SY(px / k) - py / k
+        if depth >= 1.2:
+            r, g, b = (kit.srgb_to_linear(_sea_ramp(depth / 60.0)))
+        j, j2 = rng.uniform(-1, 1), rng.uniform(-1, 1)
+        s = 1.0 + bright * j
+        c = (r * s * (1 - tilt * j2), g * s * (1 + 0.3 * tilt * j2), b * s * (1 + tilt * j2), 1.0)
+        vals += list(c) * p.loop_total
+    me.attributes.remove(old)
+    att = me.attributes.new("Col", "FLOAT_COLOR", "CORNER")
+    att.data.foreach_set("color", vals)
+    me.update()
+
+
 # ===================================================================== whole set
 def build_world(ev):
     end = ev["end"]
@@ -887,6 +1277,7 @@ def build_world(ev):
     rng = random.Random(7)
     cw.make_land(world_c)
     sea = cw.make_sea(world_c)
+    crisp_sea(sea)
     cw.animate_sea(sea, rig_c, end, ev["storm"])
     sun = cw.scene_base(rig_c)
     cw.apply_weather(sun, bpy.data.objects["Haze"], {"storm": ev["storm"]})
@@ -915,10 +1306,17 @@ def build_world(ev):
     sets["S38"] = kit.new_collection("S38_Monsoon")
     build_s38(sets["S38"], lib_c, ev)
     sway_palms(ev["r38"][0], ev["r38"][1], cw.STOCKADE["center"], 140, rng)
+    storm_look(sun, ev["storm"], SOAK)
+    neutral_haze(ev["r34"][0], ev["r34"][1])
+    cm = bpy.data.materials.get("cloud")
+    if cm:
+        cm.node_tree.nodes["Principled BSDF"].inputs["Base Color"].default_value = (*kit.srgb_to_linear((0.22, 0.24, 0.29)), 1)
+    clouds_c = kit.new_collection("LowClouds")
+    low_clouds(clouds_c, ev["storm"], random.Random(38))
 
     r30, r31, r32, r34, r38 = ev["r30"], ev["r31"], ev["r32"], ev["r34"], ev["r38"]
     set_vis(sets["S30"], [r30])
-    set_vis(sets["Fleet"], [(r31[0], r34[1])])
+    set_vis(sets["Fleet"], [r31, r34])
     set_vis(sets["S31"], [r31])
     set_vis(sets["Camp"], [(r32[0], end)])
     set_vis(sets["S32"], [r32])
