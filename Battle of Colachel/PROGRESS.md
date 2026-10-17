@@ -83,7 +83,14 @@ images sometimes paint the sea with wave lines; ignore that, the sea is always t
 | S46 | 55-56 | Two ships come in, shore guns fire (x 84-100, east of the stockade), ships turn away | `Siege.blend` · refs **K55, K56** | ✅ BUILT, frames 1956-2208 |
 | S47 | 57 | Inside the stockade in heavy rain, the last rice sacks counted | `Siege.blend` · ref **K57** | ✅ BUILT, frames 2209-2448 |
 | S48 | 58 | Hillside battery fires at the stockade | `Siege.blend` · ref **K58** | ✅ BUILT, frames 2449-2701 (palms still crowd the foreground) |
-| S49-S69 | 59-82 | Powder-store shot, surrender, De Lannoy's service, aftermath | - | ⬜ Not started (21 beats) |
+| S49 | 59 | Glowing ball from the battery drops into the powder barrel (camera follows it) | `Surrender.blend` / `surrender_film.py`, `surrender_world.py` · ref **K59** | ✅ BUILT (device voice), frames 1-310 |
+| S50 | 60-61 | Explosion, men thrown back, fire spreads, rice store burns (camera shared with S49) | `Surrender.blend` · ref **K60** | ✅ BUILT, frames 311-584 |
+| S51 | 62-63 | Smoke drifts over the burnt stockade, dazed Dutch, Travancore ring outside | `Surrender.blend` · ref **K62** | ✅ BUILT, frames 585-873 |
+| S52 | 64 | Dutch hoist a white flag over the smoking stockade | `Surrender.blend` · ref **K64** | ✅ BUILT, frames 874-1339 |
+| S53 | 65 | Dutch officers, De Lannoy first, hand swords to Travancore commanders (beach east of the stockade) | `Surrender.blend` · ref **K65** | ✅ BUILT, frames 1340-1832 |
+| S54 | 66 | Prisoners marched inland along the track, hill fort ahead | `Surrender.blend` · ref **K66** | ✅ BUILT, frames 1833-2072 (fort barely in frame; haze) |
+| S55-S58 | 67-70 | Udayagiri: the king offers De Lannoy a job, he bows; drill ground; the sash | `Udayagiri.blend` / `udayagiri_film.py`, `udayagiri_world.py` (helper agent) · refs **K67-K70** | ⏳ in progress |
+| S59-S69 | 71-82 | Map north, chapel, Mavelikkara treaty, temple, pillar today, sunset | - | ⬜ Not started (11 beats) |
 
 **Complete and approved through S18:** S01–S18 all reviewed and approved.
 **Beats S19–S28 built:** All 5 scene blend files (`Map.blend`, `Study.blend`, `Meeting.blend`, `Battle.blend`, `Varkala.blend`) fully built, visual stills verified against Flow references K25–K35.
@@ -249,3 +256,8 @@ the same `.blend` at the same time; claim a beat by marking it ⏳ with your age
   (officer with bag at left, fishermen turning away), S46 guns recoil, S47 patchy mud and smaller tents, S48 steep top-down camera clear of palms,
   S40 pursuers and track cleared of palms. Still open: low-poly clouds are rarely in frame in beach beats; S47 tents are still plain white cones.
 - S30-S38 are still the device voice (quota); S29 is Algieba.
+
+## Surrender beats S49-S54 (2026-10-17)
+- `surrender_world.py` (new parts: `make_sword`, `make_char_stake`, `make_hill_fort`; ball path `ball_pos`), `surrender_film.py`. Build: `blender -b -P surrender_film.py`
+  -> `Surrender.blend`, `renders/timing_surrender.json`. Same pattern as the siege file (events by word, cameras as fractions; S49+S50 share a camera).
+- Device-voice placeholders exist for S49-S58. Test stills only. Weak spots: S54 hill fort hard to see in the haze; S53 stockade out of frame.
