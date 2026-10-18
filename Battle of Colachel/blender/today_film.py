@@ -193,7 +193,7 @@ def key_sunset(sun, disc, rng, end):
     # the sea turns violet with the sky
     sm = bpy.data.materials["Sea"].node_tree.nodes["StormMix"]
     world._sock(sm.inputs, "B_Color").default_value = (*kit.srgb_to_linear((0.34, 0.26, 0.52)), 1)
-    for f, v in ((1, 0.0), (s68[0] - 1, 0.0), (s68[0] + 4, 0.8), (end, 0.9)):
+    for f, v in ((1, 0.0), (s68[0] - 1, 0.0), (s68[0] + 4, 0.42), (end, 0.5)):
         sm.inputs["Factor"].default_value = v
         sm.inputs["Factor"].keyframe_insert("default_value", frame=f)
     haze = bpy.data.objects["Haze"]

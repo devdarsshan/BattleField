@@ -21,7 +21,9 @@ import colachel_world as world
 import port_world as pw
 import mini_dio as md
 import treaty_world as trw
-for m in (kit, world, md, trw):
+import scene_envs as envs
+import surround
+for m in (kit, world, md, trw, surround, envs):
     importlib.reload(m)
 
 sys.argv = sys.argv[:1]
@@ -45,12 +47,11 @@ def build(samples=32):
     sc.frame_start, sc.frame_end = 1, end
     sc.view_settings.look = "AgX - Base Contrast"
     pw.register_palette()
-    md.setup_backdrop((0.80, 0.76, 0.72), 1.15)
     rig = kit.new_collection("Rig")
     lib_c = kit.new_collection("Library")
     c = kit.new_collection("Treaty")
     md.add_sun(rig, (0.45, 0.6, -0.65), 5.5, (1.0, 0.92, 0.80), angle=12.0)
-    md.make_tile("Ground", c, 19.0, 17.5, top="grass", depth=2.4, seed=7)
+    envs.meadow_env(c, lib_c, random.Random(162))
     trw.build_treaty(c, lib_c, random.Random(62), dict(end=end))
     for ob in lib_c.objects:
         kit.hide_source(ob)

@@ -31,3 +31,7 @@ Thumbs.db
 _tools/kaggle/bundle/
 _tools/kaggle/*.zip
 _tools/kaggle/local_reference*.png
+
+# Colab / render-test packages are generated, too big for git (GitHub limit 100 MB): rebuild with the scripts in colab/
+Battle of Colachel/colab/*.zip
+Battle of Colachel/colab/rtx4050_test/

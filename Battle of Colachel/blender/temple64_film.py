@@ -21,7 +21,9 @@ import colachel_world as world
 import port_world as pw
 import mini_dio as md
 import temple64_world as tw
-for m in (kit, world, md, tw):
+import scene_envs as envs
+import surround
+for m in (kit, world, md, tw, surround, envs):
     importlib.reload(m)
 
 sys.argv = sys.argv[:1]
@@ -46,14 +48,13 @@ def build(samples=32):
     sc.frame_start, sc.frame_end = 1, end
     sc.view_settings.look = "AgX - Base Contrast"
     pw.register_palette()
-    md.setup_backdrop((0.06, 0.07, 0.10), 0.5)
     rig = kit.new_collection("Rig")
     lib_c = kit.new_collection("Library")
     c = kit.new_collection("Temple")
-    md.add_sun(rig, (0.55, 0.65, -0.45), 5.5, (1.0, 0.72, 0.44), angle=14.0)
-    md.add_sun(rig, (-0.3, 0.5, -0.8), 1.6, (0.62, 0.70, 1.0), angle=30.0)
+    md.add_sun(rig, (0.55, 0.65, -0.45), 2.6, (1.0, 0.62, 0.36), angle=14.0)
+    md.add_sun(rig, (-0.3, 0.5, -0.8), 0.5, (0.55, 0.62, 1.0), angle=30.0)
     tw.register_palette()
-    md.make_tile("Ground", c, 14.5, 12.5, top="t_ground", depth=2.4, seed=11, strata=(("soil_dk", 0.35), ("soil", 0.75), ("soil_dk", 0.9)))
+    envs.temple_env(c, lib_c, random.Random(164))
     tw.build_temple(c, lib_c, random.Random(64), dict(end=end, s64=(rng["S64"][0], rng["S64"][1])))
     for ob in lib_c.objects:
         kit.hide_source(ob)

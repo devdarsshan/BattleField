@@ -1,5 +1,11 @@
 # Battle of Colachel: production tracker
 
+## UPDATE 2026-10-18
+- **Review fixes (doc.md):** S60 chapel, S62 treaty tent and S64 temple now sit in real surroundings (`surround.py`, `scene_envs.py`: fort courtyard with walls and pavilions, Mavelikkara meadow with village and camps, walled temple compound with town, plus terrain, far hills, sky). S67 end (clip 81): land plain, shore, hills and sea now continue to the horizon, no cut-off. S68 (clip 82): same sea and sand colours as the day clips (sea only lightly violet), far land and hills in the background.
+- **Voices:** daily free quota allowed only 3 requests (S41, S42, S43 recorded in Algieba; quota resets about 18.5 h later). S44-S69 still on the device voice. `_tools/record_batch.py S44 S45 ...` records a run and stops at the first refusal.
+- **Colab:** `colab/colab_render_final.ipynb` (cells from doc.md, cell2 kept as finalised, plus a rescue-copy cell). Package `colab/s56_to_s69_package.zip` rebuilt with the fixed scenes.
+- **RTX 4050 test:** `colab/rtx4050_test/` (and `.zip`): finalised clips S29-S43, `render_local.py` times a 1080p render (`--bench 48` for the quick test). Upload to Drive, run on the 4050 laptop, send back the timing json.
+
 ## CURRENT PROGRESS (updated 2026-10-17, late night)
 - **ALL 69 BEATS ARE NOW BUILT** (S59-S69 added this session, device voice, checked against K71-K82 with stills). Nothing is left to build; what remains is voices, rendering and review.
 - **Polish done (2026-10-17):** S43 fishermen loosened (7 men, scattered, staggered turns), S47 patched wet-canvas yard tents (`make_patched_tent`), S48 palms cleared in a corridor and a lower oblique camera so the battery shows,

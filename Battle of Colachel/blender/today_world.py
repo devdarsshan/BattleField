@@ -20,6 +20,7 @@ from colachel_kit import T, Rx, Ry, Rz, S
 import colachel_world as cw
 import landing_world as lw
 import siege_world as sw
+import surround as sr
 
 H = cw.height
 SY = cw.shore_y
@@ -227,11 +228,32 @@ def build_world(ev):
     fm = bpy.data.materials.new("FarSeaMat")
     fm.use_nodes = True
     fb = fm.node_tree.nodes.get("Principled BSDF")
-    fb.inputs["Base Color"].default_value = (*kit.srgb_to_linear((0.09, 0.44, 0.62)), 1)
+    fb.inputs["Base Color"].default_value = (*kit.srgb_to_linear((0.24, 0.56, 0.74)), 1)
     fb.inputs["Roughness"].default_value = 0.45
     far.materials.append(fm)
     fo = bpy.data.objects.new("FarSea", far)
     world_c.objects.link(fo)
+    # the land runs on to the horizon along the coast: a sand strip and green plain inland of the shore line, and hills
+    R = 90000.0
+    k = 0.3
+    def quad_far(name, pts, rgb, z):
+        me = bpy.data.meshes.new(name)
+        me.from_pydata([(x, y, z) for x, y in pts], [], [(0, 1, 2, 3)])
+        m = bpy.data.materials.new(name + "Mat")
+        m.use_nodes = True
+        b = m.node_tree.nodes.get("Principled BSDF")
+        b.inputs["Base Color"].default_value = (*kit.srgb_to_linear(rgb), 1)
+        b.inputs["Roughness"].default_value = 0.9
+        me.materials.append(m)
+        o = bpy.data.objects.new(name, me)
+        world_c.objects.link(o)
+        o.visible_shadow = False
+        return o
+    quad_far("FarSand", [(-R, k * R + 14), (R, -k * R + 14), (R, -k * R + 80), (-R, k * R + 80)], (0.93, 0.74, 0.40), -0.35)
+    quad_far("FarPlain", [(-R, k * R + 80), (R, -k * R + 80), (R, R), (-R, R)], (0.36, 0.55, 0.20), -0.4)
+    sea_a = math.atan2(-NY, -NX)
+    sr.far_hills(world_c, (0.38, 0.52, 0.40), n=70, r0=1800.0, r1=5200.0, seed=9, hmin=120.0, hmax=420.0,
+                 skip=lambda a: abs(math.atan2(math.sin(a - sea_a), math.cos(a - sea_a))) < math.radians(95))
     # a clear blue day sky (the sea reflects it when seen from above)
     ramp = next(n for n in bpy.context.scene.world.node_tree.nodes if n.bl_idname == "ShaderNodeValToRGB")
     ramp.color_ramp.elements[0].color = (*kit.srgb_to_linear((0.99, 0.88, 0.68)), 1)

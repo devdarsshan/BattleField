@@ -21,7 +21,9 @@ import colachel_world as world
 import port_world as pw
 import mini_dio as md
 import chapel_world as cwd
-for m in (kit, world, md, cwd):
+import scene_envs as envs
+import surround
+for m in (kit, world, md, cwd, surround, envs):
     importlib.reload(m)
 
 sys.argv = sys.argv[:1]
@@ -45,14 +47,11 @@ def build(samples=32):
     sc.frame_start, sc.frame_end = 1, end
     sc.view_settings.look = "AgX - Base Contrast"
     pw.register_palette()
-    md.setup_backdrop((0.09, 0.10, 0.12), 1.0)
     rig = kit.new_collection("Rig")
     lib_c = kit.new_collection("Library")
     c = kit.new_collection("Chapel")
-    md.add_sun(rig, (-0.45, 0.5, -0.6), 2.0, (0.92, 0.86, 0.78), angle=20.0)       # a cool fill from the camera side
-    tile = kit.PALETTE["grass"] = (0.34, 0.44, 0.20)
-    kit.mat("grass", kit.PALETTE["grass"])
-    md.make_tile("Ground", c, 11.5, 12.0, top="grass", depth=2.4, seed=3, strata=(("soil", 0.3), ("soil_dk", 0.8), ("soil", 0.8)))
+    md.add_sun(rig, (-0.45, 0.5, -0.6), 1.1, (1.0, 0.62, 0.42), angle=18.0)       # a cool fill from the camera side
+    envs.fort_env(c, lib_c, random.Random(160))
     r = random.Random(60)
     cwd.build_chapel(c, lib_c, r, dict(end=end))
     for ob in lib_c.objects:
