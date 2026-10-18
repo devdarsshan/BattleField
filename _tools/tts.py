@@ -21,19 +21,42 @@ ap.add_argument("--voice", default="Charon")
 ap.add_argument("--style", default="Calm, clear documentary narrator, unhurried, short pauses between sentences.")
 a = ap.parse_args()
 
-key = open(os.path.expanduser("~/.flow-mcp/gemini-key"), encoding="utf8").read().strip()
+def load_keys():
+    """Every key found, in order: ~/.flow-mcp/gemini-key, gemini-key-2, gemini-key-3 ... and any extra lines in
+    ~/.flow-mcp/gemini-keys (one key per line, # comments allowed). Each key should belong to a DIFFERENT Google
+    project, because the free quota is counted per project."""
+    d = os.path.expanduser("~/.flow-mcp")
+    keys = []
+    names = ["gemini-key"] + [f"gemini-key-{i}" for i in range(2, 10)] + ["gemini-keys"]
+    for n in names:
+        p = os.path.join(d, n)
+        if os.path.exists(p):
+            for line in open(p, encoding="utf8").read().splitlines():
+                line = line.strip()
+                if line and not line.startswith("#") and line not in keys:
+                    keys.append(line)
+    return keys
+
+
 body = json.dumps({
     "contents": [{"parts": [{"text": f"Say {a.style}: {a.text}" if a.style else a.text}]}],
     "generationConfig": {"responseModalities": ["AUDIO"],
                          "speechConfig": {"voiceConfig": {"prebuiltVoiceConfig": {"voiceName": a.voice}}}},
 }).encode()
-req = urllib.request.Request(
-    f"https://generativelanguage.googleapis.com/v1beta/models/{MODEL}:generateContent",
-    data=body, headers={"content-type": "application/json", "x-goog-api-key": key})
-try:
-    resp = json.load(urllib.request.urlopen(req, timeout=120))
-except urllib.error.HTTPError as e:
-    sys.exit(f"Gemini TTS refused ({e.code}): {e.read().decode()[:2500]}")
+resp, last = None, ""
+for n, key in enumerate(load_keys(), 1):
+    req = urllib.request.Request(
+        f"https://generativelanguage.googleapis.com/v1beta/models/{MODEL}:generateContent",
+        data=body, headers={"content-type": "application/json", "x-goog-api-key": key})
+    try:
+        resp = json.load(urllib.request.urlopen(req, timeout=120))
+        break
+    except urllib.error.HTTPError as e:
+        last = f"Gemini TTS refused key #{n} ({e.code}): {e.read().decode()[:600]}"
+        if e.code != 429:                      # only a quota refusal moves on to the next key
+            sys.exit(last)
+if resp is None:
+    sys.exit(last or "no Gemini key found in ~/.flow-mcp/")
 
 part = next(p for p in resp["candidates"][0]["content"]["parts"] if p.get("inlineData", {}).get("data"))
 mime = part["inlineData"].get("mimeType", "")

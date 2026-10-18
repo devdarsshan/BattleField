@@ -1,5 +1,8 @@
-S41 recorded
-S42 recorded
-S43 recorded
-S44 FAILED: Gemini TTS refused (429): {   "error": {     "code": 429,     "message": "You exceeded your current quota, please check your plan and billing details. For more information on this error, head to: https://ai.google.dev/gemini-api/docs/rate-limits. To monitor your current usage, head to: https://ai.de
-RECORDED: ['S41', 'S42', 'S43']
+S44 recorded
+S45 recorded
+S46 recorded
+S47 recorded
+S48 recorded
+S49 recorded
+S50 recorded
+RECORDED: ['S44', 'S45', 'S46', 'S47', 'S48', 'S49', 'S50']
