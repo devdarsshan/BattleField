@@ -1,5 +1,22 @@
 # Battle of Colachel: production tracker
 
+## RENDER STATUS (updated 2026-10-18)
+Reference settings for finals: 1080p, 24 fps, EEVEE 24 samples, rendered on the RTX 4050 laptop with `colab/rtx4050_test/render_local.py`.
+Clips are joined at the end with `colab/merge_clips.py FOLDER final.mp4` (beat order).
+
+| Beats | Scene file(s) | Voice | 1080p status |
+|---|---|---|---|
+| S01-S04 | Colachel.blend | old Charon voice | 1080p done earlier (`final/Colachel_clips01-04_1080p*.mp4`), voice to be re-recorded in Algieba, then re-time and re-render |
+| S05-S18 | Colachel / Map / Pepper / Kochi / Palace / Port | device voice | NOT rendered in 1080p. Approved scenes; re-record voice first, then render |
+| S19-S28 | Map, Study, Meeting, Battle, Varkala | final (Algieba) | NOT rendered in 1080p (only 720p, frames deleted). Ready to render now. Map frames 1554-3534 changed (red wash fix) |
+| S29-S43 | Map, Landing, Inland, Siege | final (Algieba) | **RENDERED in 1080p / 24 samples on the 4050** (user, 2026-10-18) |
+| S44-S60 | Siege, Surrender, Udayagiri, Map, Chapel | final (Algieba, keys 1 and 2) | **READY FOR 1080p, package built** (`colab/rtx4050_test/`, 17 shots, 5,629 frames). Next batch to render |
+| S61-S69 | Map, Treaty, Temple, Today | device voice | NOT ready: voices S61-S69 still to record (9 lines, one day with two keys); then rebuild Treaty/Temple/Today/Map and render |
+
+Voice quota: 10 free requests per key per day (key 1 `~/.flow-mcp/gemini-key`, key 2 `gemini-key-2`, tried in turn by `_tools/tts.py`). Used today: 20.
+Still to record: S61-S69 (9), then S01-S18 (18). Two keys give 20 a day, so S61-S69 plus 11 of S01-S18 tomorrow, the rest the day after.
+Other render outputs on disk: 720p review videos for S41-S55 (`blender/renders/review_videos/`, device voice, superseded). Frame folders were deleted to save space.
+
 ## UPDATE 2026-10-18
 - **Review fixes (doc.md):** S60 chapel, S62 treaty tent and S64 temple now sit in real surroundings (`surround.py`, `scene_envs.py`: fort courtyard with walls and pavilions, Mavelikkara meadow with village and camps, walled temple compound with town, plus terrain, far hills, sky). S67 end (clip 81): land plain, shore, hills and sea now continue to the horizon, no cut-off. S68 (clip 82): same sea and sand colours as the day clips (sea only lightly violet), far land and hills in the background.
 - **Voices:** daily free quota allowed only 3 requests (S41, S42, S43 recorded in Algieba; quota resets about 18.5 h later). S44-S69 still on the device voice. `_tools/record_batch.py S44 S45 ...` records a run and stops at the first refusal.
