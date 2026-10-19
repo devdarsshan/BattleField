@@ -13,8 +13,8 @@ import zipfile
 ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
 BL = os.path.join(ROOT, "blender")
 AUD = os.path.join(ROOT, "audio")
-OUT = os.path.join(ROOT, "colab", "rtx4050_test")
 lo, hi = (int(sys.argv[1]), int(sys.argv[2])) if len(sys.argv) == 3 else (29, 50)
+OUT = os.path.join(ROOT, "colab", f"rtx4050_s{lo:02d}_s{hi:02d}")      # one folder and zip per batch
 
 TIMING = {"Colachel.blend": "timing.json", "Pepper.blend": "timing_pepper.json", "Kochi.blend": "timing_kochi.json",
           "Palace.blend": "timing_palace.json", "Palace15.blend": "timing_palace15.json", "Port.blend": "timing_port.json",
@@ -33,6 +33,8 @@ for blend, tj in TIMING.items():
     for c in d["clips"]:
         n = int(c["beat"][1:])
         if not lo <= n <= hi:
+            continue
+        if blend == "Colachel.blend" and n > 6:      # S07 onward live in their own scene files (S07 is the Map.blend cloud dissolve)
             continue
         wav_src = c["wav"] if os.path.isabs(c["wav"]) else os.path.normpath(os.path.join(BL, c["wav"]))
         wav_name = f"{c['beat']}.wav"

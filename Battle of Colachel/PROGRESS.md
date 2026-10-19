@@ -10,10 +10,10 @@ Clips are joined at the end with `colab/merge_clips.py FOLDER final.mp4` (beat o
 
 | Beats | Scene file(s) | Voice | 1080p status |
 |---|---|---|---|
-| S01-S04 | Colachel.blend | **final (Algieba, recorded 2026-10-19)** | old 1080p render (`final/Colachel_clips01-04_1080p*.mp4`) uses the old voice. Re-render with the new voice |
-| S05-S07 | Colachel / Map | **final (Algieba, 2026-10-19)** | NOT rendered in 1080p. Rebuild scene (clip lengths follow the new voice) then render |
+| S01-S04 | Colachel.blend | **final (Algieba, recorded 2026-10-19)** | scenes rebuilt; old 1080p render (`final/Colachel_clips01-04_1080p*.mp4`) has the old voice. Re-render from the S01-S07 package |
+| S05-S07 | Colachel / Map | **final (Algieba, 2026-10-19)** | scenes REBUILT with the new voice. **S01-S07 READY for 1080p**: package `colab/rtx4050_s01_s07/` (7 shots, 2,514 frames; S07 is the Map.blend cloud dissolve) |
 | S08-S18 | Map / Pepper / Kochi / Palace / Port | device voice | NOT rendered in 1080p. **Voice to record: 11 lines, quota resets about 17 h after 2026-10-19 midday** |
-| S19-S28 | Map, Study, Meeting, Battle, Varkala | final | **READY for 1080p, package built** (`colab/rtx4050_test/`, 10 shots, 3,726 frames). Not rendered yet |
+| S19-S28 | Map, Study, Meeting, Battle, Varkala | final | **READY for 1080p, package built** (`colab/rtx4050_s19_s28/`, 10 shots, 3,726 frames). Not rendered yet |
 | S29-S43 | Map, Landing, Inland, Siege | final | **RENDERED in 1080p / 24 samples on the 4050** |
 | S44-S60 | Siege, Surrender, Udayagiri, Map, Chapel | final | **RENDERED in 1080p / 24 samples on the 4050** (user, 2026-10-19) |
 | S61-S69 | Map, Treaty, Temple, Today | device voice | NOT ready: 9 voice lines still to record; then rebuild scenes and render |

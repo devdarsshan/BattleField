@@ -17,12 +17,12 @@ Build it with the script instead of by hand: `python colab/build_s56_s69_package
 Set `PACKAGE = 's56_to_s69'` in cell 4 of the notebook to match the zip name.
 
 ## 2. RTX 4050 / local render folder
-Zip the whole folder `colab/rtx4050_test/` (it already holds everything): `manifest.json`, `render_cli.py`, `render_local.py`,
+Zip the whole batch folder `colab/rtx4050_sXX_sYY/` (for example `rtx4050_s01_s07/`; it already holds everything): `manifest.json`, `render_cli.py`, `render_local.py`,
 `README.md`, the `.blend` files (Map, Landing, Inland, Siege) and the `Sxx.wav` narration of the finalised clips.
 
-Build it with: `python colab/build_rtx_package.py 29 43` (beats S29 to S43). It writes `colab/rtx4050_test/` and `colab/rtx4050_test.zip`.
+Build it with: `python colab/build_rtx_package.py 1 7` (beats S01 to S07). It writes `colab/rtx4050_s01_s07/` and `colab/rtx4050_s01_s07.zip`. Each batch has its own folder, so earlier ones are not overwritten.
 On the laptop follow `rtx4050_test/README.md` (`render_local.py --bench 48` for the timing test).
 
 ## Rules
-- Do not commit any `.zip`, `.mp4`, rendered frames or the `rtx4050_test/` folder.
+- Do not commit any `.zip`, `.mp4`, rendered frames or the `rtx4050_s*/` folders.
 - Rebuild the package after any change to a scene (`film.py` scripts rewrite the `.blend` and `timing_*.json`) or to the narration.
