@@ -10,14 +10,14 @@ When every batch is done, join them with `python colab/merge_clips.py FOLDER_WIT
 
 | Beats | Package folder | Frames | 1080p status |
 |---|---|---|---|
-| S01-S07 | `rtx4050_s01_s07` | 2,514 | READY, not rendered (new voice; old 1080p of S01-S04 is superseded) |
+| S01-S07 | `rtx4050_s01_s07` | 2,514 | **RENDERING NOW** on the 4050 (1080p / 24 samples; new voice, supersedes the old 1080p of S01-S04) |
 | S08-S18 | `rtx4050_s08_s18` | 4,238 | READY, not rendered |
-| S19-S28 | `rtx4050_s19_s28` | 3,726 | READY, not rendered |
+| S19-S28 | `rtx4050_s19_s28` | 3,726 | **RENDERING NOW** on the 4050 (1080p / 24 samples) |
 | S29-S43 | (earlier package) | 6,000 | **RENDERED** in 1080p / 24 samples on the 4050 |
 | S44-S60 | (earlier package) | 5,629 | **RENDERED** in 1080p / 24 samples on the 4050 |
 | S61-S69 | `rtx4050_s61_s69` | 4,084 | READY, not rendered |
 
-Remaining to render: S01-S28 (3 packages) and S61-S69. Then merge S01-S69.
+In progress: S01-S07 and S19-S28 (rendering now). Still to render after that: S08-S18 and S61-S69. Then merge S01-S69.
 Other outputs on disk: 720p review videos for S41-S55 (`blender/renders/review_videos/`, superseded). Frame folders were deleted to save space.
 
 ## UPDATE 2026-10-18
