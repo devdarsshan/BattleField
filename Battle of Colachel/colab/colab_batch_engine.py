@@ -118,8 +118,24 @@ def write_reports(out_dir, batch_name, quality, res_x, res_y, samples, completed
 
     return timing_json_path, report_txt_path, report_text
 
+def require_h264_encoder():
+    """Stop before any rendering if ffmpeg cannot write real H.264 (libx264 or NVENC).
+    The old fallback to ffmpeg's `mpeg4` encoder made S08-S18 soft and blocky, so it is no longer allowed."""
+    def has(name):
+        out = subprocess.run(["ffmpeg", "-hide_banner", "-encoders"], capture_output=True, text=True).stdout
+        return any(line.split()[1:2] == [name] for line in out.splitlines() if line.startswith(" V"))
+    if has("libx264") or has("h264_nvenc"):
+        return
+    print("ffmpeg has no H.264 encoder; trying: apt-get install -y ffmpeg libx264-dev", flush=True)
+    subprocess.run("apt-get install -y -qq ffmpeg", shell=True)
+    if not (has("libx264") or has("h264_nvenc")):
+        sys.exit("STOP: this ffmpeg has no libx264 / h264_nvenc. Do not render with the mpeg4 fallback (soft, blocky video). "
+                 "Fix ffmpeg first (see colab/README.md, 'Video format rules').")
+
+
 def run_batch():
     args = parse_args()
+    require_h264_encoder()
     res_x, res_y = get_resolution(args.quality)
     os.makedirs(args.out, exist_ok=True)
 
@@ -229,7 +245,7 @@ def run_batch():
         print(f">>> Multiplexing {frame_count} frames with narration audio ({audio_name})...", flush=True)
         t_mux_start = time.time()
 
-        encoders_to_try = ["libx264", "h264_nvenc", "mpeg4"]
+        encoders_to_try = ["libx264", "h264_nvenc"]          # H.264 only: never fall back to mpeg4 (see colab/README.md)
         success_enc = None
         last_error = ""
 
@@ -238,7 +254,8 @@ def run_batch():
             os.remove(temp_local_mp4)
 
         for enc in encoders_to_try:
-            extra_opts = ["-crf", "18"] if enc == "libx264" else ["-b:v", "5M" if args.quality == "1080p" else "3M"]
+            extra_opts = (["-preset", "medium", "-crf", "18"] if enc == "libx264"
+                          else ["-preset", "p5", "-rc", "vbr", "-cq", "18", "-b:v", "0"])
             cmd_ffmpeg = [
                 "ffmpeg", "-y",
                 "-framerate", "24",

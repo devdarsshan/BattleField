@@ -130,12 +130,12 @@ def render_and_multiplex_all():
         print(f">>> Multiplexing {frame_count} frames with narration audio ({audio_file})...", flush=True)
         t_mux_start = time.time()
         
-        encoders_to_try = ["libx264", "h264_nvenc", "mpeg4"]
+        encoders_to_try = ["libx264", "h264_nvenc"]          # H.264 only, never mpeg4
         success_enc = None
         last_error = ""
 
         for enc in encoders_to_try:
-            extra_opts = ["-crf", "18"] if enc == "libx264" else ["-b:v", "4M"]
+            extra_opts = ["-crf", "18"] if enc == "libx264" else ["-cq", "18", "-b:v", "0"]
             cmd_ffmpeg = [
                 "ffmpeg", "-y",
                 "-framerate", "24",

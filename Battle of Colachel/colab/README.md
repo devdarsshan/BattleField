@@ -51,3 +51,28 @@ This folder contains everything needed to render Blender scenes on **Google Cola
 5. **Step 5:** Starts the batch render. Set `QUALITY = "720p"` (or `"1080p"`). All MP4s are saved to `My Drive/Colachel_Renders/`.
 6. **Step 6:** Review the timing table and watch the rendered MP4s directly inline.
 7. **Step 7:** (Optional) Download all rendered MP4s as a single `.zip`.
+
+---
+
+## Video format rules (read before any Colab render)
+
+Every clip in the film must be **H.264 (libx264), 1920x1080, 24 fps, yuv420p, AAC audio, CRF 18**. The same as `rtx_template/render_local.py`.
+
+**What went wrong once:** the clips for S08 to S18 were rendered on Colab with an older engine that quietly fell back to ffmpeg's
+`mpeg4` (MPEG-4 Part 2) encoder at a fixed 5 Mbps when `libx264` failed. The pictures were fine, but the video came out softer and blockier
+(about 8.7 Mbps against about 11.5 Mbps), and the files could not be joined with the others without re-encoding. You can spot them by the
+name `..._review_1080p.mp4` and by `ffprobe` showing `codec_name=mpeg4`.
+
+**What is fixed:** `colab_batch_engine.py` now
+1. checks at the start that ffmpeg has `libx264` (or NVENC `h264_nvenc`), tries `apt-get install ffmpeg` once if not, and **stops** if it still has neither;
+2. encodes with `libx264 -preset medium -crf 18` (NVENC only as a second choice, also H.264, constant quality 18);
+3. never falls back to `mpeg4`. If H.264 fails for a clip, that clip is not saved and the log says so.
+
+**How to render on Colab so this does not repeat**
+1. Run the notebook's install cell (it installs `ffmpeg libavcodec-extra`), then cell 2 (`colab_batch_engine.py --quality 1080p --samples 24`).
+   Use `--quality 1080p` for finals; 720p is for previews only.
+2. Watch the log: each finished clip prints `[SAVED TO STORAGE] ... codec: libx264`. If you ever see another codec, or "STOP: this ffmpeg has no libx264", stop and fix ffmpeg first.
+3. After the batch, check the files on Drive: `ffprobe -v error -select_streams v:0 -show_entries stream=codec_name,width,height,r_frame_rate -of csv=p=0 FILE.mp4`
+   must print `h264,1920,1080,24/1`. Anything else: re-render that clip.
+4. The 4050 laptop (`render_local.py`) already follows the same rules.
+5. `merge_nested.py` converts any non-H.264 clip before joining, but that only makes the join work. It cannot restore lost detail.

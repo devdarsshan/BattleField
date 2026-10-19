@@ -12,6 +12,7 @@ S01-S07 and S19-S28. Still to render: S08-S18 and S61-S69.
 
 - [ ] **A1. Render the remaining batches** (1080p, 24 samples, `render_local.py` in each package folder):
   `rtx4050_s01_s07`, `rtx4050_s19_s28` (running), `rtx4050_s08_s18`, `rtx4050_s61_s69`.
+- [ ] **A1b. Video format:** every clip must be H.264 1920x1080 24 fps (see `colab/README.md`, "Video format rules"). Colab clips from the old engine (S08-S18) were mpeg4 and are softer.
 - [ ] **A2. Collect every clip MP4 in one folder.** Names look like `clip53_S44_1080p.mp4`. There must be 69 beats, S01 to S69, one clip each
   (some beats share a clip number, for example clip 09-10 is S08). Delete any `*_bench.mp4` test files.
 - [ ] **A3. Check the count and the order.** Run `python colab/merge_clips.py FOLDER final_raw.mp4`. It prints "69 clips ... beats 1..69".

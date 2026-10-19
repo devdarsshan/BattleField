@@ -107,6 +107,7 @@ Rules: no AI-generated text in the image, so the text is added in the edit. Keep
 - **Image (Flow, free):** low-poly dusk or dawn beach, a wall of sharpened wooden posts, a single bright fireball and smoke rising from inside it, small blue-coated Dutch soldiers inside, and the white-and-red Travancore army outside. Strong light and dark contrast. Subject on the right or centre.
 - **Text (added in the edit):** `ONE SHOT` in large bold gold serif capitals on the left, and `1741` smaller beneath. Dark background strip behind the text for contrast.
 - **Avoid:** busy detail, small text, and any claim like "first Asian victory".
+- **Text variations (made 2026-10-19):** `thumbnail/variants/thumb_1..5_*.jpg` (ONE SHOT; ONE BURNING SHOT; WHY THE DUTCH LOST; THE BATTLE OF COLACHEL; ONE SHOT on the king image). Regenerate or reword with `edit/make_thumbnails.py`. YouTube Studio lets you A/B test up to 3 thumbnails ("Test & compare").
 
 ---
 
