@@ -9,6 +9,7 @@ This folder holds Dev's YouTube channel on battle history. Each video is a histo
 | `_channel-context/Anti_Slop.md` | Writing patterns to avoid. Run both passes before handing over a script |
 | `_channel-context/Visual_Style.md` | The low-poly 3D diorama look, and how text is handled |
 | `_channel-context/Blender_Build_Rules.md` | How every Blender clip is built and checked (look, density, camera, timing) |
+| `_channel-context/Production_Playbook.md` | Pipeline order, Blender/voice/render/edit/upload rules and mistakes learned from the first video. Read before starting any battle |
 | `_channel-context/Flow_Workflow.md` | Step by step: characters, stills, clips, narration, cut, and the no-cut rule |
 | `style-refs/` | Example images of the look |
 
