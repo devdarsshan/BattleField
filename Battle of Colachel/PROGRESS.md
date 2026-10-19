@@ -1,5 +1,9 @@
 # Battle of Colachel: production tracker
 
+## VOICE UPDATE 2026-10-19
+Recorded in Algieba today: S01-S07 (old Charon takes moved to `audio/charon/`). Both keys then refused (quota resets in about 17 h). Still to record: **S08-S18 (11 lines)**, then S61-S69 (9).
+When S08-S18 are done: run `blender/rebuild_all_scenes.sh`, then `python colab/build_rtx_package.py 1 28` to make the 4050 package for S01-S28 (final voice all through).
+
 ## RENDER STATUS (updated 2026-10-18)
 Reference settings for finals: 1080p, 24 fps, EEVEE 24 samples, rendered on the RTX 4050 laptop with `colab/rtx4050_test/render_local.py`.
 Clips are joined at the end with `colab/merge_clips.py FOLDER final.mp4` (beat order).

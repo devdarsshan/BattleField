@@ -1,0 +1,9 @@
+S01 recorded
+S02 recorded
+S03 recorded
+S04 recorded
+S05 recorded
+S06 recorded
+S07 recorded
+S08 FAILED: Gemini TTS refused key #2 (429): {   "error": {     "code": 429,     "message": "You exceeded your current quota, please check your plan and billing details. For more information on this error, head to: https://ai.google.dev/gemini-api/docs/rate-limits. To monitor your current usage, head to: https:
+RECORDED: ['S01', 'S02', 'S03', 'S04', 'S05', 'S06', 'S07']

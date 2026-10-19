@@ -16,7 +16,10 @@ AUD = os.path.join(ROOT, "audio")
 OUT = os.path.join(ROOT, "colab", "rtx4050_test")
 lo, hi = (int(sys.argv[1]), int(sys.argv[2])) if len(sys.argv) == 3 else (29, 50)
 
-TIMING = {"Map.blend": "timing_map.json", "Landing.blend": "timing_landing.json", "Inland.blend": "timing_inland.json",
+TIMING = {"Colachel.blend": "timing.json", "Pepper.blend": "timing_pepper.json", "Kochi.blend": "timing_kochi.json",
+          "Palace.blend": "timing_palace.json", "Palace15.blend": "timing_palace15.json", "Port.blend": "timing_port.json",
+          "Study.blend": "timing_study.json", "Meeting.blend": "timing_meeting.json", "Battle.blend": "timing_battle.json",
+          "Varkala.blend": "timing_varkala.json", "Map.blend": "timing_map.json", "Landing.blend": "timing_landing.json", "Inland.blend": "timing_inland.json",
           "Siege.blend": "timing_siege.json", "Surrender.blend": "timing_surrender.json", "Udayagiri.blend": "timing_udayagiri.json",
           "Chapel.blend": "timing_chapel.json", "Treaty.blend": "timing_treaty.json", "Temple.blend": "timing_temple.json",
           "Today.blend": "timing_today.json"}
