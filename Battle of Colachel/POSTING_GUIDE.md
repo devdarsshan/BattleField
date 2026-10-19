@@ -86,7 +86,7 @@ Import `final_raw.mp4` and do the following. Styles are in `_channel-context/Vis
 5. [ ] **Show more:** paste the tags, set language English, category Education. Leave comments On. License: Standard YouTube License.
 6. [ ] **Subtitles:** open Subtitles > English > let YouTube auto-generate, then **fix the names** (Marthanda Varma, Travancore, Padmanabhapuram,
    Udayagiri, De Lannoy, Van Imhoff, Kollam, Kayamkulam, Nedumkotta, Kanyakumari, Mavelikkara, Koshy, Tipu Sultan).
-7. [ ] **Video elements:** add an **end screen** over the last 18 seconds (the silent S69 sunset clip is made for it): a Subscribe element and,
+7. [ ] **Video elements:** add an **end screen** over the last 18 seconds (the silent S69 beach-fade clip is made for it): a Subscribe element and,
    once you have another video, a video card. The Plassey call-to-action line was **cut from the narration on 2026-10-19** (the Plassey video
    does not exist yet); S69 is now a silent fade. When the Plassey video exists, put the line back in the script and re-record S69.
    Cards are optional. Add no more than a couple.
