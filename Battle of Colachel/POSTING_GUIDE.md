@@ -23,7 +23,10 @@ S01-S07 and S19-S28. Still to render: S08-S18 and S61-S69.
 - [ ] **A5. Check the sound.** Every clip has its own narration, so volume should match. Listen for: a clip where the voice is much louder or
   quieter, a gap or overlap at a join (each clip starts the voice 0.8 s in), a click at a cut. Fix in the editor (A7), not by re-rendering.
 
-## PART B: Edit (add the text and polish)
+## PART B: Edit (add the text and polish). AUTOMATED: see `edit/README.md`
+
+Run `edit/make_overlays.py`, `edit/make_srt.py` and `edit/edit_final.py` (3 commands) instead of doing B1-B3 and B6-B8 by hand in an editor; you still do B4, B5 and the watch-through.
+
 
 The 3D clips contain **no text on purpose**. Titles, names and dates are added in an editor (DaVinci Resolve is free; CapCut and Premiere also work).
 Import `final_raw.mp4` and do the following. Styles are in `_channel-context/Visual_Style.md`.
@@ -52,7 +55,7 @@ Import `final_raw.mp4` and do the following. Styles are in `_channel-context/Vis
 - [ ] **C1. Pick the title** from `Upload_Package.md` section 1 (recommended: the first one, under 100 characters).
 - [ ] **C2. Description:** copy the block from `Upload_Package.md` section 2.
 - [ ] **C3. Replace the chapter times with the real ones.** Run `python colab/chapter_times.py` (add the title-card length in seconds as an
-  argument if you added one before S01, for example `python colab/chapter_times.py 4`). It prints the 12 chapters computed from the
+  argument if you added one before S01, for example `python colab/chapter_times.py 5`). It prints the 12 chapters computed from the
   real clip lengths. With the current clips the total is about 18 minutes (the older estimate of 13.5 minutes in the upload package is out of date).
   Re-check two or three chapters against the exported video, because edits change the timing. Rules: the first chapter must be `0:00`,
   at least 3 chapters, each at least 10 seconds.
