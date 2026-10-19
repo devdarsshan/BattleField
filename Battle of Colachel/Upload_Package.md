@@ -95,7 +95,7 @@ battle of colachel, colachel 1741, marthanda varma, travancore, dutch east india
 | Playlist | Create "Battles of India" and add it |
 | Altered or synthetic content | Answer honestly. The narration is an AI voice (Gemini TTS) over clearly stylised animation. If Studio asks about realistic synthetic voice or people, check its current wording and disclose the AI narration. |
 | Subtitles | Upload or auto-generate English, then fix names (Marthanda Varma, Padmanabhapuram, Udayagiri, De Lannoy) |
-| End screen | In the last 20 seconds, add the Plassey video card from beat S69, once that video exists |
+| End screen | Last 18 seconds (silent S69 sunset): Subscribe element; add a Plassey video card only when that video exists |
 | Comments | On |
 
 ---
@@ -124,5 +124,5 @@ Which part surprised you most: the monsoon, the fishermen, or the Dutch captain 
 - [ ] Double-check the Nedumkotta / Tipu Sultan date only if you show it on screen (per `Sources.md`)
 - [ ] Thumbnail made and added
 - [ ] Subtitles checked for place names
-- [ ] End-screen card links to the Plassey video, or leave it off if that video does not exist yet
+- [ ] End screen added over the silent last 18 seconds (Subscribe now; Plassey card later)
 - [ ] Visibility changed from Private to Public (or scheduled)

@@ -176,8 +176,7 @@ A small force landed far from home. The monsoon cut it off from the sea. The fis
 
 [S68] A beach. A wooden wall. One shot into a powder barrel. And a Dutch captain who stayed for thirty-seven years.
 
-## END-SCREEN CTA (optional)
+## END SCREEN (silent)
 
-Your Panipat and Plassey scripts had no CTA, so this one is optional. It follows the 3-step formula from the training doc.
-
-[S69] Sixteen years after Colachel, another European company fought an Indian ruler, this time in Bengal. The English East India Company had about three thousand men against fifty thousand, and it won without most of the enemy army firing a shot. How a mango grove and a secret deal handed Bengal to a trading company is in the Plassey video, on screen now.
+[S69] No narration. The sunset fades slowly to dark for about 18 seconds while the YouTube end screen (subscribe button and video cards) sits over it.
+(The earlier Plassey call-to-action line was cut on 2026-10-19 because the Plassey video does not exist yet. Put it back, and re-record S69, when it does.)

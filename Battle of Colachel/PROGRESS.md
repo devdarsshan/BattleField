@@ -1,5 +1,7 @@
 # Battle of Colachel: production tracker
 
+## CHANGE 2026-10-19: the Plassey call-to-action line in S69 was cut. S69 is now a silent 18.5 s sunset fade for the YouTube end screen (old take in `audio/archive_removed/`); package S61-S69 rebuilt (S69 = frames 1936-2413).
+
 ## VOICE: ALL 69 BEATS NOW HAVE THE FINAL ALGIEBA VOICE (2026-10-19)
 Recorded: S01-S07 (morning), S08-S18, S61-S69 (afternoon; both keys available again). Old Charon takes of S01-S04 are in `audio/charon/`. Nothing is left to record.
 All scene files were rebuilt with the final lengths. One 4050 package per batch: `colab/rtx4050_sXX_sYY/` (+ `.zip`, git-ignored; see `colab/ZIP_INSTRUCTIONS.md`).
@@ -15,7 +17,7 @@ When every batch is done, join them with `python colab/merge_clips.py FOLDER_WIT
 | S19-S28 | `rtx4050_s19_s28` | 3,726 | **RENDERING NOW** on the 4050 (1080p / 24 samples) |
 | S29-S43 | (earlier package) | 6,000 | **RENDERED** in 1080p / 24 samples on the 4050 |
 | S44-S60 | (earlier package) | 5,629 | **RENDERED** in 1080p / 24 samples on the 4050 |
-| S61-S69 | `rtx4050_s61_s69` | 4,084 | READY, not rendered |
+| S61-S69 | `rtx4050_s61_s69` | 3,879 | READY, not rendered |
 
 In progress: S01-S07 and S19-S28 (rendering now). Still to render after that: S08-S18 and S61-S69. Then merge S01-S69.
 Other outputs on disk: 720p review videos for S41-S55 (`blender/renders/review_videos/`, superseded). Frame folders were deleted to save space.
