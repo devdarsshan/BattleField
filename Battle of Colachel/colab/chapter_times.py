@@ -40,6 +40,6 @@ for n in range(1, 70):
 def fmt(s):
     s = int(round(s)); return f"{s // 60}:{s % 60:02d}"
 print("CHAPTERS (paste into the description)")
-for n, name in marks:
-    print(fmt(start[n]), name)
+for i, (n, name) in enumerate(marks):
+    print(fmt(0 if i == 0 else start[n]), name)      # YouTube needs the first chapter at 0:00 (it covers the title card)
 print(f"\nTotal length: {fmt(t)} ({t / 60:.1f} min); S69 end-screen clip starts at {fmt(start[69])}")

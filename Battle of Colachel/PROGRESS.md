@@ -342,3 +342,6 @@ Also added: low cloud band over the sea (`siege_world.build_low_clouds`) and dul
 - Inland: new sky setup (`sky_setup`, keyed dawn for S37), richer greens and calmer hills, S35 loose column + stragglers, S36 crowd of 2,409 in tight companies + king/elephant larger,
   S37 five-tier gopuram with carved bands and niches, lamps, grey-brown stone.
 - `build` times: Landing about 80 s, Inland builds 16.5k objects. Review sheets in `blender/renders/compare/`.
+
+## FINAL EXPORT (2026-10-19)
+All 69 beats rendered at 1080p/24 samples (S67-S69 re-done: S67 ends looking inland over the monument; S68-S69 drift over the built village and end over the beach with a fade). Joined, with title card, 4 name plates, 23 place/date labels, fades and -14 LUFS loudness: `Output/Battle_of_Colachel_FINAL_1080p.mp4` (18:10). Subtitles `Output/Battle_of_Colachel.srt`, chapters `Output/chapters_for_description.txt`. Not done: map labels over map clips, music, full watch-through. S08-S18 source clips were old mpeg4 "review" encodes (converted to H.264 for the join).
