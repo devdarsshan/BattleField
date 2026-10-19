@@ -276,14 +276,14 @@ def build_world(ev):
     mon_c = kit.new_collection("Monument")
     build_monument(mon_c, lib_c, rng)
     vis_c = kit.new_collection("Visitors")
-    build_visitors(vis_c, ev["r65"][0], ev["r67"][1])
+    build_visitors(vis_c, ev["r65"][0], end)
     stump_c = kit.new_collection("Stumps")
     build_stumps(stump_c, random.Random(17))
     disc_c = kit.new_collection("Sunset")
     disc = build_sun_disc(disc_c, ev)
-    set_vis(stump_c, [(ev["r68"][0], end)])
-    set_vis(mon_c, [(ev["r65"][0], ev["r67"][1])])
-    set_vis(vis_c, [(ev["r65"][0], ev["r67"][1])])
+    set_vis(stump_c, [(end + 10, end + 11)])        # the stump ring is not used: the film ends on the built ground
+    set_vis(mon_c, [(ev["r65"][0], end)])
+    set_vis(vis_c, [(ev["r65"][0], end)])
     for ob in lib_c.objects:
         kit.hide_source(ob)
     lw.sway_palms(ev["r65"][0], end, PILLAR, 200, rng, amount=0.04)

@@ -65,20 +65,28 @@ def sunset_cam(dz=0.0):
     return sx, sy
 
 
-SX, SY_ = sunset_cam()
+def pp(a, b, z):
+    """A point a metres along the coast and b metres inland of the pillar, z metres up."""
+    return (PX + TX * a + NX * b, PY + TY * a + NY * b, z)
+
+
+S67_END = pp(-6, -16, 32.0)
+S67_LOOK = pp(8, 75, 5.0)
 CAMS = {
+    # one camera for the whole of Colachel today: S65-S67 glide in, circle the pillar and rise, then turn to look
+    # INLAND over the monument (the village, road and palm groves are all built there); S68-S69 drift on over them
     "Today": (orbit("S65", S65_A0, S65_A1, 52, 33, 21, 14, PIL_TOP, n=4, lens=30)
               + orbit("S66", S65_A1, S66_A1, 33, 27, 14, 12, PIL_TOP, n=8, lens=30)
               + [("S67", 0.0, at(S66_A1, 27, 12.0), PIL_TOP, 30),
                  ("S67", 0.30, at(SEA - 1.1, 40, 40.0), (PX, PY, 3.0), 30),
-                 ("S67", 0.62, at(SEA - 0.7, 85, 80.0), (PX + TX * 60, PY + TY * 60, 4.0), 30),
-                 ("S67", 1.0, at(SEA - 0.55, 150, 120.0), (PX + TX * 330, PY + TY * 330, 18.0), 28)]),
-    # S68-S69: the old stockade ground at sunset, seen from the landward side, stumps in the foreground
-    "Sunset": [("S68", 0.0, (SX + TX * 7, SY_ + TY * 7, 2.4), (SX - NX * 80 - TX * 10, SY_ - NY * 80 - TY * 10, 5.0), 30),
-               ("S68", 1.0, (SX + TX * 4, SY_ + TY * 4, 2.6), (SX - NX * 80 - TX * 6, SY_ - NY * 80 - TY * 6, 5.5), 30),
-               ("S69", 1.0, (SX - TX * 2, SY_ - TY * 2, 3.6), (SX - NX * 80, SY_ - NY * 80, 6.5), 30)],
+                 ("S67", 0.62, at(SEA - 0.45, 42, 38.0), (PX, PY, 6.0), 30),
+                 ("S67", 1.0, S67_END, S67_LOOK, 30),
+                 ("S68", 0.5, pp(4, 8, 17.0), pp(10, 85, 6.0), 30),
+                 ("S68", 1.0, pp(14, 40, 12.0), pp(12, 120, 9.0), 30),
+                 ("S69", 0.5, pp(10, 26, 20.0), pp(0, 0, 6.0), 30),
+                 ("S69", 1.0, pp(-4, 30, 26.0), pp(-2, -30, 3.0), 30)]),
 }
-MARK_CAM = {"S65": "Today", "S66": "Today", "S67": "Today", "S68": "Sunset", "S69": "Sunset"}
+MARK_CAM = {b: "Today" for b in ("S65", "S66", "S67", "S68", "S69")}
 KEYFRAMES = {"K78": ("S65", 0.7), "K79": ("S66", 0.5), "K80": ("S67", 0.55), "K82": ("S68", 0.5)}
 
 
@@ -154,69 +162,30 @@ def key_sunset(sun, disc, rng, end):
         ld.color = color
         ld.keyframe_insert("color", frame=f)
 
+    s67 = rng["S67"]
+    warm0 = round(s67[0] + 0.70 * (s67[1] - s67[0]))
     sun_state(1, day_dir, 11.0, (1.0, 0.78, 0.48))
-    sun_state(s68[0] - 1, day_dir, 11.0, (1.0, 0.78, 0.48))
-    # the light comes from the sea side: it travels inland (+N), low over the shore
-    sun_state(s68[0], (NX * 0.95, NY * 0.95, -0.34), 15.0, (1.0, 0.50, 0.20))
-    sun_state(s69[0], (NX * 0.95, NY * 0.95, -0.28), 10.0, (1.0, 0.46, 0.20))
-    sun_state(end, (NX * 0.95, NY * 0.95, -0.2), 6.0, (0.95, 0.42, 0.24))
-    # sky: a banded sunset ramp (horizon gold -> orange -> violet) mixed in at S68 (K82)
-    w = bpy.context.scene.world.node_tree
-    mr = next(n for n in w.nodes if n.bl_idname == "ShaderNodeMapRange")
-    bg = next(n for n in w.nodes if n.bl_idname == "ShaderNodeBackground")
-    sr = w.nodes.new("ShaderNodeValToRGB")
-    sr.name = "SunsetRamp"
-    w.links.new(mr.outputs["Result"], sr.inputs["Fac"])
-    cr = sr.color_ramp
-    cr.interpolation = "CONSTANT"
-    stops = [(0.0, (1.0, 0.84, 0.42)), (0.04, (1.0, 0.66, 0.30)), (0.09, (0.98, 0.52, 0.34)), (0.15, (0.88, 0.42, 0.44)),
-             (0.22, (0.74, 0.36, 0.52)), (0.31, (0.58, 0.31, 0.54)), (0.45, (0.42, 0.25, 0.50)), (0.7, (0.28, 0.20, 0.42))]
-    cr.elements[0].position, cr.elements[0].color = stops[0][0], (*kit.srgb_to_linear(stops[0][1]), 1)
-    for pos, col in stops[1:]:
-        e = cr.elements.new(pos)
-        e.color = (*kit.srgb_to_linear(col), 1)
-    cr.elements[-1].position = 0.95
-    cr.elements[-1].color = (*kit.srgb_to_linear((0.20, 0.16, 0.36)), 1)
-    mix2 = w.nodes.new("ShaderNodeMix")
-    mix2.name = "SunsetMix"
-    mix2.data_type = "RGBA"
-    src = next(l for l in w.links if l.to_node == bg and l.to_socket.name == "Color")
-    w.links.new(src.from_socket, world._sock(mix2.inputs, "A_Color"))
-    w.links.new(sr.outputs["Color"], world._sock(mix2.inputs, "B_Color"))
-    w.links.new(world._sock(mix2.outputs, "Result_Color"), bg.inputs["Color"])
-    for f, v in ((1, 0.0), (s68[0] - 1, 0.0), (s68[0], 1.0), (end, 1.0)):
-        mix2.inputs["Factor"].default_value = v
-        mix2.inputs["Factor"].keyframe_insert("default_value", frame=f)
-    for fc in world_fcurves(w):
-        for kp in fc.keyframe_points:
-            kp.interpolation = "CONSTANT"
-    # the sea turns violet with the sky
+    sun_state(warm0, day_dir, 11.0, (1.0, 0.78, 0.48))
+    # golden hour: the light comes low from the sea side and travels inland over the monument and the village
+    sun_state(s68[0], (NX * 0.95, NY * 0.95, -0.42), 13.0, (1.0, 0.66, 0.34))
+    sun_state(s69[0], (NX * 0.95, NY * 0.95, -0.34), 11.0, (1.0, 0.58, 0.28))
+    sun_state(end, (NX * 0.95, NY * 0.95, -0.28), 9.0, (1.0, 0.52, 0.26))
+    # a faint warm tint on the sea and the haze, never the violet of a full sunset
     sm = bpy.data.materials["Sea"].node_tree.nodes["StormMix"]
-    world._sock(sm.inputs, "B_Color").default_value = (*kit.srgb_to_linear((0.34, 0.26, 0.52)), 1)
-    for f, v in ((1, 0.0), (s68[0] - 1, 0.0), (s68[0] + 4, 0.42), (end, 0.5)):
+    world._sock(sm.inputs, "B_Color").default_value = (*kit.srgb_to_linear((0.42, 0.40, 0.50)), 1)
+    for f, v in ((1, 0.0), (warm0, 0.0), (s68[0], 0.18), (end, 0.28)):
         sm.inputs["Factor"].default_value = v
         sm.inputs["Factor"].keyframe_insert("default_value", frame=f)
     haze = bpy.data.objects["Haze"]
     haze.visible_shadow = False
     vol = next(n for n in haze.data.materials[0].node_tree.nodes if n.bl_idname == "ShaderNodeVolumePrincipled")
-    for f, d, col in ((1, 0.00006, (0.88, 0.92, 0.96)), (s68[0] - 1, 0.00006, (0.88, 0.92, 0.96)),
-                      (s68[0] + 6, 0.00008, (0.92, 0.55, 0.42)), (end, 0.0001, (0.80, 0.42, 0.40))):
+    for f, d, col in ((1, 0.00006, (0.88, 0.92, 0.96)), (warm0, 0.00006, (0.88, 0.92, 0.96)),
+                      (s68[0], 0.00007, (0.96, 0.80, 0.62)), (end, 0.00008, (0.94, 0.70, 0.52))):
         vol.inputs["Density"].default_value = d
         vol.inputs["Density"].keyframe_insert("default_value", frame=f)
         vol.inputs["Color"].default_value = (*kit.srgb_to_linear(col), 1)
         vol.inputs["Color"].keyframe_insert("default_value", frame=f)
-    # the sun disc: only in S68-S69, over the sea straight ahead of the sunset camera
-    sx, sy = SX, SY_
-    core = bpy.data.objects.get("SunCore")
-    disc.location = (sx - NX * 900.0, sy - NY * 900.0, 34.0)
-    disc.rotation_euler = (0.0, 0.0, math.atan2(-NX, NY))
-    for f, s in ((1, 0.0), (s68[0] - 1, 0.0), (s68[0], 36.0), (s69[0] + 220, 36.0), (end, 36.0)):
-        disc.scale = (s, s, s)
-        disc.keyframe_insert("scale", frame=f)
-    disc.location.z = 34.0
-    for f, z in ((s68[0], 58.0), (end, 24.0)):          # it sinks toward the horizon
-        disc.location.z = z
-        disc.keyframe_insert("location", frame=f, index=2)
+    disc.scale = (0.0, 0.0, 0.0)                 # no sun disc: the film stays over the built ground
 
 
 def build(samples=32):
@@ -233,21 +202,6 @@ def build(samples=32):
     rig, sun, disc = tw.build_world(ev)
     world.apply_weather(sun, bpy.data.objects["Haze"], {"storm": [(-300, 0.0), (end + 300, 0.0)]})
     key_sunset(sun, disc, rng, end)
-    import random as _r
-    pr = _r.Random(68)
-    pal = [bpy.data.objects[f"LibPalm{i}"] for i in range(6)]
-    pc = kit.new_collection("SunsetPalms")
-    cx0, cy0 = SX + TX * 7, SY_ + TY * 7
-    n_ = 0
-    for k in range(40):
-        d, r = pr.uniform(9.0, 22.0), pr.uniform(11.0, 20.0)
-        x, y = cx0 - NX * d - NY * r, cy0 - NY * d + NX * r
-        if y < world.shore_y(x) + 2.5 or n_ >= 4:
-            continue
-        kit.instance(pal[n_ % 6], f"SunsetPalm{n_}", pc, (x, y, world.height(x, y) - 0.1), rot_z=pr.uniform(0, 6.28), scale=pr.uniform(1.05, 1.3))
-        n_ += 1
-    tw.set_vis(pc, [(rng["S68"][0], end)])
-
     cams = {name: make_camera(sc, f"Cam{name}", keys, rng) for name, keys in CAMS.items()}
     for clip, beat, f0, f1, _, _ in clips:
         mk = sc.timeline_markers.new(f"{clip} {beat}", frame=f0)
