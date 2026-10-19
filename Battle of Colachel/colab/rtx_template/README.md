@@ -1,33 +1,45 @@
-# RTX 4050 render: finalised clips (see manifest.json for the beats)
+# RTX 4050 render: finalised batch S44 to S60
 
-Goal: time a 1080p render of the finalised first-half clips on the RTX 4050 laptop and compare with this PC
-(Intel Arc: about 2.3 s per 720p frame).
+Goal: render the finalised batch (S44 to S60: Siege, Surrender, Udayagiri, Map, Chapel) in 1080p on the RTX 4050 laptop at 24 samples.
 
 ## Setup on the laptop (once)
-1. Download this folder from Google Drive (or the `.zip`) and keep it together, for example `C:\colachel\rtx4050_test`.
-2. Install **Blender 5.2** (the same version as the project) and **ffmpeg** (it must be on PATH: `ffmpeg -version` works).
-3. Make Blender use the NVIDIA GPU: Windows Settings > System > Display > Graphics > Add desktop app >
-   `blender.exe` > Options > **High performance**. Without this a hybrid laptop renders on the integrated GPU.
-4. Python 3 on PATH.
+1. Download `rtx4050_test.zip` (or the folder) from Google Drive and unzip it, for example to `C:\colachel\rtx4050_test`.
+2. Install **Blender 5.2** (same version as the project) and **ffmpeg** (ensure `ffmpeg -version` works in command prompt/PowerShell).
+3. Set Blender to High Performance GPU:
+   Windows Settings > System > Display > Graphics > Add desktop app >
+   `C:\Program Files\Blender Foundation\Blender 5.2\blender.exe` > Options > **High performance (NVIDIA GeForce RTX 4050)**.
+   *(Without this, a dual-GPU hybrid laptop will silently render on the slow integrated Intel/AMD GPU!)*
+4. Python 3 on PATH (`python --version` works).
 
-## Step 1: the speed test (about 5 minutes)
-Renders only the first 48 frames of each different scene file at 1080p and prints seconds per frame:
+## Step 1: The Test Run (Benchmark ~2-5 minutes)
+Renders only the first 48 frames (2 seconds) from each distinct scene file (`Siege.blend`, `Surrender.blend`, `Udayagiri.blend`, `Map.blend`, `Chapel.blend`) at 1080p to verify speed and thermal stability:
 
-```
+```powershell
 python render_local.py --blender "C:\Program Files\Blender Foundation\Blender 5.2\blender.exe" --quality 1080p --bench 48
 ```
-Send back `renders\timing_1080p_bench.json` (or the printed table).
+This writes `renders\timing_1080p_bench.json` and prints a summary table of render speed (seconds/frame).
+Check the numbers and send back the results / timing json.
 
-## Step 2: the full finalised batch
-```
+## Step 2: The Main Run (Full Batch S44-S60)
+Once the benchmark is verified, render all 17 finalised shots (5,629 frames total at 1080p, 24 samples):
+
+```powershell
 python render_local.py --blender "C:\Program Files\Blender Foundation\Blender 5.2\blender.exe" --quality 1080p --samples 24
 ```
-Options: `--only S41,S42` for chosen beats, `--quality 720p` for previews, `--samples 16` for faster previews.
-It is resumable: frames already rendered are skipped. Each clip becomes `renders\clipNN_Sxx_1080p.mp4` with its narration
-(0.8 s in), and `renders\timing_1080p.json` holds the totals. Upload the `renders` folder back to Google Drive when done.
 
-## What is in the folder
-- `manifest.json`: the clips (beat, scene file, frame range, narration file).
-- `*.blend`: the scenes (Map, Landing, Inland, Siege, Surrender); one `Sxx.wav` per beat: the narration.
-- `render_cli.py`: the frame renderer with a thermal guard that pauses if the GPU passes 76 C.
-- `render_local.py`: the batch runner, encoder and timer.
+### Useful Options:
+- `--quality 720p`: Render 720p previews instead of 1080p.
+- `--samples 16`: Faster render for quick draft checks (default is 24 samples).
+- `--only S49,S50`: Render only specific beats.
+- Resumable: Frames already rendered (> 2 KB) are automatically skipped, so you can safely stop and resume anytime.
+- Each finished clip generates `renders\<clip>_<beat>_1080p.mp4` with synced narration audio (0.8s lead).
+- Full batch timing report is saved to `renders\timing_1080p.json`.
+- When all batches are done, clips are merged with `merge_clips.py`.
+
+## Package Contents
+- `manifest.json`: 17 shot definitions (clip, beat, blend, frame range, narration audio).
+- `*.blend`: 5 scene files (`Siege.blend`, `Surrender.blend`, `Udayagiri.blend`, `Map.blend`, `Chapel.blend`).
+- `S44.wav` ... `S60.wav`: 17 finalized Algieba voice narration tracks.
+- `colachel_kit.py`: Shared modular asset definitions.
+- `render_cli.py`: Headless frame renderer with thermal guard (monitors GPU temp).
+- `render_local.py`: Automated batch runner, frame sequencer, ffmpeg audio muxer, and benchmark timer.
