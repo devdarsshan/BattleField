@@ -345,3 +345,6 @@ Also added: low cloud band over the sea (`siege_world.build_low_clouds`) and dul
 
 ## FINAL EXPORT (2026-10-19)
 All 69 beats rendered at 1080p/24 samples (S67-S69 re-done: S67 ends looking inland over the monument; S68-S69 drift over the built village and end over the beach with a fade). Joined, with title card, 4 name plates, 23 place/date labels, fades and -14 LUFS loudness: `Output/Battle_of_Colachel_FINAL_1080p.mp4` (18:10). Subtitles `Output/Battle_of_Colachel.srt`, chapters `Output/chapters_for_description.txt`. Not done: map labels over map clips, music, full watch-through. S08-S18 source clips were old mpeg4 "review" encodes (converted to H.264 for the join).
+
+## CLEANUP (2026-10-19, after the video went live)
+Deleted: join leftovers, colab/rtx4050_* packages and all package zips (rebuild with colab/build_rtx_package.py LO HI), old preview renders in blender/renders (timing_*.json kept). Kept: Output/ final video + srt + 69 finished 1080p clips, audio/, all .blend files, scripts, docs. Folder 12.5 GB -> 3.7 GB.
