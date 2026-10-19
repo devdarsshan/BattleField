@@ -1,27 +1,24 @@
 # Battle of Colachel: production tracker
 
-## VOICE UPDATE 2026-10-19
-Recorded in Algieba today: S01-S07 (old Charon takes moved to `audio/charon/`). Both keys then refused (quota resets in about 17 h). Still to record: **S08-S18 (11 lines)**, then S61-S69 (9).
-When S08-S18 are done: run `blender/rebuild_all_scenes.sh`, then `python colab/build_rtx_package.py 1 28` to make the 4050 package for S01-S28 (final voice all through).
+## VOICE: ALL 69 BEATS NOW HAVE THE FINAL ALGIEBA VOICE (2026-10-19)
+Recorded: S01-S07 (morning), S08-S18, S61-S69 (afternoon; both keys available again). Old Charon takes of S01-S04 are in `audio/charon/`. Nothing is left to record.
+All scene files were rebuilt with the final lengths. One 4050 package per batch: `colab/rtx4050_sXX_sYY/` (+ `.zip`, git-ignored; see `colab/ZIP_INSTRUCTIONS.md`).
 
 ## RENDER STATUS (updated 2026-10-19)
-Reference settings for finals: 1080p, 24 fps, EEVEE 24 samples, rendered on the RTX 4050 laptop with `colab/rtx4050_test/render_local.py`.
-Clips are joined at the end with `colab/merge_clips.py FOLDER final.mp4` (beat order).
+Reference settings for finals: 1080p, 24 fps, EEVEE 24 samples, RTX 4050 laptop, `render_local.py` inside each package folder.
+When every batch is done, join them with `python colab/merge_clips.py FOLDER_WITH_ALL_MP4S final.mp4` (beat order).
 
-| Beats | Scene file(s) | Voice | 1080p status |
+| Beats | Package folder | Frames | 1080p status |
 |---|---|---|---|
-| S01-S04 | Colachel.blend | **final (Algieba, recorded 2026-10-19)** | scenes rebuilt; old 1080p render (`final/Colachel_clips01-04_1080p*.mp4`) has the old voice. Re-render from the S01-S07 package |
-| S05-S07 | Colachel / Map | **final (Algieba, 2026-10-19)** | scenes REBUILT with the new voice. **S01-S07 READY for 1080p**: package `colab/rtx4050_s01_s07/` (7 shots, 2,514 frames; S07 is the Map.blend cloud dissolve) |
-| S08-S18 | Map / Pepper / Kochi / Palace / Port | device voice | NOT rendered in 1080p. **Voice to record: 11 lines, quota resets about 17 h after 2026-10-19 midday** |
-| S19-S28 | Map, Study, Meeting, Battle, Varkala | final | **READY for 1080p, package built** (`colab/rtx4050_s19_s28/`, 10 shots, 3,726 frames). Not rendered yet |
-| S29-S43 | Map, Landing, Inland, Siege | final | **RENDERED in 1080p / 24 samples on the 4050** |
-| S44-S60 | Siege, Surrender, Udayagiri, Map, Chapel | final | **RENDERED in 1080p / 24 samples on the 4050** (user, 2026-10-19) |
-| S61-S69 | Map, Treaty, Temple, Today | device voice | NOT ready: 9 voice lines still to record; then rebuild scenes and render |
+| S01-S07 | `rtx4050_s01_s07` | 2,514 | READY, not rendered (new voice; old 1080p of S01-S04 is superseded) |
+| S08-S18 | `rtx4050_s08_s18` | 4,238 | READY, not rendered |
+| S19-S28 | `rtx4050_s19_s28` | 3,726 | READY, not rendered |
+| S29-S43 | (earlier package) | 6,000 | **RENDERED** in 1080p / 24 samples on the 4050 |
+| S44-S60 | (earlier package) | 5,629 | **RENDERED** in 1080p / 24 samples on the 4050 |
+| S61-S69 | `rtx4050_s61_s69` | 4,084 | READY, not rendered |
 
-**Voice summary (Algieba final):** S01-S07, S19-S60 are final. Device voice still on S08-S18 and S61-S69 (20 lines).
-Voice quota: 10 free requests per key per day (key 1 `~/.flow-mcp/gemini-key`, key 2 `gemini-key-2`, tried in turn by `_tools/tts.py`; `_tools/record_batch.py S08 S09 ...` records a run and stops at the first refusal).
-Next: record S08-S18, run `blender/rebuild_all_scenes.sh`, then `python colab/build_rtx_package.py 1 18` and render S01-S18; render S19-S28 from the package already built; then S61-S69.
-Other outputs on disk: 720p review videos for S41-S55 (`blender/renders/review_videos/`, device voice, superseded). Frame folders were deleted to save space.
+Remaining to render: S01-S28 (3 packages) and S61-S69. Then merge S01-S69.
+Other outputs on disk: 720p review videos for S41-S55 (`blender/renders/review_videos/`, superseded). Frame folders were deleted to save space.
 
 ## UPDATE 2026-10-18
 - **Review fixes (doc.md):** S60 chapel, S62 treaty tent and S64 temple now sit in real surroundings (`surround.py`, `scene_envs.py`: fort courtyard with walls and pavilions, Mavelikkara meadow with village and camps, walled temple compound with town, plus terrain, far hills, sky). S67 end (clip 81): land plain, shore, hills and sea now continue to the horizon, no cut-off. S68 (clip 82): same sea and sand colours as the day clips (sea only lightly violet), far land and hills in the background.
