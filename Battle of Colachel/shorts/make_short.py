@@ -112,7 +112,7 @@ def caption_png(text, path):
         else:
             cur = t
     rows.append(cur)
-    y = 1250
+    y = 1545
     for r in rows:
         outlined(d, (W // 2, y), r, f, (255, 255, 255), 9)
         y += 92
@@ -133,19 +133,19 @@ def hook_png(lines_, path):
 def label_png(place, date, path):
     img = Image.new("RGBA", (W, H), (0, 0, 0, 0))
     d = ImageDraw.Draw(img)
-    d.rectangle([70, 440, 70 + 500, 440 + 120], fill=(24, 19, 15, 225), outline=GOLD + (255,), width=3)
-    d.text((100, 462), place, font=font("georgiab.ttf", 42), fill=GOLD)
-    d.text((100, 515), date, font=font("georgiai.ttf", 34), fill=(245, 233, 205))
+    d.rectangle([70, 450, 70 + 500, 450 + 120], fill=(24, 19, 15, 225), outline=GOLD + (255,), width=3)
+    d.text((100, 472), place, font=font("georgiab.ttf", 42), fill=GOLD)
+    d.text((100, 525), date, font=font("georgiai.ttf", 34), fill=(245, 233, 205))
     img.save(path)
 
 
 def end_png(rows, path):
     img = Image.new("RGBA", (W, H), (0, 0, 0, 0))
     d = ImageDraw.Draw(img)
-    d.rectangle([0, 1240, W, 1640], fill=(0, 0, 0, 175))
-    outlined(d, (W // 2, 1290), rows[0], font("arialbd.ttf", 54), GOLD, 4)
-    outlined(d, (W // 2, 1370), rows[1], font("impact.ttf", 84), (255, 255, 255), 6)
-    outlined(d, (W // 2, 1500), rows[2], font("arial.ttf", 50), (235, 235, 235), 3)
+    d.rectangle([0, 1525, W, 1850], fill=(0, 0, 0, 175))
+    outlined(d, (W // 2, 1560), rows[0], font("arialbd.ttf", 54), GOLD, 4)
+    outlined(d, (W // 2, 1640), rows[1], font("impact.ttf", 84), (255, 255, 255), 6)
+    outlined(d, (W // 2, 1765), rows[2], font("arial.ttf", 50), (235, 235, 235), 3)
     img.save(path)
 
 
@@ -186,6 +186,7 @@ def build(key):
             caption_png(c, os.path.join(tmp, p))
             k += 1
             on, off = s["start"] + max(0.0, a - s["t0"]), s["start"] + min(s["dur"], b - s["t0"])
+            off = min(off, total - cfg["end_secs"])
             if off > on:
                 overlays.append((p, on, off))
     end_png(cfg["end"], os.path.join(tmp, "end.png"))
@@ -198,7 +199,7 @@ def build(key):
         fc.append(f"[{i}:v]trim=start={s['t0']:.3f}:end={s['t1']:.3f},setpts=PTS-STARTPTS,fps=24,split=2[a{i}][b{i}]")
         fc.append(f"[a{i}]scale={W}:{H}:force_original_aspect_ratio=increase,crop={W}:{H},boxblur=40:6,eq=brightness=-0.12[bg{i}]")
         fc.append(f"[b{i}]crop=1080:1080:{x}:0[fg{i}]")
-        fc.append(f"[bg{i}][fg{i}]overlay=0:(H-h)/2-80[v{i}]")
+        fc.append(f"[bg{i}][fg{i}]overlay=0:(H-h)/2[v{i}]")
         if s.get("mute"):
             fc.append(f"anullsrc=r=48000:cl=stereo,atrim=duration={s['dur']:.3f}[au{i}]")
         else:
