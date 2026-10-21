@@ -4,6 +4,17 @@ What the first video (Battle of Colachel: 69 beats, 18 minutes, published Octobe
 Style rules stay in `Style_Guide.md`, `Visual_Style.md` and `Blender_Build_Rules.md`; this file adds the pipeline, the numbers and the mistakes
 that cost time. If the user says something different, the user wins; write the decision into the battle's `PROGRESS.md`.
 
+## 0. Hook and length (learned from the first video's results, 2026-10-21)
+Colachel after 2 days: 23 views, 0.1 hours of total watch time (about 15 seconds per view), no click-through rate shown yet. The channel is new, but
+the watch time says viewers left almost at once: the opening (a slow beach and a title card, then a scene-setting line) did not hook. Rules from now on:
+- **Script length is strictly 10 to 13 minutes** (about 1,500 to 1,950 words at 150 words a minute). Colachel ran 18 minutes; that is too long for a zero-subscriber channel. Cut, do not pad.
+- **The first 15 seconds must hook.** Open on the most surprising moment or a question, in plain words, with the strongest image on screen at second 0
+  (the cannon shot, the burning wall, the captain's choice), not a title card or a wide establishing shot. Then go back and tell the story in order.
+- Put the title card and name plates AFTER the hook (about 10-20 s in), or keep the title card under 2 seconds.
+- Write the title and thumbnail text first, then make sure the first 15 seconds delivers exactly what they promise.
+- Check the numbers 2 days after upload: impressions, click-through rate, average view duration; if average view duration is under 30 s, rewrite the opening and re-upload or replace the first minute.
+- Cut a **Short (vertical, 30-50 s) from each strongest beat** for discovery, each with its own hook line and a link to the full video.
+
 ## 1. The order of work (and who approves what)
 1. Research, `Sources.md`, then the script (anti-slop passes), then the shot list. Script is 10+ minutes; scripts are cut into beats `S01..Snn`.
 2. **Plan the whole batch before building** (sets reused vs new, new kit parts, camera idea per beat). Build shared kit parts first, once.
