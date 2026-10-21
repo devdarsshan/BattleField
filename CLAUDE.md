@@ -10,6 +10,8 @@ This folder holds Dev's YouTube channel on battle history. Each video is a histo
 | `_channel-context/Visual_Style.md` | The low-poly 3D diorama look, and how text is handled |
 | `_channel-context/Blender_Build_Rules.md` | How every Blender clip is built and checked (look, density, camera, timing) |
 | `_channel-context/Production_Playbook.md` | Pipeline order, Blender/voice/render/edit/upload rules and mistakes learned from the first video. Read before starting any battle |
+| `_channel-context/Growth_and_Scripting_Insights.md` | Growth and scripting lessons from 3 viral-channel case studies: pre-script checklist, conflict-arc structure, open-loop hooks, packaging, upload cadence, analytics. Read before writing any script |
+| `_channel-context/Video_Roadmap.md` | Scored, ordered list of the next battles (batches). Pick the next video from here and re-score after each upload |
 | `_channel-context/Flow_Workflow.md` | Step by step: characters, stills, clips, narration, cut, and the no-cut rule |
 | `style-refs/` | Example images of the look |
 
@@ -32,9 +34,10 @@ BattleField/
 2. **Free work first.** Characters and keyframe stills cost nothing. Get the user's approval on them before spending any credits on video.
 3. **Ask before spending.** State the credit cost before each batch of clips. The default is 3 clips a day.
 4. **Facts must be true.** Every claim needs a source in `Sources.md`. Hedge anything disputed in the narration itself ("Legend says", "Historians still argue"). Never invent numbers.
-5. **Scripts run at least 10 minutes** (about 1,500+ words at 150 words a minute) unless the user asks otherwise.
+5. **Scripts run 10 to 13 minutes** (about 1,400-1,500 words in 40-45 beats; the voice reads about 132 words a minute and each beat has a 10 s minimum; see `Production_Playbook.md` section 0) unless the user asks otherwise.
 6. **No text in generated images or clips.** Titles and labels are added in the edit.
 7. Keep the Flow Studio key (Google AI Studio) out of chats. It lives in `~/.flow-mcp/gemini-key`.
+8. **Never play audio or video without the user's permission** (decided by the user, 2026-10-21). This covers YouTube pages in any browser, rendered clips, voice takes and media players. Read YouTube through text (page data, captions, comments) instead of opening watch pages. If playback is unavoidable, ask first, then mute and pause every media element and turn autoplay off before anything plays, so the user stays in control. Close media tabs when done. Every agent, including subagents and Gemini, follows this.
 
 ## Starting a new battle
 1. Research it and write `Sources.md`, including the disputed-points table.

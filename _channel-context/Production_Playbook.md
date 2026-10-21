@@ -7,7 +7,9 @@ that cost time. If the user says something different, the user wins; write the d
 ## 0. Hook and length (learned from the first video's results, 2026-10-21)
 Colachel after 2 days: 23 views, 0.1 hours of total watch time (about 15 seconds per view), no click-through rate shown yet. The channel is new, but
 the watch time says viewers left almost at once: the opening (a slow beach and a title card, then a scene-setting line) did not hook. Rules from now on:
-- **Script length is strictly 10 to 13 minutes** (about 1,500 to 1,950 words at 150 words a minute). Colachel ran 18 minutes; that is too long for a zero-subscriber channel. Cut, do not pad.
+- **Script length is strictly 10 to 13 minutes.** Colachel ran 18 minutes; that is too long for a zero-subscriber channel. Cut, do not pad.
+  - **Time it with the real pace, not 150 words a minute.** Colachel (2,271 words, 68 beats) came out at 18 minutes: Algieba reads about 132 words a minute, and each beat lasts its narration plus about 1.8 s, with a 10 s minimum. Model: `sum(max(10, words/2.2 + 1.8))` over the beats, plus the 18 s end screen.
+  - In practice: **about 1,400 to 1,500 words in about 40 to 45 beats of 22+ words** gives about 12.5 minutes. Short punchy beats get stretched to 10 s each, so merge them (this matters most in the hook).
 - **The first 15 seconds must hook.** Open on the most surprising moment or a question, in plain words, with the strongest image on screen at second 0
   (the cannon shot, the burning wall, the captain's choice), not a title card or a wide establishing shot. Then go back and tell the story in order.
 - Put the title card and name plates AFTER the hook (about 10-20 s in), or keep the title card under 2 seconds.
